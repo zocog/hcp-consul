@@ -360,7 +360,7 @@ const (
 			"privateKey": {
 				"filename": "test-key-file"
 			}
-		}	
+		}
 	},
 	{
 		"name": "prometheus_validation_context",
@@ -380,7 +380,7 @@ const (
 			"privateKey": {
 				"filename": "test-key-file"
 			}
-		}	
+		}
 	},
 	{
 		"name": "prometheus_validation_context",
@@ -1283,6 +1283,43 @@ func TestConsulTagSpecifiers(t *testing.T) {
 				"consul.destination.service_subset": {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", ""},
 				"consul.destination.target":         {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "f8f8f8f8~pong.default.dc2"},
 				"consul.destination.trust_domain":   {"f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.", "e5b08d03-bfc3-c870-1833-baddb116e648"},
+			},
+		},
+		{
+			name: "cluster exported service",
+			stat: "cluster.exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.bind_errors",
+			expect: map[string][]string{
+				"consul.custom_hash":                {"exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "exported"},
+				"consul.datacenter":                 {"exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "dc1"},
+				"consul.destination.custom_hash":    {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", ""},
+				"consul.destination.datacenter":     {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "dc1"},
+				"consul.destination.full_target":    {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555"},
+				"consul.destination.namespace":      {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "default"},
+				"consul.destination.partition":      {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", ""},
+				"consul.destination.routing_type":   {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "internal"},
+				"consul.destination.service":        {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "bar"},
+				"consul.destination.service_subset": {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", ""},
+				"consul.destination.target":         {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "bar.default.dc1"},
+				"consul.destination.trust_domain":   {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "11111111-2222-3333-4444-555555555555"},
+				"consul.full_target":                {"exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555"},
+				"consul.namespace":                  {"exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "default"},
+				"consul.routing_type":               {"exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "internal"},
+				"consul.service":                    {"exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "bar"},
+				"consul.service_subset":             {"exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", ""},
+				"consul.target":                     {"exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "exported~bar.default.dc1"},
+				"consul.trust_domain":               {"exported~bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "11111111-2222-3333-4444-555555555555"},
+			},
+			expectNoDeprecated: map[string][]string{
+				"consul.destination.custom_hash":    {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", ""},
+				"consul.destination.datacenter":     {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "dc1"},
+				"consul.destination.full_target":    {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555"},
+				"consul.destination.namespace":      {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "default"},
+				"consul.destination.partition":      {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", ""},
+				"consul.destination.routing_type":   {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "internal"},
+				"consul.destination.service":        {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "bar"},
+				"consul.destination.service_subset": {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", ""},
+				"consul.destination.target":         {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "bar.default.dc1"},
+				"consul.destination.trust_domain":   {"bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul.", "11111111-2222-3333-4444-555555555555"},
 			},
 		},
 		{

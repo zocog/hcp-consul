@@ -335,7 +335,8 @@ func statsSinkEnvMapping(s string) string {
 // resourceTagSpecifiers returns patterns used to generate tags from cluster and filter metric names.
 func resourceTagSpecifiers(omitDeprecatedTags bool) ([]string, error) {
 	const (
-		reSegment = `[^.]+`
+		reSegment        = `[^.]+`
+		qualifierSegment = "passthrough|exported"
 	)
 
 	// For all rules:
@@ -363,48 +364,48 @@ func resourceTagSpecifiers(omitDeprecatedTags bool) ([]string, error) {
 		// (peered)
 		// - cluster.pong.default.cloudpeer.external.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
 		{"consul.destination.custom_hash",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:(%s)~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:%s~)?((?:(%s)~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
+				qualifierSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.service_subset",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:(%s)\.)?%s\.%s\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:%s~)?((?:%s~)?(?:(%s)\.)?%s\.%s\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
+				qualifierSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.service",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?(%s)\.%s\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:%s~)?((?:%s~)?(?:%s\.)?(%s)\.%s\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
+				qualifierSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.namespace",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.(%s)\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:%s~)?((?:%s~)?(?:%s\.)?%s\.(%s)\.(?:%s\.)?%s\.%s\.%s\.consul\.)`,
+				qualifierSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.partition",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:(%s)\.)?%s\.internal[^.]*\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:%s~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:(%s)\.)?%s\.internal[^.]*\.%s\.consul\.)`,
+				qualifierSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.datacenter",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?(%s)\.internal[^.]*\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:%s~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?(%s)\.internal[^.]*\.%s\.consul\.)`,
+				qualifierSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.peer",
 			fmt.Sprintf(`^cluster\.(%s\.(?:%s\.)?(%s)\.external\.%s\.consul\.)`,
 				reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.routing_type",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.(%s)\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:%s~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.(%s)\.%s\.consul\.)`,
+				qualifierSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.trust_domain",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.%s\.(%s)\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:%s~)?((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.%s\.(%s)\.consul\.)`,
+				qualifierSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.target",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?(((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s)\.%s\.%s\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:%s~)?(((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s)\.%s\.%s\.consul\.)`,
+				qualifierSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		{"consul.destination.full_target",
-			fmt.Sprintf(`^cluster\.(?:passthrough~)?(((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.%s\.%s)\.consul\.)`,
-				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+			fmt.Sprintf(`^cluster\.(?:%s~)?(((?:%s~)?(?:%s\.)?%s\.%s\.(?:%s\.)?%s\.%s\.%s)\.consul\.)`,
+				qualifierSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
 
 		// Upstream listener metrics are prefixed by consul.upstream
 		//
@@ -747,7 +748,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 			"privateKey": {
 				"filename": "%s"
 			}
-		}	
+		}
 	},
 	{
 		"name": "prometheus_validation_context",
