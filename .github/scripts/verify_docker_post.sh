@@ -106,8 +106,9 @@ function smoke_test {
   if [[ "${got_version}" != "v${version}" ]]; then
     echo "Test FAILED"
     echo "Got: ${got_version}, Want: v${version}"
+  else
+    echo "Test PASSED"
   fi
-  echo "Test PASSED"
 }
 
 function platform_for_arch {
