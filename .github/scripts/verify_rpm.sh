@@ -41,7 +41,7 @@ function main {
   fi
 
   yum -y clean all
-  yum -y update
+  yum -y update-minimal
   yum -y install which openssl
   rpm --ignorearch -i ${rpm_path}
 

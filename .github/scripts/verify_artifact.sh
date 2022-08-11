@@ -75,11 +75,14 @@ function verify_rpm {
       ;;
     *.armv7hl.rpm)
       docker_platform="linux/arm/v7"
-      docker_image="arm32v7/fedora:36"
+      docker_image="arm32v7/fedora:35"
+      # docker_image="amazonlinux:latest"
+      # docker_image="arm32v7/fedora-minimal:36"
+      # docker_image="arm32v7/fedora-minimal:36"
       ;;
     *.aarch64.rpm)
       docker_platform="linux/arm64"
-      docker_image="arm64v8/fedora:36"
+      docker_image="arm64v8/fedora:35"
       ;;
     *)
       echo "${artifact_path} did not match known patterns for rpms"
@@ -92,6 +95,7 @@ function verify_rpm {
   echo "IMAGE=${docker_image}"
 
   docker run \
+      --memory=600m \
       --platform=${docker_platform} \
       -v $(pwd):/workdir \
       -v ${SCRIPT_DIR}:/scripts \
