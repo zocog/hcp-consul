@@ -6,6 +6,29 @@ readonly self_name="$0"
 
 readonly HASHICORP_DOCKER_PROXY="docker.mirror.hashicorp.services"
 
+function ip_map {
+  case $1 in
+   envoy_s2-sidecar-proxy_1)
+     echo "172.25.1.0"
+     ;;
+   envoy_s2_1)
+     echo "172.25.1.1"
+     ;;
+   envoy_s1-sidecar-proxy_1)
+     echo "172.25.1.2"
+     ;;
+   envoy_s1_1)
+     echo "172.25.1.3"
+     ;;
+   envoy_consul-primary_1)
+     echo "172.25.1.4"
+     ;;
+   *)
+     echo ""
+     ;;
+  esac
+}
+
 # DEBUG=1 enables set -x for this script so echos every command run
 DEBUG=${DEBUG:-}
 
@@ -42,7 +65,7 @@ readonly WORKDIR_SNIPPET='-v envoy_workdir:/workdir'
 
 function network_snippet {
     local DC="$1"
-    echo "--net container:envoy_consul-${DC}_1"
+    echo "--net envoy-tests"
 }
 
 function aws_snippet {
@@ -146,26 +169,26 @@ function start_consul {
   # 8500/8502 are for consul
   # 9411 is for zipkin which shares the network with consul
   # 16686 is for jaeger ui which also shares the network with consul
-  ports=(
-    '-p=8500:8500'
-    '-p=8502:8502'
-    '-p=9411:9411'
-    '-p=16686:16686'
-  )
-  case "$DC" in
-    secondary)
-      ports=(
-        '-p=9500:8500'
-        '-p=9502:8502'
-      )
-      ;;
-    alpha)
-      ports=(
-        '-p=9510:8500'
-        '-p=9512:8502'
-      )
-      ;;
-  esac
+#  ports=(
+#    '-p=8500:8500'
+#    '-p=8502:8502'
+#    '-p=9411:9411'
+#    '-p=16686:16686'
+#  )
+#  case "$DC" in
+#    secondary)
+#      ports=(
+#        '-p=9500:8500'
+#        '-p=9502:8502'
+#      )
+#      ;;
+#    alpha)
+#      ports=(
+#        '-p=9510:8500'
+#        '-p=9512:8502'
+#      )
+#      ;;
+#  esac
 
   license="${CONSUL_LICENSE:-}"
   # load the consul license so we can pass it into the consul
@@ -241,7 +264,6 @@ function start_consul {
       --hostname "consul-${DC}-client" \
       --network-alias "consul-${DC}-client" \
       -e "CONSUL_LICENSE=$license" \
-      ${ports[@]} \
       consul:local \
       agent -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
@@ -255,12 +277,12 @@ function start_consul {
 
     docker run -d --name envoy_consul-${DC}_1 \
       --net=envoy-tests \
+      --ip="$(ip_map envoy_consul-${DC}_1)" \
       $WORKDIR_SNIPPET \
       --hostname "consul-${DC}" \
       --network-alias "consul-${DC}-client" \
       --network-alias "consul-${DC}-server" \
       -e "CONSUL_LICENSE=$license" \
-      ${ports[@]} \
       consul:local \
       agent -dev -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
@@ -545,7 +567,7 @@ function suite_setup {
     # Cleanup from any previous unclean runs.
     suite_teardown
 
-    docker network create envoy-tests &>/dev/null
+    docker network create envoy-tests --subnet "172.25.0.0/16" &>/dev/null
 
     # Start the volume container
     #
@@ -618,6 +640,7 @@ function common_run_container_service {
   docker run -d --name $(container_name_prev) \
     -e "FORTIO_NAME=${service}" \
     $(network_snippet $CLUSTER) \
+    --ip="$(ip_map $(container_name_prev))" \
     "${HASHICORP_DOCKER_PROXY}/fortio/fortio" \
     server \
     -http-port ":$httpPort" \
@@ -698,6 +721,7 @@ function common_run_container_sidecar_proxy {
   # location?
   docker run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
+    --ip="$(ip_map $(container_name_prev))" \
     $(network_snippet $CLUSTER) \
     $(aws_snippet) \
     "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \

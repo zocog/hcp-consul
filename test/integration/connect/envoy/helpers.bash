@@ -161,6 +161,38 @@ function assert_cert_signed_by_ca {
   echo "$CERT" | grep 'Verify return code: 0 (ok)'
 }
 
+function assert_envoy_version_2 {
+  local ADMINPORT=$1
+  local CONTAINER_NAME=$2
+  run retry_default curl -f -s $CONTAINER_NAME:$ADMINPORT/server_info
+  [ "$status" -eq 0 ]
+  # Envoy 1.8.0 returns a plain text line like
+  # envoy 5d25f466c3410c0dfa735d7d4358beb76b2da507/1.8.0/Clean/DEBUG live 3 3 0
+  # Later versions return JSON.
+  if (echo $output | grep '^envoy') ; then
+    VERSION=$(echo $output | cut -d ' ' -f 2)
+  else
+    VERSION=$(echo $output | jq -r '.version')
+  fi
+  echo "Status=$status"
+  echo "Output=$output"
+  echo "---"
+  echo "Got version=$VERSION"
+  echo "Want version=$ENVOY_VERSION"
+
+  # 1.20.2, 1.19.3 and 1.18.6 are special snowflakes in that the version for
+  # the release is reported with a '-dev' suffix (eg 1.20.2-dev).
+  if [ "$ENVOY_VERSION" = "1.20.2" ] ; then
+    ENVOY_VERSION="1.20.2-dev"
+  elif [ "$ENVOY_VERSION" = "1.19.3" ] ; then
+    ENVOY_VERSION="1.19.3-dev"
+  elif [ "$ENVOY_VERSION" = "1.18.6" ] ; then
+    ENVOY_VERSION="1.18.6-dev"
+  fi
+
+  echo $VERSION | grep "/$ENVOY_VERSION/"
+}
+
 function assert_envoy_version {
   local ADMINPORT=$1
   run retry_default curl -f -s localhost:$ADMINPORT/server_info
@@ -767,6 +799,7 @@ function gen_envoy_bootstrap {
   if output=$(docker_consul_for_proxy_bootstrap "$DC" connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
     -envoy-version "$ENVOY_VERSION" \
+    -http-addr envoy_consul-primary_1:8500 -grpc-addr envoy_consul-primary_1:8502 \
     -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
 
     # All OK, write config to file
