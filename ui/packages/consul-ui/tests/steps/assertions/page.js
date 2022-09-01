@@ -134,7 +134,7 @@ export default function(scenario, assert, find, currentPage, $) {
         );
       });
     })
-    .then([`I${dont} see $property`, `I${dont} see $property on the $component`], function(
+    .then([`I${dont} see $property`, `I${dont} see $property on the $component`], async function(
       negative,
       property,
       component
@@ -177,6 +177,7 @@ export default function(scenario, assert, find, currentPage, $) {
         } else {
           try {
             target = target();
+            await new Promise(resolve => setTimeout(resolve, 0));
           } catch (e) {
             console.error(e);
             throw new Error(`The '${property}' page object doesn't exist`);
