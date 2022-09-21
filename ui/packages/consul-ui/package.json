@@ -122,7 +122,7 @@
     "ember-compatibility-helpers": "^1.2.5",
     "ember-composable-helpers": "^5.0.0",
     "ember-data": "~3.24.0",
-    "ember-data-model-fragments": "5.0.0-beta.0",
+    "ember-data-model-fragments": "5.0.0-beta.3",
     "ember-decorators": "^6.1.1",
     "ember-exam": "^6.1.0",
     "ember-export-application-global": "^2.0.1",
