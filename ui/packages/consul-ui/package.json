@@ -66,7 +66,7 @@
     "@ember/test-helpers": "^2.1.4",
     "@glimmer/component": "^1.0.3",
     "@glimmer/tracking": "^1.0.3",
-    "@hashicorp/ember-cli-api-double": "^3.1.0",
+    "@hashicorp/ember-cli-api-double": "^4.0.0",
     "@lit/reactive-element": "^1.2.1",
     "@xstate/fsm": "^1.4.0",
     "a11y-dialog": "^6.0.1",
@@ -98,7 +98,7 @@
     "deepmerge": "^4.2.2",
     "ember-array-fns": "^1.4.0",
     "ember-assign-helper": "^0.3.0",
-    "ember-auto-import": "^1.10.1",
+    "ember-auto-import": "^2.4.2",
     "ember-can": "^4.2.0",
     "ember-changeset-conditional-validations": "^0.6.0",
     "ember-changeset-validations": "~3.9.0",
@@ -117,7 +117,7 @@
     "ember-cli-string-helpers": "^5.0.0",
     "ember-cli-template-lint": "^2.0.1",
     "ember-cli-terser": "^4.0.1",
-    "ember-cli-yadda": "^0.6.0",
+    "ember-cli-yadda": "^0.7.0",
     "ember-collection": "^1.0.0-alpha.9",
     "ember-compatibility-helpers": "^1.2.5",
     "ember-composable-helpers": "^5.0.0",
@@ -184,7 +184,8 @@
     "tippy.js": "^6.2.7",
     "torii": "^0.10.1",
     "unist-util-visit": "^2.0.3",
-    "wayfarer": "^7.0.1"
+    "wayfarer": "^7.0.1",
+    "webpack": "^5.74.0"
   },
   "engines": {
     "node": ">=10 <=14"
