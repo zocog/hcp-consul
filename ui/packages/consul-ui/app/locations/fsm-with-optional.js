@@ -245,6 +245,11 @@ export default class FSMWithOptionalLocation {
    * performs an ember transition/refresh and browser location update using that
    */
   transitionTo(url) {
+    // make sure we don' transition when application instance is destroying/destroyed
+    if (this.container.isDestroyed || this.container.isDestroying) {
+      return;
+    }
+
     if (this.router.currentRouteName.startsWith('docs') && url.startsWith('console://')) {
       console.info(`location.transitionTo: ${url.substr(10)}`);
       return true;
