@@ -135,7 +135,7 @@
     "ember-modifier": "^2.1.1",
     "ember-named-blocks-polyfill": "^0.2.3",
     "ember-on-helper": "^0.1.0",
-    "ember-on-resize-modifier": "^0.3.0",
+    "ember-on-resize-modifier": "^1.1.0",
     "ember-page-title": "^6.2.1",
     "ember-power-select": "^6.0.0",
     "ember-power-select-with-create": "^1.0.0",
