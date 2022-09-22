@@ -22,17 +22,17 @@
 
 You will need the following things properly installed on your computer.
 
-* [Git](https://git-scm.com/)
-* [Node.js](https://nodejs.org/) (with npm)
+- [Git](https://git-scm.com/)
+- [Node.js](https://nodejs.org/) (with npm)
 
-* [yarn](https://yarnpkg.com)
-* [Ember CLI](https://ember-cli.com/)
-* [Google Chrome](https://google.com/chrome/)
+- [yarn](https://yarnpkg.com)
+- [Ember CLI](https://ember-cli.com/)
+- [Google Chrome](https://google.com/chrome/)
 
 ## Installation
 
-* `git clone https://github.com/hashicorp/consul.git` this repository
-* `cd ui/packages/consul-ui`
+- `git clone https://github.com/hashicorp/consul.git` this repository
+- `cd ui/packages/consul-ui`
 
 then:
 
@@ -40,13 +40,13 @@ then:
 
 From within `ui/packages/consul-ui` directory run:
 
-* `make start`
+- `make start`
 
 **To run tests**
 
 From within `ui/packages/consul-ui` directory run:
 
-* `make test-oss-view` which will run the tests in Chrome
+- `make test-oss-view` which will run the tests in Chrome
 
 (see below and/or the [testing section of the engineering docs](./docs/testing.mdx) for
 further detail)
@@ -56,29 +56,29 @@ further detail)
 Most used tooling scripts below primarily use `make` which will `yarn install`
 and in turn call node package scripts.
 
-List of available project commands.  `yarn run <command-name>`
+List of available project commands. `yarn run <command-name>`
 
-| Command | Description |
-| ------- | ----------- |
-| build:staging | Builds the UI in staging mode (ready for PR preview site). |
-| build:ci | Builds the UI for CI. |
-| build | Builds the UI for production. |
-| lint | Runs all lint commands. |
-| lint:hbs | Lints `hbs` template files. |
-| lint:js | Lints `js` files. |
-| format | Runs all auto-formatters. |
-| format:js | Auto-formats `js` files using Prettier. |
-| format:sass | Auto-formats `scss` files using Prettier. |
-| start | Runs the development app on a local server using the mock API. |
-| start:consul | Runs the development app local server using a real consul instance as the backend. |
-| start:staging | Runs the staging app local server. |
-| test | Runs the ember tests in a headless browser. |
-| test:view | Runs the ember tests in a non-headless browser. |
-| test:oss | Runs only the OSS ember tests in a headless browser. |
-| test:oss:view | Runs only the OSS ember tests in a non-headless browser. |
-| test:coverage:view | Runs only the test specified for coverage in a non-headless browser. |
-| test:node | Runs tests that can't be run in ember using node. |
-| doc:toc | Automatically generates a table of contents for this README file. |
+| Command            | Description                                                                        |
+| ------------------ | ---------------------------------------------------------------------------------- |
+| build:staging      | Builds the UI in staging mode (ready for PR preview site).                         |
+| build:ci           | Builds the UI for CI.                                                              |
+| build              | Builds the UI for production.                                                      |
+| lint               | Runs all lint commands.                                                            |
+| lint:hbs           | Lints `hbs` template files.                                                        |
+| lint:js            | Lints `js` files.                                                                  |
+| format             | Runs all auto-formatters.                                                          |
+| format:js          | Auto-formats `js` files using Prettier.                                            |
+| format:sass        | Auto-formats `scss` files using Prettier.                                          |
+| start              | Runs the development app on a local server using the mock API.                     |
+| start:consul       | Runs the development app local server using a real consul instance as the backend. |
+| start:staging      | Runs the staging app local server.                                                 |
+| test               | Runs the ember tests in a headless browser.                                        |
+| test:view          | Runs the ember tests in a non-headless browser.                                    |
+| test:oss           | Runs only the OSS ember tests in a headless browser.                               |
+| test:oss:view      | Runs only the OSS ember tests in a non-headless browser.                           |
+| test:coverage:view | Runs only the test specified for coverage in a non-headless browser.               |
+| test:node          | Runs tests that can't be run in ember using node.                                  |
+| doc:toc            | Automatically generates a table of contents for this README file.                  |
 
 ## Running / Development
 
@@ -86,16 +86,16 @@ The source code comes with a small development mode that runs enough of the cons
 as a set of mocks/fixtures to be able to run the UI without having to run
 consul.
 
-* `make start` or `yarn start` to start the ember app
-* Visit your app at [http://localhost:4200](http://localhost:4200).
+- `make start` or `yarn start` to start the ember app
+- Visit your app at [http://localhost:4200](http://localhost:4200).
 
 You can also run the UI against a normal Consul installation.
 
-* `consul server -dev` to start consul listening on http://localhost:8500
-* `make start-consul` to start the ember app proxying to `consul` (this will
-respect the `CONSUL_HTTP_ADDR` environment variable to locate the Consul
-installation.
-* Visit your app at [http://localhost:4200](http://localhost:4200).
+- `consul server -dev` to start consul listening on http://localhost:8500
+- `make start-consul` to start the ember app proxying to `consul` (this will
+  respect the `CONSUL_HTTP_ADDR` environment variable to locate the Consul
+  installation.
+- Visit your app at [http://localhost:4200](http://localhost:4200).
 
 Example:
 
@@ -116,6 +116,7 @@ GitHub Org. If you are an external contributor these tests won't run and will
 instead be run by a member of our team during review.
 
 Examples:
+
 - `ui/feature/add...`
 - `ui/bugfix/fix...`
 - `ui/enhancement/update...`
@@ -144,15 +145,15 @@ Tests use the mock api (see ./mock-api for details), the mock-api runs
 automatically during testing, you don't need to run anything separately from
 the below commands in order for the tests to use the mock-api.
 
-* `make test` or `yarn run test`
-* `make test-view` or `yarn run test:view` to view the tests running in Chrome
+- `make test` or `yarn run test`
+- `make test-view` or `yarn run test:view` to view the tests running in Chrome
 
 For more guidance on running tests, see the [testing section of the engineering docs](./docs/testing.mdx).
 
 OSS only tests can also be run using:
 
-* `make test-oss` or `yarn run test:oss`
-* `make test-oss-view` or `yarn run test:oss:view` to view the tests running in Chrome
+- `make test-oss` or `yarn run test:oss`
+- `make test-oss-view` or `yarn run test:oss:view` to view the tests running in Chrome
 
 ### Linting
 
@@ -162,8 +163,8 @@ See `.eslintrc.js` and `.eslintignore` for specific configuration.
 
 ### Building
 
-* `make build` builds the UI for production usage (env=production)
-* `make build-ci` builds the UI for CI/test usage (env=test)
+- `make build` builds the UI for production usage (env=production)
+- `make build-ci` builds the UI for CI/test usage (env=test)
 
 Static files are built into ./dist
 
@@ -177,11 +178,13 @@ Alternatively, `ember-exam` can be used to split the tests across multiple brows
 **Note:** The `EMBER_EXAM_PARALLEL` environment variable must be set to override the default `parallel` value of `1` browser instance in [testem.js](./testem.js).
 
 To quickly run the tests across 4 parallel browser instances:
+
 ```sh
 make test-parallel
 ```
 
 To run manually:
+
 ```sh
 $ EMBER_EXAM_PARALLEL=true ./node_modules/.bin/ember exam --split <num> --parallel
 ```
