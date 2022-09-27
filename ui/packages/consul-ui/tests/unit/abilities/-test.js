@@ -1,4 +1,5 @@
 /* globals requirejs */
+/* eslint-disable qunit/no-early-return */
 import { module, test } from 'qunit';
 import { setupTest } from 'ember-qunit';
 
@@ -55,7 +56,7 @@ module('Unit | Ability | *', function (hooks) {
               break;
             case 'kv':
               // TODO: We currently hardcode KVs to always be true
-              assert.equal(true, ability[`can${perm}`], `Expected ${item}.can${perm} to be true`);
+              assert.true(ability[`can${perm}`], `Expected ${item}.can${perm} to be true`);
               return;
             case 'license':
             case 'zone':

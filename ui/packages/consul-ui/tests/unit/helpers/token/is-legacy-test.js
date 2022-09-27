@@ -27,11 +27,11 @@ module('Unit | Helper | token/is-legacy', function () {
     const actual = isLegacy([[{}, {}]]);
     assert.notOk(actual);
   });
-  test('it returns true if the token has a Legacy=true', function (assert) {
+  test('it returns true if the tokens have a Legacy=true', function (assert) {
     const actual = isLegacy([[{}, { Legacy: true }]]);
     assert.ok(actual);
   });
-  test('it returns false if the token has a Legacy=false', function (assert) {
+  test('it returns false if the tokens have a Legacy=false', function (assert) {
     const actual = isLegacy([[{}, { Legacy: false }]]);
     assert.notOk(actual);
   });

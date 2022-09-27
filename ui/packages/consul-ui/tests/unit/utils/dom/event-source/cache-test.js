@@ -47,7 +47,7 @@ module('Unit | Utility | dom/event-source/cache', function () {
     const Promise = createPromise();
 
     const getCache = domEventSourceCache(function () {}, EventSource, Promise);
-    assert.ok(typeof getCache === 'function');
+    assert.strictEqual(typeof getCache, 'function');
   });
   test('getCache returns a function', function (assert) {
     const EventSource = createEventSource();
@@ -56,7 +56,7 @@ module('Unit | Utility | dom/event-source/cache', function () {
     const getCache = domEventSourceCache(function () {}, EventSource, Promise);
     const obj = {};
     const cache = getCache(obj);
-    assert.ok(typeof cache === 'function');
+    assert.strictEqual(typeof cache, 'function');
   });
   test('cache creates the default EventSource and keeps it open when there is a cursor', function (assert) {
     const EventSource = createEventSource();
@@ -89,7 +89,7 @@ module('Unit | Utility | dom/event-source/cache', function () {
     assert.ok(source.calledTwice, 'promisifying source called once');
     assert.ok(retrievedEventSource instanceof Promise, 'source returns a Promise');
   });
-  test('cache creates the default EventSource and keeps it open when there is a cursor', function (assert) {
+  test("cache creates the default EventSource and keeps it open when there isn't cursor but enabled is true", function (assert) {
     const EventSource = createEventSource();
     const stub = {
       close: sinon.stub(),
