@@ -58,6 +58,16 @@ type ConfigSnapshotUpstreams struct {
 	// backing endpoints of a mesh gateway.
 	WatchedGatewayEndpoints map[UpstreamID]map[string]structs.CheckServiceNodes
 
+	// WatchedLocalGWEndpoints is used to store the backing endpoints of
+	// a local mesh gateway. Currently, this is used by peered upstreams
+	// configured with local mesh gateway mode so that they can watch for
+	// gateway endpoints.
+	//
+	// Note that the string form of GatewayKey is used as the key so empty
+	// fields can be normalized in OSS.
+	//   GatewayKey.String() -> structs.CheckServiceNodes
+	WatchedLocalGWEndpoints watch.Map[string, structs.CheckServiceNodes]
+
 	// UpstreamConfig is a map to an upstream's configuration.
 	UpstreamConfig map[UpstreamID]*structs.Upstream
 
@@ -609,6 +619,9 @@ type configSnapshotIngressGateway struct {
 	// Listeners is the original listener config from the ingress-gateway config
 	// entry to save us trying to pass fields through Upstreams
 	Listeners map[IngressListenerKey]structs.IngressListener
+
+	// Defaults is the default configuration for upstream service instances
+	Defaults structs.IngressServiceConfig
 }
 
 // isEmpty is a test helper

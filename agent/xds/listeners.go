@@ -190,6 +190,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 
 			upstreamListener := makeListener(uid.EnvoyID(), upstreamCfg, envoy_core_v3.TrafficDirection_OUTBOUND)
+			s.injectConnectionBalanceConfig(cfg.BalanceOutboundConnections, upstreamListener)
 			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
 			}
@@ -274,7 +275,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 				return nil
 			}
 			configuredPorts[svcConfig.Destination.Port] = struct{}{}
-			const name = "~http" //name used for the shared route name
+			const name = "~http" // name used for the shared route name
 			routeName := clusterNameForDestination(cfgSnap, name, fmt.Sprintf("%d", svcConfig.Destination.Port), svcConfig.NamespaceOrDefault(), svcConfig.PartitionOrDefault())
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 				routeName:  routeName,
@@ -385,6 +386,8 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 			}
 
 			upstreamListener := makeListener(uid.EnvoyID(), upstreamCfg, envoy_core_v3.TrafficDirection_OUTBOUND)
+			s.injectConnectionBalanceConfig(cfg.BalanceOutboundConnections, upstreamListener)
+
 			upstreamListener.FilterChains = []*envoy_listener_v3.FilterChain{
 				filterChain,
 			}
@@ -559,6 +562,7 @@ func (s *ResourceGenerator) listenersFromSnapshotConnectProxy(cfgSnap *proxycfg.
 		}
 
 		upstreamListener := makeListener(uid.EnvoyID(), u, envoy_core_v3.TrafficDirection_OUTBOUND)
+		s.injectConnectionBalanceConfig(cfg.BalanceOutboundConnections, upstreamListener)
 
 		filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
 			// TODO (SNI partition) add partition for upstream SNI
@@ -905,6 +909,19 @@ func makeListenerFromUserConfig(configJSON string) (*envoy_listener_v3.Listener,
 	return &l, nil
 }
 
+func (s *ResourceGenerator) injectConnectionBalanceConfig(balanceType string, listener *envoy_listener_v3.Listener) {
+	switch balanceType {
+	case "":
+		// Default with no balancing.
+	case structs.ConnectionExactBalance:
+		listener.ConnectionBalanceConfig = &envoy_listener_v3.Listener_ConnectionBalanceConfig{
+			BalanceType: &envoy_listener_v3.Listener_ConnectionBalanceConfig_ExactBalance_{},
+		}
+	default:
+		s.Logger.Warn("ignoring invalid connection balance option", "value", balanceType)
+	}
+}
+
 // Ensure that the first filter in each filter chain of a public listener is
 // the authz filter to prevent unauthorized access.
 func (s *ResourceGenerator) injectConnectFilters(cfgSnap *proxycfg.ConfigSnapshot, listener *envoy_listener_v3.Listener) error {
@@ -1221,6 +1238,7 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 	}
 
 	l = makePortListener(name, addr, port, envoy_core_v3.TrafficDirection_INBOUND)
+	s.injectConnectionBalanceConfig(cfg.BalanceInboundConnections, l)
 
 	var tracing *envoy_http_v3.HttpConnectionManager_Tracing
 	if cfg.ListenerTracingJSON != "" {
@@ -1996,6 +2014,10 @@ func (s *ResourceGenerator) getAndModifyUpstreamConfigForPeeredListener(
 
 	if cfg.ConnectTimeoutMs == 0 {
 		cfg.ConnectTimeoutMs = 5000
+	}
+
+	if cfg.MeshGateway.Mode == "" && u != nil {
+		cfg.MeshGateway = u.MeshGateway
 	}
 
 	return cfg
