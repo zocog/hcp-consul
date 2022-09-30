@@ -23,6 +23,9 @@ function main {
   yum install -y yum-utils
   yum-config-manager --add-repo "${repo}" 
 
+  # enable test channel so our pre-releases are included
+  sed -i 's/enabled=0/enabled=1/g' /etc/yum.repos.d/hashicorp.repo
+
   # should show latest version
   yum info "${pkg}"
 
