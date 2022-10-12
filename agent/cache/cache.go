@@ -583,6 +583,16 @@ func (c *Cache) fetch(key string, r getOptions) <-chan struct{} {
 	case ok && entry.GoroutineID != 0:
 		// If we already have an entry and there's a goroutine to keep it
 		// refreshed then don't spawn another one to do the same work.
+		//
+		// That goroutine must be sleeping since it's not fetching, so nudge it.
+
+		if entry.ResumeFetching != nil {
+			select {
+			case entry.ResumeFetching <- struct{}{}: // notify
+			default:
+			}
+		}
+
 		return entry.Waiter
 
 	case !ok:
@@ -605,6 +615,7 @@ func (c *Cache) fetch(key string, r getOptions) <-chan struct{} {
 	// detect that and terminate rather than leak and do double work.
 	c.lastGoroutineID++
 	entry.GoroutineID = c.lastGoroutineID
+	entry.ResumeFetching = make(chan struct{}, 1)
 	// Set that we're fetching to true, which makes it so that future
 	// identical calls to fetch will return the same waiter rather than
 	// perform multiple fetches.
@@ -614,12 +625,12 @@ func (c *Cache) fetch(key string, r getOptions) <-chan struct{} {
 	metrics.SetGauge([]string{"cache", "entries_count"}, float32(len(c.entries)))
 
 	// The actual Fetch must be performed in a goroutine.
-	go c.launchBackgroundFetcher(entry.GoroutineID, key, r)
+	go c.launchBackgroundFetcher(entry.GoroutineID, entry.ResumeFetching, key, r)
 
 	return entry.Waiter
 }
 
-func (c *Cache) launchBackgroundFetcher(goroutineID uint64, key string, r getOptions) {
+func (c *Cache) launchBackgroundFetcher(goroutineID uint64, resumeCh chan struct{}, key string, r getOptions) {
 	defer func() {
 		c.entriesLock.Lock()
 		defer c.entriesLock.Unlock()
@@ -627,6 +638,7 @@ func (c *Cache) launchBackgroundFetcher(goroutineID uint64, key string, r getOpt
 		if ok && entry.GoroutineID == goroutineID {
 			entry.GoroutineID = 0
 			entry.Fetching = false
+			entry.ResumeFetching = nil
 			c.entries[key] = entry
 		}
 	}()
@@ -651,8 +663,15 @@ func (c *Cache) launchBackgroundFetcher(goroutineID uint64, key string, r getOpt
 
 		select {
 		case <-time.After(wait):
+		case <-resumeCh:
 		case <-c.stopCh:
 			return // Check if cache was stopped
+		}
+
+		// Drain on wake.
+		select {
+		case <-resumeCh:
+		default:
 		}
 
 		// Trigger. The "allowNew" field is false because in the time we were

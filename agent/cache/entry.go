@@ -31,6 +31,8 @@ type cacheEntry struct {
 	GoroutineID uint64        // Nonzero if a fetch goroutine is running.
 	Waiter      chan struct{} // Closed when this entry is invalidated
 
+	ResumeFetching chan struct{}
+
 	// Expiry contains information about the expiration of this
 	// entry. This is a pointer as its shared as a value in the
 	// ExpiryHeap as well.
