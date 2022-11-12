@@ -7,6 +7,7 @@ on:
       # Push events on the main branch
       - main
       - release/**
+      - eculver/enable-arm-verifications
 
 env:
   PKG_NAME: consul
@@ -412,6 +413,43 @@ jobs:
       matrix:
         # TODO(eculver): re-enable when there is a smaller verification container available
         arch: ["i386", "x86_64"] #, "armv7hl", "aarch64"]
+    env:
+      version: ${{ needs.get-product-version.outputs.product-version }}
+
+    name: Verify ${{ matrix.arch }} rpm
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set package version
+        run: |
+          echo "pkg_version=$(echo ${{ needs.get-product-version.outputs.product-version }} | sed 's/\-/~/g')" >> $GITHUB_ENV
+
+      - name: Set package name
+        run: |
+          echo "pkg_name=consul-${{ env.pkg_version }}-1.${{ matrix.arch }}.rpm" >> $GITHUB_ENV
+
+      - name: Download workflow artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.pkg_name }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+
+      - name: Verify ${{ matrix.arch }} rpm
+        run: ./.github/scripts/verify_artifact.sh ${{ env.pkg_name }} v${{ env.version }}
+
+  verify-linux-packages-arm-rpm:
+    needs:
+      - build
+      - get-product-version
+    runs-on: ['self-hosted', 'ondemand', 'macos-arm', 'arm64']
+    strategy:
+      matrix:
+        # TODO(eculver): re-enable when there is a smaller verification container available
+        arch: ["armv7hl", "aarch64"]
     env:
       version: ${{ needs.get-product-version.outputs.product-version }}
 
