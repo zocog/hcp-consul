@@ -49,3 +49,13 @@ func (id SpiffeIDService) uriPath() string {
 	}
 	return path
 }
+
+const anyPath = `[^/]+`
+const anyPathMatch = `([^/]+)`
+const SpiffeIDMatcher = "^spiffe://" +
+	"(" + anyPath + "." + anyPath + ")" +
+	"(/ap/" + anyPathMatch + ")?" +
+	"/ns/" + anyPathMatch +
+	"/dc/" + anyPathMatch +
+	"/svc/" + anyPathMatch +
+	"$"

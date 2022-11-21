@@ -151,6 +151,94 @@
                     }
                   },
                   {
+                    "name": "envoy.filters.http.header_to_metadata",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.header_to_metadata.v3.Config",
+                      "requestRules": [
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "trust_domain",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\0"
+                            }
+                          }
+                        },
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "partition",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\1"
+                            }
+                          }
+                        },
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "namespace",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\2"
+                            }
+                          }
+                        },
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "datacenter",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\3"
+                            }
+                          }
+                        },
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "service",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\4"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
                     "name": "envoy.filters.http.aws_lambda",
                     "typedConfig": {
                       "@type": "type.googleapis.com/envoy.extensions.filters.http.aws_lambda.v3.Config",
@@ -239,6 +327,94 @@
                       "rules": {
 
                       }
+                    }
+                  },
+                  {
+                    "name": "envoy.filters.http.header_to_metadata",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.header_to_metadata.v3.Config",
+                      "requestRules": [
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "trust_domain",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\0"
+                            }
+                          }
+                        },
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "partition",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\1"
+                            }
+                          }
+                        },
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "namespace",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\2"
+                            }
+                          }
+                        },
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "datacenter",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\3"
+                            }
+                          }
+                        },
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "service",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\4"
+                            }
+                          }
+                        }
+                      ]
                     }
                   },
                   {
@@ -384,6 +560,94 @@
                       "rules": {
 
                       }
+                    }
+                  },
+                  {
+                    "name": "envoy.filters.http.header_to_metadata",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.header_to_metadata.v3.Config",
+                      "requestRules": [
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "trust_domain",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\0"
+                            }
+                          }
+                        },
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "partition",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\1"
+                            }
+                          }
+                        },
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "namespace",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\2"
+                            }
+                          }
+                        },
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "datacenter",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\3"
+                            }
+                          }
+                        },
+                        {
+                          "header": "x-forwarded-client-cert",
+                          "onHeaderPresent": {
+                            "metadataNamespace": "consul",
+                            "key": "service",
+                            "regexValueRewrite": {
+                              "pattern": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "^spiffe://([^/]+.[^/]+)(/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/]+)$"
+                              },
+                              "substitution": "\\4"
+                            }
+                          }
+                        }
+                      ]
                     }
                   },
                   {

@@ -2297,6 +2297,8 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 		}
 	}
 
+	cfg.HttpFilters = append([]*envoy_http_v3.HttpFilter{DownstreamSpiffeIDToMetadata()}, cfg.HttpFilters...)
+
 	// Like injectConnectFilters for L4, here we ensure that the first filter
 	// (other than the "envoy.grpc_http1_bridge" filter) in the http filter
 	// chain of a public listener is the authz filter to prevent unauthorized

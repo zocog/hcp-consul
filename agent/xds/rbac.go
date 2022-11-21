@@ -8,10 +8,12 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_http_header_to_metadata_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/header_to_metadata/v3"
 	envoy_http_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	"github.com/golang/protobuf/ptypes"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -801,6 +803,69 @@ func makeSpiffePattern(src rbacService) string {
 	}
 
 	return fmt.Sprintf(`^%s://%s%s$`, id.URI().Scheme, id.Host, id.URI().Path)
+}
+
+const anyPathMatch = `([^/]+)`
+
+func makeSpiffePatternMatcher() string {
+	var (
+		host = fmt.Sprintf(`(%s\.%s)`, anyPath, anyPath)
+		ap   = anyPathMatch
+		ns   = anyPathMatch
+		svc  = anyPathMatch
+	)
+
+	id := connect.SpiffeIDService{
+		Namespace: ns,
+		Service:   svc,
+		Host:      host,
+
+		// Datacenter is not verified by RBAC, so we match on any value.
+		Datacenter: anyPath,
+
+		// Partition can only ever be an exact value.
+		Partition: ap,
+	}
+
+	return fmt.Sprintf(`^%s://%s%s$`, id.URI().Scheme, id.Host, id.URI().Path)
+}
+
+func DownstreamSpiffeIDToMetadata() *envoy_http_v3.HttpFilter {
+	var rules []*envoy_http_header_to_metadata_v3.Config_Rule
+
+	keys := []string{"trust_domain", "partition", "namespace", "datacenter", "service"}
+
+	for i, k := range keys {
+		rules = append(rules, &envoy_http_header_to_metadata_v3.Config_Rule{
+			Header: "x-forwarded-client-cert",
+			OnHeaderPresent: &envoy_http_header_to_metadata_v3.Config_KeyValuePair{
+				MetadataNamespace: "consul",
+				Key: k,
+				RegexValueRewrite: &envoy_matcher_v3.RegexMatchAndSubstitute{
+					Pattern: &envoy_matcher_v3.RegexMatcher{
+						EngineType: &envoy_matcher_v3.RegexMatcher_GoogleRe2{},
+						Regex: connect.SpiffeIDMatcher,
+					},
+					Substitution: fmt.Sprintf(`\%d`, i),
+				},
+			},
+		})
+	}
+
+	config := &envoy_http_header_to_metadata_v3.Config{
+		RequestRules: rules,
+	}
+
+	any, err := ptypes.MarshalAny(config)
+
+	if err != nil {
+		panic("invalid metadata matcher")
+	}
+
+	return &envoy_http_v3.HttpFilter{
+		Name:       "envoy.filters.http.header_to_metadata",
+		ConfigType: &envoy_http_v3.HttpFilter_TypedConfig{TypedConfig: any},
+	}
 }
 
 func makeSpiffeMeshGatewayPattern(gwTrustDomain, gwPartition string) string {

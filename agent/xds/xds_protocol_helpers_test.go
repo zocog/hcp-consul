@@ -647,6 +647,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 					Filters: []*envoy_listener_v3.Filter{
 						xdsNewFilter(t, "envoy.filters.network.http_connection_manager", &envoy_http_v3.HttpConnectionManager{
 							HttpFilters: []*envoy_http_v3.HttpFilter{
+								DownstreamSpiffeIDToMetadata(),
 								xdsNewHttpFilter(t, "envoy.filters.http.router", &envoy_http_router_v3.Router{}),
 							},
 							RouteSpecifier: &envoy_http_v3.HttpConnectionManager_RouteConfig{
@@ -672,6 +673,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 					Filters: []*envoy_listener_v3.Filter{
 						xdsNewFilter(t, "envoy.filters.network.http_connection_manager", &envoy_http_v3.HttpConnectionManager{
 							HttpFilters: []*envoy_http_v3.HttpFilter{
+								DownstreamSpiffeIDToMetadata(),
 								xdsNewHttpFilter(t, "envoy.filters.http.router", &envoy_http_router_v3.Router{}),
 							},
 							RouteSpecifier: &envoy_http_v3.HttpConnectionManager_Rds{
@@ -700,6 +702,7 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 					Filters: []*envoy_listener_v3.Filter{
 						xdsNewFilter(t, "envoy.filters.network.http_connection_manager", &envoy_http_v3.HttpConnectionManager{
 							HttpFilters: []*envoy_http_v3.HttpFilter{
+								DownstreamSpiffeIDToMetadata(),
 								xdsNewHttpFilter(t, "envoy.filters.http.router", &envoy_http_router_v3.Router{}),
 							},
 							RouteSpecifier: &envoy_http_v3.HttpConnectionManager_Rds{
