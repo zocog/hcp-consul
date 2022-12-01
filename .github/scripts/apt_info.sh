@@ -16,7 +16,7 @@ function main {
     exit 1
   fi
 
-  apt update && apt install -y software-properties-common wget
+  apt update && apt install -y software-properties-common wget gpg
   wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor > /usr/share/keyrings/hashicorp-archive-keyring.gpg
 
   echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" > /etc/apt/sources.list.d/hashicorp.list
