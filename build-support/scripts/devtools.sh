@@ -130,6 +130,10 @@ function lint_install {
 function tools_install {
     local mockery_version
 
+    echo "=== START lint debug ==="
+    echo "=== END   lint debug ==="
+    go version -m $(which golangci-lint) | grep -v "\bdep\b"
+
     mockery_version="$(make --no-print-directory print-MOCKERY_VERSION)"
 
     install_versioned_tool \
