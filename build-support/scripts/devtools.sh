@@ -125,14 +125,15 @@ function lint_install {
         'github.com/golangci/golangci-lint' \
         "${golangci_lint_version}" \
         'github.com/golangci/golangci-lint/cmd/golangci-lint'
+
+    echo "=== START lint debug ==="
+    go version -m $(which golangci-lint) | grep -v "\bdep\b"
+    echo "=== END   lint debug ==="
+
 }
 
 function tools_install {
     local mockery_version
-
-    echo "=== START lint debug ==="
-    echo "=== END   lint debug ==="
-    go version -m $(which golangci-lint) | grep -v "\bdep\b"
 
     mockery_version="$(make --no-print-directory print-MOCKERY_VERSION)"
 
