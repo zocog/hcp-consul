@@ -141,7 +141,14 @@ func (m *subscriptionManager) handleEvent(ctx context.Context, state *subscripti
 		state.exportList = evt
 
 		pending := &pendingPayload{}
-		m.syncNormalServices(ctx, state, evt.Services)
+		allServices := make([]structs.ServiceName, 0, len(evt.ConnectServices)+len(evt.NonConnectServices))
+		for _, svc := range evt.ConnectServices {
+			allServices = append(allServices, svc)
+		}
+		for _, svc := range evt.NonConnectServices {
+			allServices = append(allServices, svc)
+		}
+		m.syncNormalServices(ctx, state, allServices)
 		if m.config.ConnectEnabled {
 			m.syncDiscoveryChains(state, pending, evt.ListAllDiscoveryChains())
 		}

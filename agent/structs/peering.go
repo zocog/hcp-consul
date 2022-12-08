@@ -25,7 +25,8 @@ type IndexedExportedServiceList struct {
 type ExportedServiceList struct {
 	// Services is a list of exported services that apply to both standard
 	// service discovery and service mesh.
-	Services []ServiceName
+	ConnectServices    []ServiceName
+	NonConnectServices []ServiceName
 
 	// DiscoChains is a map of service names to their exported discovery chains
 	// for service mesh purposes as defined in the exported-services
@@ -70,7 +71,7 @@ func (list *ExportedServiceList) ListAllDiscoveryChains() map[ServiceName]Export
 		return chainsByName
 	}
 
-	for _, svc := range list.Services {
+	for _, svc := range list.ConnectServices {
 		chainsByName[svc] = list.DiscoChains[svc]
 	}
 	for chainName, info := range list.DiscoChains {

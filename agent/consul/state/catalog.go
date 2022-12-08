@@ -3701,7 +3701,7 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 
 // serviceHasConnectInstances returns whether the service has at least one connect instance,
 // and at least one non-connect instance.
-func serviceHasConnectInstances(tx WriteTxn, serviceName string, entMeta *acl.EnterpriseMeta) (bool, bool, error) {
+func serviceHasConnectInstances(tx ReadTxn, serviceName string, entMeta *acl.EnterpriseMeta) (bool, bool, error) {
 	hasConnectInstance := false
 	query := Query{
 		Value:          serviceName,

@@ -683,7 +683,15 @@ func (m *Internal) ExportedServicesForPeer(args *structs.ServiceDumpRequest, rep
 			}
 
 			reply.Index = idx
-			reply.Services = exportedSvcs.Services
+			allServices := make([]structs.ServiceName, 0,
+				len(exportedSvcs.ConnectServices)+len(exportedSvcs.NonConnectServices))
+			for _, svc := range exportedSvcs.ConnectServices {
+				allServices = append(allServices, svc)
+			}
+			for _, svc := range exportedSvcs.NonConnectServices {
+				allServices = append(allServices, svc)
+			}
+			reply.Services = allServices
 
 			// If MeshWrite is allowed, we assume it is an operator role and
 			// return all the services. Otherwise, the results are filtered.

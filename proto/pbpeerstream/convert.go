@@ -25,9 +25,12 @@ func (s *ExportedService) CheckServiceNodesToStruct() ([]structs.CheckServiceNod
 }
 
 func ExportedServiceListFromStruct(e *structs.ExportedServiceList) *ExportedServiceList {
-	services := make([]string, 0, len(e.Services))
+	services := make([]string, 0, len(e.ConnectServices)+len(e.NonConnectServices))
 
-	for _, s := range e.Services {
+	for _, s := range e.ConnectServices {
+		services = append(services, s.String())
+	}
+	for _, s := range e.NonConnectServices {
 		services = append(services, s.String())
 	}
 

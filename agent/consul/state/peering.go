@@ -843,13 +843,33 @@ func exportedServicesForPeerTxn(
 			if idx > maxIdx {
 				maxIdx = idx
 			}
+
 			for _, sn := range discoChains {
-				discoSet[sn] = struct{}{}
+				hasConnectInstance, _, err := serviceHasConnectInstances(tx, sn.Name, entMeta)
+				if err != nil {
+					return 0, nil, fmt.Errorf("failed to get service instance types: %w", err)
+				}
+				if hasConnectInstance {
+					discoSet[sn] = struct{}{}
+				}
 			}
 		}
 	}
 
-	normal := maps.SliceOfKeys(normalSet)
+	var connectServices, nonConnectServices []structs.ServiceName
+	for _, sn := range maps.SliceOfKeys(normalSet) {
+		hasConnectInstance, hasNonConnectInstance, err := serviceHasConnectInstances(tx, sn.Name, entMeta)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get service instance types: %w", err)
+		}
+		if hasConnectInstance {
+			connectServices = append(connectServices, sn)
+		}
+		if hasNonConnectInstance {
+			nonConnectServices = append(nonConnectServices, sn)
+		}
+
+	}
 	disco := maps.SliceOfKeys(discoSet)
 
 	chainInfo := make(map[structs.ServiceName]structs.ExportedDiscoveryChainInfo)
@@ -899,7 +919,7 @@ func exportedServicesForPeerTxn(
 		return nil
 	}
 
-	for _, svc := range normal {
+	for _, svc := range connectServices {
 		if err := populateChainInfo(svc); err != nil {
 			return 0, nil, err
 		}
@@ -910,11 +930,13 @@ func exportedServicesForPeerTxn(
 		}
 	}
 
-	structs.ServiceList(normal).Sort()
+	structs.ServiceList(connectServices).Sort()
+	structs.ServiceList(nonConnectServices).Sort()
 
 	list := &structs.ExportedServiceList{
-		Services:    normal,
-		DiscoChains: chainInfo,
+		ConnectServices:    connectServices,
+		NonConnectServices: nonConnectServices,
+		DiscoChains:        chainInfo,
 	}
 
 	return maxIdx, list, nil
