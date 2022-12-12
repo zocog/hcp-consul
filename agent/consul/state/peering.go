@@ -845,24 +845,29 @@ func exportedServicesForPeerTxn(
 			}
 
 			for _, sn := range discoChains {
-				hasConnectInstance, _, err := serviceHasConnectInstances(tx, sn.Name, entMeta)
-				if err != nil {
-					return 0, nil, fmt.Errorf("failed to get service instance types: %w", err)
-				}
-				if hasConnectInstance {
-					discoSet[sn] = struct{}{}
-				}
+				//hasConnectInstance, _, err := serviceHasConnectInstances(tx, sn.Name, entMeta)
+				//if err != nil {
+				//	return 0, nil, fmt.Errorf("failed to get service instance types: %w", err)
+				//}
+				//if hasConnectInstance {
+				discoSet[sn] = struct{}{}
+				//}
 			}
 		}
 	}
 
+	disco := maps.SliceOfKeys(discoSet)
 	var connectServices, nonConnectServices []structs.ServiceName
 	for _, sn := range maps.SliceOfKeys(normalSet) {
 		hasConnectInstance, hasNonConnectInstance, err := serviceHasConnectInstances(tx, sn.Name, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to get service instance types: %w", err)
 		}
-		if hasConnectInstance {
+		_, ok := discoSet[sn]
+		fmt.Printf("foutput %v, %v\n", hasConnectInstance, hasNonConnectInstance)
+		fmt.Printf("moutput %v\n", ok)
+
+		if hasConnectInstance || ok {
 			connectServices = append(connectServices, sn)
 		}
 		if hasNonConnectInstance {
@@ -870,7 +875,6 @@ func exportedServicesForPeerTxn(
 		}
 
 	}
-	disco := maps.SliceOfKeys(discoSet)
 
 	chainInfo := make(map[structs.ServiceName]structs.ExportedDiscoveryChainInfo)
 	populateChainInfo := func(svc structs.ServiceName) error {

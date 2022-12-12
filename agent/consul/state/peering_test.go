@@ -1932,7 +1932,8 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		ws = memdb.NewWatchSet()
 
 		expect := &structs.ExportedServiceList{
-			Services: []structs.ServiceName{
+			NonConnectServices: nil,
+			ConnectServices: []structs.ServiceName{
 				{
 					Name:           "mysql",
 					EnterpriseMeta: *defaultEntMeta,
@@ -1959,6 +1960,7 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		}
 
 		idx, got, err := s.ExportedServicesForPeer(ws, id, "dc1")
+		t.Logf("idx: %v\t output %+v \n", idx, got)
 		require.NoError(t, err)
 		require.Equal(t, lastIdx, idx)
 		require.Equal(t, expect, got)
@@ -1997,7 +1999,7 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		ws = memdb.NewWatchSet()
 
 		expect := &structs.ExportedServiceList{
-			Services: []structs.ServiceName{
+			ConnectServices: []structs.ServiceName{
 				{
 					Name:           "billing",
 					EnterpriseMeta: *defaultEntMeta,
@@ -2084,7 +2086,7 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		ws = memdb.NewWatchSet()
 
 		expect := &structs.ExportedServiceList{
-			Services: []structs.ServiceName{
+			ConnectServices: []structs.ServiceName{
 				{
 					Name:           "billing",
 					EnterpriseMeta: *defaultEntMeta,
@@ -2132,7 +2134,7 @@ func TestStateStore_ExportedServicesForPeer(t *testing.T) {
 		ws = memdb.NewWatchSet()
 
 		expect := &structs.ExportedServiceList{
-			Services: []structs.ServiceName{
+			ConnectServices: []structs.ServiceName{
 				{
 					Name:           "payments",
 					EnterpriseMeta: *defaultEntMeta,
