@@ -113,7 +113,7 @@ func NewHandler(cfg HandlerConfig, delegate HandlerDelegate) *Handler {
 //
 // Note: this starts a goroutine.
 func (h *Handler) Run(ctx context.Context) {
-	h.limiter.Run(ctx)
+	// h.limiter.Run(ctx)
 }
 
 // Allow returns an error if the given operation is not allowed to proceed
