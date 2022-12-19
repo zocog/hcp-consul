@@ -138,14 +138,18 @@ ifdef SKIP_DOCKER_BUILD
 ENVOY_INTEG_DEPS=noop
 endif
 
+##@ Build
+
+.PHONY: all 
 all: dev-build
 
 # used to make integration dependencies conditional
 noop: ;
 
-# dev creates binaries for testing locally - these are put into ./bin
-dev: dev-build
+.PHONY: dev 
+dev: dev-build  ## Creates binaries for testing locally - these are put into ./bin
 
+.PHONY: dev-build
 dev-build:
 	mkdir -p bin
 	CGO_ENABLED=0 go install -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
@@ -153,6 +157,7 @@ dev-build:
 	rm -f ./bin/consul
 	cp ${MAIN_GOPATH}/bin/consul ./bin/consul
 
+.PHONY: dev-docker
 dev-docker: linux dev-build
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
@@ -165,11 +170,13 @@ dev-docker: linux dev-build
        --load \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 
+.PHONY: check-remote-dev-image-env
 check-remote-dev-image-env:
 ifndef REMOTE_DEV_IMAGE
 	$(error REMOTE_DEV_IMAGE is undefined: set this image to <your_docker_repo>/<your_docker_image>:<image_tag>, e.g. hashicorp/consul-k8s-dev:latest)
 endif
 
+.PHONY: remote-docker
 remote-docker: check-remote-dev-image-env
 	$(MAKE) GOARCH=amd64 linux
 	$(MAKE) GOARCH=arm64 linux
@@ -182,9 +189,8 @@ remote-docker: check-remote-dev-image-env
        --push \
        -f $(CURDIR)/build-support/docker/Consul-Dev-Multiarch.dockerfile $(CURDIR)/pkg/bin/
 
-# In CircleCI, the linux binary will be attached from a previous step at bin/. This make target
-# should only run in CI and not locally.
-ci.dev-docker:
+# This make target should only run in CI and not locally.
+ci.dev-docker:  ## In CircleCI, the linux binary will be attached from a previous step at bin/.
 	@echo "Pulling consul container image - $(CONSUL_IMAGE_VERSION)"
 	@docker pull consul:$(CONSUL_IMAGE_VERSION) >/dev/null
 	@echo "Building Consul Development container - $(CI_DEV_DOCKER_IMAGE_NAME)"
@@ -202,16 +208,39 @@ ifeq ($(CIRCLE_BRANCH), main)
 	@docker push $(CI_DEV_DOCKER_NAMESPACE)/$(CI_DEV_DOCKER_IMAGE_NAME):latest
 endif
 
-# linux builds a linux binary compatible with the source platform
-linux:
+.PHONY: go-mod-tidy
+go-mod-tidy:  ## Runs go-mod-tidy in current, sdk, and api directories.
+	@echo "--> Running go mod tidy"
+	@cd sdk && go mod tidy
+	@cd api && go mod tidy
+	@go mod tidy
+
+linux:  ## Builds a linux binary compatible with the source platform
 	@mkdir -p ./pkg/bin/linux_$(GOARCH)
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -o ./pkg/bin/linux_$(GOARCH) -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
 
-# dist builds binaries for all platforms and packages them for distribution
-dist:
-	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' $(DIST_VERSION_ARG) $(DIST_DATE_ARG) $(DIST_REL_ARG)
+##@ Checks
 
-cover: cov
+.PHONY: lint
+lint: lint-tools  ## Run lint
+	@echo "--> Running golangci-lint"
+	@golangci-lint run --build-tags '$(GOTAGS)' && \
+		(cd api && golangci-lint run --build-tags '$(GOTAGS)') && \
+		(cd sdk && golangci-lint run --build-tags '$(GOTAGS)')
+	@echo "--> Running lint-consul-retry"
+	@lint-consul-retry
+	@echo "--> Running enumcover"
+	@enumcover ./...
+
+##@ Testing
+
+.PHONY: test
+test: other-consul dev-build lint test-internal  ## Runs tests
+
+.PHONY: cover
+cover: cov  ## Run tests and generate coverage report
+
+.PHONY: cov
 cov: other-consul dev-build
 	go test -tags '$(GOTAGS)' ./... -coverprofile=coverage.out
 	cd sdk && go test -tags '$(GOTAGS)' ./... -coverprofile=../coverage.sdk.part
@@ -220,14 +249,7 @@ cov: other-consul dev-build
 	rm -f coverage.{sdk,api}.part
 	go tool cover -html=coverage.out
 
-test: other-consul dev-build lint test-internal
-
-go-mod-tidy:
-	@echo "--> Running go mod tidy"
-	@cd sdk && go mod tidy
-	@cd api && go mod tidy
-	@go mod tidy
-
+.PHONY: test-internal
 test-internal:
 	@echo "--> Running go test"
 	@rm -f test.log exit-code
@@ -294,27 +316,30 @@ other-consul:
 		exit 1 ; \
 	fi
 
-lint: lint-tools
-	@echo "--> Running golangci-lint"
-	@golangci-lint run --build-tags '$(GOTAGS)' && \
-		(cd api && golangci-lint run --build-tags '$(GOTAGS)') && \
-		(cd sdk && golangci-lint run --build-tags '$(GOTAGS)')
-	@echo "--> Running lint-consul-retry"
-	@lint-consul-retry
-	@echo "--> Running enumcover"
-	@enumcover ./...
+##@ UI
 
-# Build the static web ui inside a Docker container. For local testing only; do not commit these assets.
-ui: ui-docker
+.PHONY: ui
+ui: ui-docker  ## Build the static web ui inside a Docker container. For local testing only; do not commit these assets.
 
-# Build the static web ui with yarn. This is the version to commit.
 .PHONY: ui-regen
-ui-regen:
+ui-regen:  ## Build the static web ui with yarn. This is the version to commit.
 	cd $(CURDIR)/ui && make && cd ..
 	rm -rf $(CURDIR)/agent/uiserver/dist
 	mv $(CURDIR)/ui/packages/consul-ui/dist $(CURDIR)/agent/uiserver/
 
-tools:
+.PHONY: ui-build-image
+ui-build-image:
+	@echo "Building UI build container"
+	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
+
+.PHONY: ui-docker
+ui-docker: ui-build-image
+	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
+
+##@ Tools
+
+.PHONY: tools
+tools:  ## Installs various supporting Go tools.
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh
 
 .PHONY: lint-tools
@@ -334,7 +359,14 @@ deep-copy:
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
 
-version:
+##@ Release
+
+.PHONY: dist
+dist:  ## Builds binaries for all platforms and packages them for distribution
+	@$(SHELL) $(CURDIR)/build-support/scripts/release.sh -t '$(DIST_TAG)' -b '$(DIST_BUILD)' -S '$(DIST_SIGN)' $(DIST_VERSION_ARG) $(DIST_DATE_ARG) $(DIST_REL_ARG)
+
+.PHONY: version
+version:  ## Current Consul version
 	@echo -n "Version:                    "
 	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh
 	@echo -n "Version + release:          "
@@ -345,24 +377,20 @@ version:
 	@$(SHELL) $(CURDIR)/build-support/scripts/version.sh -r -g
 
 
+.PHONY: docker-images
 docker-images: go-build-image ui-build-image
 
+.PHONY: go-build-image
 go-build-image:
 	@echo "Building Golang build container"
 	@docker build $(NOCACHE) $(QUIET) -t $(GO_BUILD_TAG) - < build-support/docker/Build-Go.dockerfile
 
-ui-build-image:
-	@echo "Building UI build container"
-	@docker build $(NOCACHE) $(QUIET) -t $(UI_BUILD_TAG) - < build-support/docker/Build-UI.dockerfile
-
+.PHONY: consul-docker
 consul-docker: go-build-image
 	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh consul
 
-ui-docker: ui-build-image
-	@$(SHELL) $(CURDIR)/build-support/scripts/build-docker.sh ui
-
-# Build image used to run integration tests locally.
-docker-envoy-integ:
+.PHONY: docker-envoy-integ
+docker-envoy-integ:  ## Build image used to run integration tests locally.
 	$(MAKE) GOARCH=amd64 linux
 	docker build \
       --platform linux/amd64 $(NOCACHE) $(QUIET) \
@@ -371,11 +399,12 @@ docker-envoy-integ:
       $(CURDIR)/pkg/bin/linux_amd64 \
       -f $(CURDIR)/build-support/docker/Consul-Dev.dockerfile
 
-# Run integration tests.
+
 # Use GO_TEST_FLAGS to run specific tests:
 #      make test-envoy-integ GO_TEST_FLAGS="-run TestEnvoy/case-basic"
 # NOTE: Always uses amd64 images, even when running on M1 macs, to match CI/CD environment.
-test-envoy-integ: $(ENVOY_INTEG_DEPS)
+.PHONY: test-envoy-integ
+test-envoy-integ: $(ENVOY_INTEG_DEPS)  ## Run integration tests.
 	@go test -v -timeout=30m -tags integration $(GO_TEST_FLAGS) ./test/integration/connect/envoy
 
 .PHONY: test-compat-integ
@@ -455,9 +484,8 @@ proto-lint: proto-tools
 print-%  : ; @echo $($*)
 
 .PHONY: module-versions
-# Print a list of modules which can be updated.
 # Columns are: module current_version date_of_current_version latest_version
-module-versions:
+module-versions:  ## Print a list of modules which can be updated.
 	@go list -m -u -f '{{if .Update}} {{printf "%-50v %-40s" .Path .Version}} {{with .Time}} {{ .Format "2006-01-02" -}} {{else}} {{printf "%9s" ""}} {{end}}   {{ .Update.Version}} {{end}}' all
 
 .PHONY: envoy-library
@@ -476,12 +504,18 @@ envoy-regen:
 	@find "command/connect/envoy/testdata" -name '*.golden' -delete
 	@go test -tags '$(GOTAGS)' ./command/connect/envoy -update
 
+# The help target prints out all targets with their descriptions organized
+# beneath their categories. The categories are represented by '##@' and the
+# target descriptions by '##'. The awk commands is responsible for reading the
+# entire set of makefiles included in this invocation, looking for lines of the
+# file as xyz: ## something, and then pretty-format the target and help. Then,
+# if there's a line with ##@ something, that gets pretty-printed as a category.
+# More info on the usage of ANSI control characters for terminal formatting:
+# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
+# More info on the awk command:
+# http://linuxcommand.org/lc3_adv_awk.php
 .PHONY: help
-help:
-	$(info available make targets)
-	$(info ----------------------)
-	@grep "^[a-z0-9-][a-z0-9.-]*:" GNUmakefile  | cut -d':' -f1 | sort
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-.PHONY: all bin dev dist cov test test-internal cover lint ui tools
-.PHONY: docker-images go-build-image ui-build-image consul-docker ui-docker
-.PHONY: version test-envoy-integ
+.PHONY: test-envoy-integ
