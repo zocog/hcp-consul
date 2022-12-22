@@ -170,7 +170,7 @@ func NewHandlerWithLimiter(
 }
 
 // NewHandler creates a new RPC rate limit handler.
-func NewHandler(cfg HandlerConfig, logger hclog.InterceptLogger) *Handler {
+func NewHandler(cfg HandlerConfig, logger hclog.Logger) *Handler {
 	limiter := multilimiter.NewMultiLimiter(cfg.Config)
 	return NewHandlerWithLimiter(cfg, limiter, logger)
 }
