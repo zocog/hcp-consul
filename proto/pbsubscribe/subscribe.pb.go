@@ -56,6 +56,7 @@ const (
 	//
 	// Note: WildcardSubject is the only supported Subject on this topic.
 	Topic_ServiceList Topic = 7
+	Topic_ACL Topic = 8
 )
 
 // Enum value maps for Topic.

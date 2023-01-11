@@ -43,6 +43,11 @@ func PBToStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta acl.E
 				Name:           named.Key,
 				EnterpriseMeta: &entMeta,
 			}
+		case EventTopicACL:
+			subject = EventSubjectConfigEntry{
+				Name:           named.Key,
+				EnterpriseMeta: &entMeta,
+			}
 		case EventTopicServiceList:
 			// Events on this topic are published to SubjectNone, but rather than
 			// exposing this in (and further complicating) the streaming API we rely

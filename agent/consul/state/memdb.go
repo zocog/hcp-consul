@@ -185,6 +185,7 @@ var (
 	EventTopicIngressGateway       = pbsubscribe.Topic_IngressGateway
 	EventTopicServiceIntentions    = pbsubscribe.Topic_ServiceIntentions
 	EventTopicServiceList          = pbsubscribe.Topic_ServiceList
+	EventTopicACL                  = pbsubscribe.Topic_ACL
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
