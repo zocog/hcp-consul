@@ -915,6 +915,7 @@ func (c *Cache) runBackgroundFetcherOnce(goroutineID uint64, key string, r getOp
 		// request back up again shortly but in the general case this prevents
 		// spamming the logs with tons of ACL not found errors for days.
 		if tEntry.Opts.Refresh && !preventRefresh {
+			fmt.Println("skpratt was in the cache")
 			return false, shouldBackoff
 		}
 	}

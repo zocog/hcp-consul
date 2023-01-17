@@ -359,6 +359,7 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	if err == nil {
 		if resp.Token == nil {
 			r.cache.RemoveIdentityWithSecretToken(token)
+			fmt.Println("skpratt fetchandcache1")
 			return nil, acl.ErrNotFound
 		} else if resp.Token.Local && r.config.Datacenter != resp.SourceDatacenter {
 			r.cache.RemoveIdentityWithSecretToken(token)
@@ -372,6 +373,7 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	if acl.IsErrNotFound(err) {
 		// Make sure to remove from the cache if it was deleted
 		r.cache.RemoveIdentityWithSecretToken(token)
+		fmt.Println("skpratt fetchandcache2")
 		return nil, acl.ErrNotFound
 
 	}
@@ -552,6 +554,7 @@ func (r *ACLResolver) maybeHandleIdentityErrorDuringFetch(identity structs.ACLId
 		// Do not touch the cache. Getting a top level ACL not found error
 		// only indicates that the secret token used in the request
 		// no longer exists
+		fmt.Println("skpratt maybehandle")
 		return &policyOrRoleTokenError{acl.ErrNotFound, identity.SecretToken()}
 	}
 
@@ -897,8 +900,10 @@ func (r *ACLResolver) resolveTokenToIdentityAndPolicies(token string) (structs.A
 		if err != nil {
 			return nil, nil, err
 		} else if identity == nil {
+			fmt.Println("skpratt resolvetoidentity1")
 			return nil, nil, acl.ErrNotFound
 		} else if identity.IsExpired(time.Now()) {
+			fmt.Println("skpratt resolvetoidentity2")
 			return nil, nil, acl.ErrNotFound
 		}
 
@@ -913,6 +918,7 @@ func (r *ACLResolver) resolveTokenToIdentityAndPolicies(token string) (structs.A
 		if tokenErr, ok := err.(*policyOrRoleTokenError); ok {
 			if acl.IsErrNotFound(err) && tokenErr.token == identity.SecretToken() {
 				// token was deleted while resolving policies
+				fmt.Println("skpratt resolvetoidentity3")
 				return nil, nil, acl.ErrNotFound
 			}
 
@@ -936,8 +942,10 @@ func (r *ACLResolver) resolveTokenToIdentityAndRoles(token string) (structs.ACLI
 		if err != nil {
 			return nil, nil, err
 		} else if identity == nil {
+			fmt.Println("skpratt resolvetoidentityroles1")
 			return nil, nil, acl.ErrNotFound
 		} else if identity.IsExpired(time.Now()) {
+			fmt.Println("skpratt resolvetoidentityroles2")
 			return nil, nil, acl.ErrNotFound
 		}
 
@@ -952,6 +960,7 @@ func (r *ACLResolver) resolveTokenToIdentityAndRoles(token string) (structs.ACLI
 		if tokenErr, ok := err.(*policyOrRoleTokenError); ok {
 			if acl.IsErrNotFound(err) && tokenErr.token == identity.SecretToken() {
 				// token was deleted while resolving roles
+				fmt.Println("skpratt resolvetoidentity3")
 				return nil, nil, acl.ErrNotFound
 			}
 

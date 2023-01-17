@@ -150,6 +150,7 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 		return true, aclToken, nil
 	}
 
+	fmt.Println("skpratt resolveidentity1fromtoken")
 	return s.InPrimaryDatacenter() || index > 0, nil, acl.ErrNotFound
 }
 
@@ -164,6 +165,7 @@ func (s *serverACLResolverBackend) ResolvePolicyFromID(policyID string) (bool, *
 	// If the max index of the policies table is non-zero then we have acls, until then
 	// we may need to allow remote resolution. This is particularly useful to allow updating
 	// the replication token via the API in a non-primary dc.
+	fmt.Println("skpratt resolvepolicyfromid")
 	return s.InPrimaryDatacenter() || index > 0, policy, acl.ErrNotFound
 }
 
@@ -178,6 +180,7 @@ func (s *serverACLResolverBackend) ResolveRoleFromID(roleID string) (bool, *stru
 	// If the max index of the roles table is non-zero then we have acls, until then
 	// we may need to allow remote resolution. This is particularly useful to allow updating
 	// the replication token via the API in a non-primary dc.
+	fmt.Println("skpratt resolverolefromid")
 	return s.InPrimaryDatacenter() || index > 0, role, acl.ErrNotFound
 }
 

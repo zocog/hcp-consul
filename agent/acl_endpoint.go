@@ -49,7 +49,9 @@ func (s *HTTPHandlers) ACLBootstrap(resp http.ResponseWriter, req *http.Request)
 	}
 
 	var out structs.ACLToken
+	//time.Sleep(200 * time.Second)
 	err := s.agent.RPC(req.Context(), "ACL.BootstrapTokens", &args, &out)
+	//time.Sleep(200 * time.Second)
 	if err != nil {
 		if strings.Contains(err.Error(), structs.ACLBootstrapNotAllowedErr.Error()) {
 			return nil, acl.PermissionDeniedError{Cause: err.Error()}
@@ -167,6 +169,7 @@ func (s *HTTPHandlers) ACLPolicyRead(resp http.ResponseWriter, req *http.Request
 
 	if out.Policy == nil {
 		// TODO(rb): should this return a normal 404?
+		fmt.Println("skpratt policy read")
 		return nil, acl.ErrNotFound
 	}
 
@@ -352,6 +355,7 @@ func (s *HTTPHandlers) ACLTokenSelf(resp http.ResponseWriter, req *http.Request)
 	}
 
 	if out.Token == nil {
+		fmt.Println("skpratt token self")
 		return nil, acl.ErrNotFound
 	}
 
@@ -395,6 +399,7 @@ func (s *HTTPHandlers) ACLTokenGet(resp http.ResponseWriter, req *http.Request, 
 	}
 
 	if out.Token == nil {
+		fmt.Println("skpratt token get")
 		return nil, acl.ErrNotFound
 	}
 
@@ -982,6 +987,7 @@ func (s *HTTPHandlers) ACLLogout(resp http.ResponseWriter, req *http.Request) (i
 	s.parseToken(req, &args.Token)
 
 	if args.Token == "" {
+		fmt.Println("skpratt logout")
 		return nil, acl.ErrNotFound
 	}
 
