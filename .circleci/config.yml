@@ -847,7 +847,7 @@ jobs:
       image: *UBUNTU_CI_IMAGE
       docker_layer_caching: true
     parallelism: 4
-    resource_class: medium
+    resource_class: large
     steps:
       - checkout
       # Get go binary from workspace
