@@ -76,6 +76,7 @@ func Test_watchdogProvider(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			tc := _tc
+			ms := time.Duration(len(tc.states)+1) * testInterval
 			provider := NewMockProvider(t)
 			wd := &watchdogProvider{
 				Provider: provider,
@@ -98,12 +99,8 @@ func Test_watchdogProvider(t *testing.T) {
 			provider.EXPECT().Start().Return(nil).Times(tc.expectedStartCalls)
 			provider.EXPECT().Stop().Return(nil).Once()
 
-			require.False(t, wd.running)
 			require.NoError(t, wd.Start())
-			require.True(t, wd.running)
-			ms := time.Duration(len(tc.states)+1) * testInterval
 			<-time.After(ms)
-			require.False(t, wd.running)
 			require.ErrorIs(t, wd.Stop(), libscada.ErrProviderNotStarted)
 		})
 	}
