@@ -3,6 +3,7 @@ package scada
 import (
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/go-hclog"
@@ -22,6 +23,7 @@ type Provider interface {
 
 const (
 	scadaConsulServiceKey = "consul"
+	scadaRetryInterval    = time.Minute
 )
 
 func New(cfg config.CloudConfig, logger hclog.Logger) (Provider, error) {
@@ -45,7 +47,13 @@ func New(cfg config.CloudConfig, logger hclog.Logger) (Provider, error) {
 		return nil, err
 	}
 
-	return pvd, nil
+	wd := &watchdogProvider{
+		Provider: pvd,
+		interval: scadaRetryInterval,
+		logger:   logger.Named("scada_watchdog"),
+	}
+
+	return wd, nil
 }
 
 // IsCapability takes a net.Addr and returns true if it is a SCADA capability.Addr
