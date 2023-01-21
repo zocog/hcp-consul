@@ -31,7 +31,7 @@ func (p *watchdogProvider) Start() error {
 	}
 
 	p.running = true
-	p.shutdownCh = make(chan struct{}, 1)
+	p.shutdownCh = make(chan struct{})
 	go func() {
 		for {
 			select {
