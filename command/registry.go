@@ -6,6 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/hashicorp/consul/command/operator/raft/transferleader"
+
 	"github.com/hashicorp/consul/command/acl"
 	aclagent "github.com/hashicorp/consul/command/acl/agenttokens"
 	aclam "github.com/hashicorp/consul/command/acl/authmethod"
@@ -125,9 +127,15 @@ import (
 	"github.com/hashicorp/consul/command/cli"
 )
 
+type RegisteredCommandFactory interface {
+	RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory
+}
+
+type ConsulCommandFactory struct{}
+
 // RegisteredCommands returns a realized mapping of available CLI commands in a format that
 // the CLI class can consume.
-func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
+func (c ConsulCommandFactory) RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 	registry := map[string]mcli.CommandFactory{}
 	registerCommands(ui, registry,
 		entry{"acl", func(cli.Ui) (cli.Command, error) { return acl.New(), nil }},
@@ -244,7 +252,6 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"version", func(ui cli.Ui) (cli.Command, error) { return version.New(ui), nil }},
 		entry{"watch", func(ui cli.Ui) (cli.Command, error) { return watch.New(ui, MakeShutdownCh()), nil }},
 	)
-	registerEnterpriseCommands(ui, registry)
 	return registry
 }
 
