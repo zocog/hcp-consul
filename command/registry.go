@@ -137,7 +137,7 @@ type ConsulCommandFactory struct{}
 // the CLI class can consume.
 func (c ConsulCommandFactory) RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 	registry := map[string]mcli.CommandFactory{}
-	registerCommands(ui, registry,
+	RegisterCommands(ui, registry,
 		entry{"acl", func(cli.Ui) (cli.Command, error) { return acl.New(), nil }},
 		entry{"acl bootstrap", func(ui cli.Ui) (cli.Command, error) { return aclbootstrap.New(ui), nil }},
 		entry{"acl policy", func(cli.Ui) (cli.Command, error) { return aclpolicy.New(), nil }},
@@ -264,7 +264,7 @@ type entry struct {
 	fn   factory
 }
 
-func registerCommands(ui cli.Ui, m map[string]mcli.CommandFactory, cmdEntries ...entry) {
+func RegisterCommands(ui cli.Ui, m map[string]mcli.CommandFactory, cmdEntries ...entry) {
 	for _, ent := range cmdEntries {
 		thisFn := ent.fn
 		if _, ok := m[ent.name]; ok {
