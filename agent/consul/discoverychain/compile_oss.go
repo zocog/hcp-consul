@@ -1,5 +1,4 @@
-//go:build !consulent
-// +build !consulent
+// x-build !consulent
 
 package discoverychain
 
