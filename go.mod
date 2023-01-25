@@ -4,7 +4,7 @@ go 1.19
 
 replace (
 	github.com/hashicorp/consul/api => ./api
-	github.com/hashicorp/consul/proto-public => ./proto-public
+	// github.com/hashicorp/consul/proto-public => ./proto-public
 	github.com/hashicorp/consul/sdk => ./sdk
 )
 
@@ -34,7 +34,7 @@ require (
 	github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
 	github.com/hashicorp/consul/api v1.18.0
-	github.com/hashicorp/consul/proto-public v0.2.1
+	github.com/hashicorp/consul/proto-public v0.1.2-0.20230125034257-20fd938ed406
 	github.com/hashicorp/consul/sdk v0.13.0
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
