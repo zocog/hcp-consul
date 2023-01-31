@@ -4,32 +4,32 @@ package acl
 
 import "hash"
 
-var emptyEnterpriseMeta = EnterpriseMeta{}
+var emptyEnterpriseMeta = EnterpriseMetaOSS{}
 
-// EnterpriseMeta stub
-type EnterpriseMeta struct{}
+// EnterpriseMetaOSS stub
+type EnterpriseMetaOSS struct{}
 
-func (m *EnterpriseMeta) ToEnterprisePolicyMeta() *EnterprisePolicyMeta {
+func (m *EnterpriseMetaOSS) ToEnterprisePolicyMeta() *EnterprisePolicyMeta {
 	return nil
 }
 
-func DefaultEnterpriseMeta() *EnterpriseMeta {
-	return &EnterpriseMeta{}
+func DefaultEnterpriseMeta() *EnterpriseMetaOSS {
+	return &EnterpriseMetaOSS{}
 }
 
-func WildcardEnterpriseMeta() *EnterpriseMeta {
-	return &EnterpriseMeta{}
+func WildcardEnterpriseMeta() *EnterpriseMetaOSS {
+	return &EnterpriseMetaOSS{}
 }
 
-func (m *EnterpriseMeta) EstimateSize() int {
+func (m *EnterpriseMetaOSS) EstimateSize() int {
 	return 0
 }
 
-func (m *EnterpriseMeta) AddToHash(_ hash.Hash, _ bool) {
+func (m *EnterpriseMetaOSS) AddToHash(_ hash.Hash, _ bool) {
 	// do nothing
 }
 
-func (m *EnterpriseMeta) PartitionOrDefault() string {
+func (m *EnterpriseMetaOSS) PartitionOrDefault() string {
 	return "default"
 }
 
@@ -45,15 +45,15 @@ func PartitionOrDefault(_ string) string {
 	return "default"
 }
 
-func (m *EnterpriseMeta) PartitionOrEmpty() string {
+func (m *EnterpriseMetaOSS) PartitionOrEmpty() string {
 	return ""
 }
 
-func (m *EnterpriseMeta) InDefaultPartition() bool {
+func (m *EnterpriseMetaOSS) InDefaultPartition() bool {
 	return true
 }
 
-func (m *EnterpriseMeta) NamespaceOrDefault() string {
+func (m *EnterpriseMetaOSS) NamespaceOrDefault() string {
 	return DefaultNamespaceName
 }
 
@@ -65,56 +65,56 @@ func NamespaceOrDefault(_ string) string {
 	return DefaultNamespaceName
 }
 
-func (m *EnterpriseMeta) NamespaceOrEmpty() string {
+func (m *EnterpriseMetaOSS) NamespaceOrEmpty() string {
 	return ""
 }
 
-func (m *EnterpriseMeta) InDefaultNamespace() bool {
+func (m *EnterpriseMetaOSS) InDefaultNamespace() bool {
 	return true
 }
 
-func (m *EnterpriseMeta) Merge(_ *EnterpriseMeta) {
+func (m *EnterpriseMetaOSS) Merge(_ EnterpriseMeta) {
 	// do nothing
 }
 
-func (m *EnterpriseMeta) MergeNoWildcard(_ *EnterpriseMeta) {
+func (m *EnterpriseMetaOSS) MergeNoWildcard(_ EnterpriseMeta) {
 	// do nothing
 }
 
-func (_ *EnterpriseMeta) Normalize()          {}
-func (_ *EnterpriseMeta) NormalizePartition() {}
-func (_ *EnterpriseMeta) NormalizeNamespace() {}
+func (_ *EnterpriseMetaOSS) Normalize()          {}
+func (_ *EnterpriseMetaOSS) NormalizePartition() {}
+func (_ *EnterpriseMetaOSS) NormalizeNamespace() {}
 
-func (m *EnterpriseMeta) Matches(_ *EnterpriseMeta) bool {
+func (m *EnterpriseMetaOSS) Matches(_ EnterpriseMeta) bool {
 	return true
 }
 
-func (m *EnterpriseMeta) IsSame(_ *EnterpriseMeta) bool {
+func (m *EnterpriseMetaOSS) IsSame(_ EnterpriseMeta) bool {
 	return true
 }
 
-func (m *EnterpriseMeta) LessThan(_ *EnterpriseMeta) bool {
+func (m *EnterpriseMetaOSS) LessThan(_ EnterpriseMeta) bool {
 	return false
 }
 
-func (m *EnterpriseMeta) WithWildcardNamespace() *EnterpriseMeta {
+func (m *EnterpriseMetaOSS) WithWildcardNamespace() EnterpriseMeta {
 	return &emptyEnterpriseMeta
 }
 
-func (m *EnterpriseMeta) UnsetPartition() {
+func (m *EnterpriseMetaOSS) UnsetPartition() {
 	// do nothing
 }
 
-func (m *EnterpriseMeta) OverridePartition(_ string) {
+func (m *EnterpriseMetaOSS) OverridePartition(_ string) {
 	// do nothing
 }
 
-func NewEnterpriseMetaWithPartition(_, _ string) EnterpriseMeta {
+func NewEnterpriseMetaWithPartition(_, _ string) EnterpriseMetaOSS {
 	return emptyEnterpriseMeta
 }
 
 // FillAuthzContext stub
-func (_ *EnterpriseMeta) FillAuthzContext(_ *AuthorizerContext) {}
+func (_ *EnterpriseMetaOSS) FillAuthzContext(_ *AuthorizerContext) {}
 
 func NormalizeNamespace(_ string) string {
 	return ""
