@@ -51,12 +51,18 @@ type BaseDeps struct {
 	Cache         *cache.Cache
 	ViewStore     *submatview.Store
 	WatchedFiles  []string
+	*InjectedDependencies
+}
+
+type InjectedDependencies struct {
+	EnterpriseMetaHelper
 }
 
 type ConfigLoader func(source config.Source) (config.LoadResult, error)
 
-func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hclog.InterceptLogger) (BaseDeps, error) {
+func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hclog.InterceptLogger, injections *InjectedDependencies) (BaseDeps, error) {
 	d := BaseDeps{}
+	d.InjectedDependencies = injections
 	result, err := configLoader(nil)
 	if err != nil {
 		return d, err

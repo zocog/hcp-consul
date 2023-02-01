@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	consulagent "github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/command/acl"
 	aclagent "github.com/hashicorp/consul/command/acl/agenttokens"
 	aclam "github.com/hashicorp/consul/command/acl/authmethod"
@@ -164,7 +165,9 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"acl binding-rule read", func(ui cli.Ui) (cli.Command, error) { return aclbrread.New(ui), nil }},
 		entry{"acl binding-rule update", func(ui cli.Ui) (cli.Command, error) { return aclbrupdate.New(ui), nil }},
 		entry{"acl binding-rule delete", func(ui cli.Ui) (cli.Command, error) { return aclbrdelete.New(ui), nil }},
-		entry{"agent", func(ui cli.Ui) (cli.Command, error) { return agent.New(ui), nil }},
+		entry{"agent", func(ui cli.Ui) (cli.Command, error) {
+			return agent.New(ui, &consulagent.InjectedDependencies{EnterpriseMetaHelper: &consulagent.EnterpriseMetaHelperOSS{}}), nil
+		}},
 		entry{"catalog", func(cli.Ui) (cli.Command, error) { return catalog.New(), nil }},
 		entry{"catalog datacenters", func(ui cli.Ui) (cli.Command, error) { return catlistdc.New(ui), nil }},
 		entry{"catalog nodes", func(ui cli.Ui) (cli.Command, error) { return catlistnodes.New(ui), nil }},
