@@ -164,7 +164,7 @@ func (a *Agent) filterMembers(token string, members *[]serf.Member) error {
 	m := *members
 	for i := 0; i < len(m); i++ {
 		node := m[i].Name
-		serfMemberFillAuthzContext(&m[i], &authzContext)
+		a.baseDeps.InjectedDependencies.EnterpriseMetaHelper.SerfMemberFillAuthzContext(&m[i], &authzContext)
 		if authz.NodeRead(node, &authzContext) == acl.Allow {
 			continue
 		}
@@ -181,7 +181,7 @@ func (a *Agent) filterServicesWithAuthorizer(authz acl.Authorizer, services map[
 	var authzContext acl.AuthorizerContext
 	// Filter out services based on the service policy.
 	for id, service := range services {
-		agentServiceFillAuthzContext(service, &authzContext)
+		a.baseDeps.InjectedDependencies.AgentServiceFillAuthzContext(service, &authzContext)
 		if authz.ServiceRead(service.Service, &authzContext) == acl.Allow {
 			continue
 		}
