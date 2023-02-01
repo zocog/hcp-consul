@@ -89,6 +89,7 @@ type HTTPHandlers struct {
 	// proxyTransport is used by UIMetricsProxy to keep
 	// a managed pool of connections.
 	proxyTransport http.RoundTripper
+	entMetaHelper  EnterpriseMetaHelper
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in

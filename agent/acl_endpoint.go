@@ -279,7 +279,7 @@ func (s *HTTPHandlers) ACLTokenList(resp http.ResponseWriter, req *http.Request)
 	args.Policy = req.URL.Query().Get("policy")
 	args.Role = req.URL.Query().Get("role")
 	args.AuthMethod = req.URL.Query().Get("authmethod")
-	if err := parseACLAuthMethodEnterpriseMeta(req, &args.ACLAuthMethodEnterpriseMeta); err != nil {
+	if err := s.parseACLAuthMethodEnterpriseMeta(req, &args.ACLAuthMethodEnterpriseMeta); err != nil {
 		return nil, err
 	}
 

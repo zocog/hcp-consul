@@ -1060,6 +1060,7 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				agent:          a,
 				denylist:       NewDenylist(a.config.HTTPBlockEndpoints),
 				proxyTransport: http.DefaultTransport,
+				entMetaHelper:  a.baseDeps.InjectedDependencies.EnterpriseMetaHelper,
 			}
 			a.configReloaders = append(a.configReloaders, srv.ReloadConfig)
 			a.httpHandlers = srv

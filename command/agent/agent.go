@@ -27,7 +27,7 @@ import (
 	consulversion "github.com/hashicorp/consul/version"
 )
 
-func New(ui cli.Ui) *cmd {
+func New(ui cli.Ui, injectedDependencies *agent.InjectedDependencies) *cmd {
 	buildDate, err := time.Parse(time.RFC3339, consulversion.BuildDate)
 	if err != nil {
 		ui.Error(fmt.Sprintf("Fatal error with internal time set; check makefile for build date %v %v \n", buildDate, err))
@@ -35,13 +35,14 @@ func New(ui cli.Ui) *cmd {
 	}
 
 	c := &cmd{
-		ui:                ui,
-		revision:          consulversion.GitCommit,
-		version:           consulversion.Version,
-		versionPrerelease: consulversion.VersionPrerelease,
-		versionHuman:      consulversion.GetHumanVersion(),
-		buildDate:         buildDate,
-		flags:             flag.NewFlagSet("", flag.ContinueOnError),
+		ui:                   ui,
+		revision:             consulversion.GitCommit,
+		version:              consulversion.Version,
+		versionPrerelease:    consulversion.VersionPrerelease,
+		versionHuman:         consulversion.GetHumanVersion(),
+		buildDate:            buildDate,
+		flags:                flag.NewFlagSet("", flag.ContinueOnError),
+		injectedDependencies: injectedDependencies,
 	}
 	config.AddFlags(c.flags, &c.configLoadOpts)
 	c.help = flags.Usage(help, c.flags)
@@ -53,17 +54,18 @@ func New(ui cli.Ui) *cmd {
 // ShutdownCh. If two messages are sent on the ShutdownCh it will forcibly
 // exit.
 type cmd struct {
-	ui                cli.Ui
-	flags             *flag.FlagSet
-	http              *flags.HTTPFlags
-	help              string
-	revision          string
-	version           string
-	versionPrerelease string
-	versionHuman      string
-	buildDate         time.Time
-	configLoadOpts    config.LoadOpts
-	logger            hclog.InterceptLogger
+	ui                   cli.Ui
+	flags                *flag.FlagSet
+	http                 *flags.HTTPFlags
+	help                 string
+	revision             string
+	version              string
+	versionPrerelease    string
+	versionHuman         string
+	buildDate            time.Time
+	configLoadOpts       config.LoadOpts
+	logger               hclog.InterceptLogger
+	injectedDependencies *agent.InjectedDependencies
 }
 
 func (c *cmd) Run(args []string) int {
@@ -165,7 +167,7 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 
-	bd, err := agent.NewBaseDeps(loader, logGate, nil)
+	bd, err := agent.NewBaseDeps(loader, logGate, nil, c.injectedDependencies)
 	if err != nil {
 		ui.Error(err.Error())
 		return 1
