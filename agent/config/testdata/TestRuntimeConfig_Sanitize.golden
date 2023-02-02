@@ -9,16 +9,19 @@
         "ACLTokenTTL": "0s",
         "ACLsEnabled": false,
         "Datacenter": "",
-        "EnterpriseMeta": {},
+        "EnterpriseMeta": {
+            "Namespace": "",
+            "Partition": ""
+        },
         "NodeName": ""
     },
     "ACLTokenReplication": false,
     "ACLTokens": {
         "ACLAgentRecoveryToken": "hidden",
         "ACLAgentToken": "hidden",
+        "ACLConfigFileRegistrationToken": "hidden",
         "ACLDefaultToken": "hidden",
         "ACLReplicationToken": "hidden",
-        "ACLConfigFileRegistrationToken": "hidden",
         "DataDir": "",
         "EnablePersistence": false,
         "EnterpriseConfig": {}
@@ -40,7 +43,10 @@
                 "Config": {},
                 "Description": "",
                 "DisplayName": "",
-                "EnterpriseMeta": {},
+                "EnterpriseMeta": {
+                    "Namespace": "",
+                    "Partition": ""
+                },
                 "MaxTokenTTL": "0s",
                 "Name": "",
                 "RaftIndex": {
@@ -97,7 +103,10 @@
             "DeregisterCriticalServiceAfter": "0s",
             "DisableRedirects": false,
             "DockerContainerID": "",
-            "EnterpriseMeta": {},
+            "EnterpriseMeta": {
+                "Namespace": "",
+                "Partition": ""
+            },
             "FailuresBeforeCritical": 0,
             "FailuresBeforeWarning": 0,
             "GRPC": "",
@@ -352,7 +361,10 @@
             "Checks": [],
             "Connect": null,
             "EnableTagOverride": false,
-            "EnterpriseMeta": {},
+            "EnterpriseMeta": {
+                "Namespace": "",
+                "Partition": ""
+            },
             "ID": "",
             "Kind": "",
             "Meta": {},
