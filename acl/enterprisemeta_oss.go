@@ -8,7 +8,13 @@ import "hash"
 var emptyEnterpriseMeta = EnterpriseMeta{}
 
 // EnterpriseMeta stub
-type EnterpriseMeta struct{}
+type EnterpriseMeta struct {
+	// Partition is the Consul Enterprise Admin Partition the data resides within - this is a layer of
+	// isolation above namespaces.
+	Partition string `json:",omitempty"`
+	// Namespace is the Consul Enterprise Namespace the data resides within
+	Namespace string `json:",omitempty"`
+}
 
 func (m *EnterpriseMeta) ToEnterprisePolicyMeta() *EnterprisePolicyMeta {
 	return nil
