@@ -104,7 +104,7 @@ type Condition struct {
 	// Type is a value from a bounded set of types that an object might have
 	Type string
 	// Status is a value from a bounded set of statuses that an object might have
-	Status string
+	Status ConditionStatus
 	// Reason is a value from a bounded set of reasons for a given status
 	Reason string
 	// Message is a message that gives more detailed information about
@@ -116,6 +116,15 @@ type Condition struct {
 	// LastTransitionTime is the time at which this Condition was created
 	LastTransitionTime *time.Time
 }
+
+// ConditionStatus is a bounded set of statuses that an object might have
+type ConditionStatus string
+
+const (
+	ConditionStatusTrue    ConditionStatus = "True"
+	ConditionStatusFalse   ConditionStatus = "False"
+	ConditionStatusUnknown ConditionStatus = "Unknown"
+)
 
 func (c *Condition) IsCondition(other *Condition) bool {
 	return c.Type == other.Type && c.Resource.IsSame(other.Resource)
