@@ -10,7 +10,10 @@ import (
 )
 
 // EnterprisePolicyMeta stub
-type EnterprisePolicyMeta struct{}
+type EnterprisePolicyMeta struct {
+	Namespace string
+	Partition string
+}
 
 // EnterpriseRule stub
 type EnterpriseRule struct{}
