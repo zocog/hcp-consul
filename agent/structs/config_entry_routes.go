@@ -9,7 +9,7 @@ import (
 // BoundRoute indicates a route that has parent gateways which
 // can be accessed by calling the GetParents associated function.
 type BoundRoute interface {
-	ConfigEntry
+	ControlledConfigEntry
 	GetParents() []ResourceReference
 	GetProtocol() APIGatewayListenerProtocol
 	GetTargetedServices() []ServiceName
@@ -73,8 +73,7 @@ func (e *HTTPRouteConfigEntry) GetParents() []ResourceReference {
 	if e == nil {
 		return []ResourceReference{}
 	}
-	// TODO HTTP Route should have "parents". Andrew will implement this in his work.
-	return []ResourceReference{}
+	return e.Parents
 }
 
 func (e *HTTPRouteConfigEntry) GetProtocol() APIGatewayListenerProtocol {

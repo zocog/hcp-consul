@@ -918,7 +918,19 @@ type BoundAPIGatewayConfigEntry struct {
 
 // References returns whether or not this bound api gateway references the given api gateway.
 func (e *BoundAPIGatewayConfigEntry) References(gateway *APIGatewayConfigEntry) bool {
-	return e.Name == gateway.Name && e.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta)
+	if e.Name != gateway.Name || !e.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
+		return false
+	}
+	// ensure that this has the same listener data (i.e. it's been reconciled)
+	if len(gateway.Listeners) != len(e.Listeners) {
+		return false
+	}
+	for i, listener := range e.Listeners {
+		if listener.Name != gateway.Listeners[i].Name {
+			return false
+		}
+	}
+	return true
 }
 
 func (e *BoundAPIGatewayConfigEntry) GetKind() string {
@@ -1008,6 +1020,35 @@ type BoundAPIGatewayListener struct {
 	Certificates []ResourceReference
 }
 
+func sameResources(first, second []ResourceReference) bool {
+	if len(first) != len(second) {
+		return false
+	}
+	for _, firstRef := range first {
+		found := false
+		for _, secondRef := range second {
+			if firstRef.IsSame(&secondRef) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+func (l BoundAPIGatewayListener) IsSame(other BoundAPIGatewayListener) bool {
+	if l.Name != other.Name {
+		return false
+	}
+	if !sameResources(l.Certificates, other.Certificates) {
+		return false
+	}
+	return sameResources(l.Routes, other.Routes)
+}
+
 // BindRoute is used to create or update a route on the listener.
 // It returns true if the route was able to be bound to the listener.
 // Routes should only bind to listeners with their same section name
@@ -1052,3 +1093,9 @@ func (l *BoundAPIGatewayListener) UnbindRoute(route ResourceReference) bool {
 
 	return false
 }
+
+func (e *BoundAPIGatewayConfigEntry) GetStatus() Status {
+	return Status{}
+}
+func (e *BoundAPIGatewayConfigEntry) SetStatus(status Status) {}
+func (e *BoundAPIGatewayConfigEntry) DefaultStatus() Status   { return Status{} }

@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"sort"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
@@ -42,6 +43,59 @@ type Status struct {
 	// Conditions is the set of condition objects associated with
 	// a ConfigEntry status.
 	Conditions []Condition
+}
+
+func (s Status) SameConditions(other Status) bool {
+	if len(s.Conditions) != len(other.Conditions) {
+		return false
+	}
+	lessResource := func(one, two *ResourceReference) bool {
+		if one == nil && two == nil {
+			return false
+		}
+		if one == nil {
+			return true
+		}
+		if two == nil {
+			return false
+		}
+		if one.Kind < two.Kind {
+			return true
+		}
+		if one.Kind > two.Kind {
+			return false
+		}
+		if one.Name < two.Name {
+			return true
+		}
+		if one.Name > two.Name {
+			return false
+		}
+		return one.SectionName < two.SectionName
+	}
+	sortConditions := func(conditions []Condition) []Condition {
+		sort.SliceStable(conditions, func(i, j int) bool {
+			if conditions[i].Type < conditions[j].Type {
+				return true
+			}
+			if conditions[i].Type > conditions[j].Type {
+				return false
+			}
+			return lessResource(conditions[i].Resource, conditions[j].Resource)
+		})
+		return conditions
+	}
+	oneConditions := sortConditions(s.Conditions)
+	twoConditions := sortConditions(other.Conditions)
+	for i, condition := range oneConditions {
+		other := twoConditions[i]
+		if condition.Reason != other.Reason ||
+			condition.Message != other.Message ||
+			condition.Status != other.Status {
+			return false
+		}
+	}
+	return true
 }
 
 // Condition is used for a single message and state associated

@@ -2,6 +2,7 @@ package gateways
 
 import (
 	"errors"
+	"time"
 
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/controller"
@@ -93,6 +94,31 @@ func requestToResourceRef(req controller.Request) structs.ResourceReference {
 		ref.EnterpriseMeta = *req.Meta
 	}
 	return ref
+}
+
+// RemoveGateway sets the route status for the given gateway to be unbound if it should be bound
+func RemoveGateway(gateway structs.ResourceReference, entries ...structs.BoundRoute) []structs.ControlledConfigEntry {
+	now := time.Now()
+	modified := []structs.ControlledConfigEntry{}
+	for _, route := range entries {
+		updater := structs.NewStatusUpdater(route)
+		for _, parent := range route.GetParents() {
+			if parent.Kind == gateway.Kind && parent.Name == parent.Name && parent.EnterpriseMeta.IsSame(&gateway.EnterpriseMeta) {
+				updater.SetCondition(structs.Condition{
+					Type:               "Bound",
+					Status:             "False",
+					Reason:             "GatewayNotFound",
+					Message:            "gateway was not found",
+					Resource:           &parent,
+					LastTransitionTime: &now,
+				})
+			}
+		}
+		if toUpdate, shouldUpdate := updater.UpdateEntry(); shouldUpdate {
+			modified = append(modified, toUpdate)
+		}
+	}
+	return modified
 }
 
 // RemoveRoute unbinds the route from the given gateways, returning the list of gateways that were modified.

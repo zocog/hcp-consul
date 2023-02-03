@@ -49,4 +49,5 @@ deep-copy \
   -type Upstream \
   -type UpstreamConfiguration \
   -type Status \
+  -type BoundAPIGatewayConfigEntry \
   ./

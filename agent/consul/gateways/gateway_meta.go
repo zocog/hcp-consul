@@ -1,6 +1,7 @@
 package gateways
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -181,6 +182,25 @@ func (g *gatewayMeta) boundListenerByName(name string) (int, *structs.BoundAPIGa
 	return -1, nil
 }
 
+func (g *gatewayMeta) checkCertificates(store *state.Store) (map[structs.ResourceReference]error, error) {
+	certificateErrors := map[structs.ResourceReference]error{}
+	for i, listener := range g.Gateway.Listeners {
+		bound := g.BoundGateway.Listeners[i]
+		for _, ref := range listener.TLS.Certificates {
+			_, certificate, err := store.ConfigEntry(nil, ref.Kind, ref.Name, &ref.EnterpriseMeta)
+			if err != nil {
+				return nil, err
+			}
+			if certificate == nil {
+				certificateErrors[ref] = errors.New("certificate not found")
+			} else {
+				bound.Certificates = append(bound.Certificates, ref)
+			}
+		}
+	}
+	return certificateErrors, nil
+}
+
 func (g *gatewayMeta) checkConflicts() (structs.ControlledConfigEntry, bool) {
 	now := time.Now()
 	updater := structs.NewStatusUpdater(g.Gateway)
@@ -190,16 +210,89 @@ func (g *gatewayMeta) checkConflicts() (structs.ControlledConfigEntry, bool) {
 		case structs.ListenerProtocolTCP:
 			if len(listener.Routes) > 1 {
 				updater.SetCondition(structs.Condition{
-					Type:               "Conflicted",
-					Status:             "True",
-					Reason:             "RouteConflict",
+					Type:   "Conflicted",
+					Status: "True",
+					Reason: "RouteConflict",
+					Resource: &structs.ResourceReference{
+						Kind:           structs.APIGateway,
+						Name:           g.Gateway.Name,
+						SectionName:    listener.Name,
+						EnterpriseMeta: g.Gateway.EnterpriseMeta,
+					},
 					Message:            "TCP-based listeners currently only support binding a single route",
 					LastTransitionTime: &now,
 				})
 			}
+			continue
 		}
+		updater.SetCondition(structs.Condition{
+			Type:   "Conflicted",
+			Status: "False",
+			Reason: "NoConflict",
+			Resource: &structs.ResourceReference{
+				Kind:           structs.APIGateway,
+				Name:           g.Gateway.Name,
+				SectionName:    listener.Name,
+				EnterpriseMeta: g.Gateway.EnterpriseMeta,
+			},
+			Message:            "listener has no route conflicts",
+			LastTransitionTime: &now,
+		})
 	}
 
 	toUpdate, shouldUpdate := updater.UpdateEntry()
 	return toUpdate, shouldUpdate
+}
+
+func ensureInitializedMeta(gateway *structs.APIGatewayConfigEntry, bound structs.ConfigEntry) *gatewayMeta {
+	var b *structs.BoundAPIGatewayConfigEntry
+	if bound == nil {
+		b = &structs.BoundAPIGatewayConfigEntry{
+			Kind:           structs.BoundAPIGateway,
+			Name:           gateway.Name,
+			EnterpriseMeta: gateway.EnterpriseMeta,
+		}
+	} else {
+		b = bound.(*structs.BoundAPIGatewayConfigEntry).DeepCopy()
+	}
+
+	// we just clear out the bound state here since we recalculate it entirely
+	// in the gateway control loop
+	listeners := []structs.BoundAPIGatewayListener{}
+	for _, listener := range gateway.Listeners {
+		listeners = append(listeners, structs.BoundAPIGatewayListener{
+			Name: listener.Name,
+		})
+	}
+	b.Listeners = listeners
+	return &gatewayMeta{
+		BoundGateway: b,
+		Gateway:      gateway,
+	}
+}
+
+func stateIsDirty(initial, final *structs.BoundAPIGatewayConfigEntry) bool {
+	initialListeners := map[string]structs.BoundAPIGatewayListener{}
+	for _, listener := range initial.Listeners {
+		initialListeners[listener.Name] = listener
+	}
+	finalListeners := map[string]structs.BoundAPIGatewayListener{}
+	for _, listener := range final.Listeners {
+		finalListeners[listener.Name] = listener
+	}
+
+	if len(initialListeners) != len(finalListeners) {
+		return true
+	}
+
+	for name, initialListener := range initialListeners {
+		finalListener, found := finalListeners[name]
+		if !found {
+			return true
+		}
+		if !initialListener.IsSame(finalListener) {
+			return true
+		}
+	}
+	return false
 }
