@@ -48,7 +48,9 @@ service_prefix "" {
 
 type ACLAuthMethodEnterpriseFields struct{}
 
-type ACLAuthMethodEnterpriseMeta struct{}
+type ACLAuthMethodEnterpriseMeta struct {
+	AuthMethodNamespace string `json:",omitempty"`
+}
 
 func (_ *ACLAuthMethodEnterpriseMeta) FillWithEnterpriseMeta(_ *acl.EnterpriseMeta) {
 	// do nothing
