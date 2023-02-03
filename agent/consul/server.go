@@ -1088,8 +1088,8 @@ type factory func(s *Server) interface{}
 // endpoints is a list of registered RPC endpoint factories.
 var endpoints []factory
 
-// registerEndpoint registers a new RPC endpoint factory.
-func registerEndpoint(fn factory) {
+// RegisterEndpoint registers a new RPC endpoint factory.
+func RegisterEndpoint(fn factory) {
 	endpoints = append(endpoints, fn)
 }
 

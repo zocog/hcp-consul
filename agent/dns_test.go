@@ -7085,7 +7085,7 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 		},
 	}
 
-	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+	if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -7184,7 +7184,7 @@ func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 		},
 	}
 
-	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+	if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -7229,7 +7229,7 @@ func TestDNS_EDNS_Truncate_AgentSource(t *testing.T) {
 		},
 	}
 
-	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+	if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -8232,7 +8232,7 @@ func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 		},
 	}
 
-	err := a.registerEndpoint("PreparedQuery", &m)
+	err := a.RegisterEndpoint("PreparedQuery", &m)
 	require.NoError(t, err)
 
 	{

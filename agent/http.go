@@ -106,9 +106,9 @@ var endpoints map[string]unboundEndpoint
 // An empty slice means an endpoint handles OPTIONS requests and MethodNotFound errors itself.
 var allowedMethods map[string][]string = make(map[string][]string)
 
-// registerEndpoint registers a new endpoint, which should be done at package
+// RegisterEndpoint registers a new endpoint, which should be done at package
 // init() time.
-func registerEndpoint(pattern string, methods []string, fn unboundEndpoint) {
+func RegisterEndpoint(pattern string, methods []string, fn unboundEndpoint) {
 	if endpoints == nil {
 		endpoints = make(map[string]unboundEndpoint)
 	}

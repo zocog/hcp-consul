@@ -119,7 +119,7 @@ func TestPreparedQuery_Create(t *testing.T) {
 			return nil
 		},
 	}
-	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+	if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -183,7 +183,7 @@ func TestPreparedQuery_List(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -230,7 +230,7 @@ func TestPreparedQuery_List(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -271,7 +271,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -326,7 +326,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -383,7 +383,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -441,7 +441,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -505,7 +505,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -549,7 +549,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				return nil
 			},
 		}
-		require.NoError(t, a.registerEndpoint("PreparedQuery", &m))
+		require.NoError(t, a.RegisterEndpoint("PreparedQuery", &m))
 
 		body := bytes.NewBuffer(nil)
 		req, _ := http.NewRequest("GET", "/v1/query/my-id/execute?dc=dc2", body)
@@ -592,7 +592,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -657,7 +657,7 @@ func TestPreparedQuery_ExecuteCached(t *testing.T) {
 			return nil
 		},
 	}
-	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+	if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -736,7 +736,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -788,7 +788,7 @@ func TestPreparedQuery_Explain(t *testing.T) {
 				return nil
 			},
 		}
-		require.NoError(t, a.registerEndpoint("PreparedQuery", &m))
+		require.NoError(t, a.RegisterEndpoint("PreparedQuery", &m))
 
 		body := bytes.NewBuffer(nil)
 		req, _ := http.NewRequest("GET", "/v1/query/my-id/execute?connect=true", body)
@@ -830,7 +830,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 				return nil
 			},
 		}
-		if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+		if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -916,7 +916,7 @@ func TestPreparedQuery_Update(t *testing.T) {
 			return nil
 		},
 	}
-	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+	if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -984,7 +984,7 @@ func TestPreparedQuery_Delete(t *testing.T) {
 			return nil
 		},
 	}
-	if err := a.registerEndpoint("PreparedQuery", &m); err != nil {
+	if err := a.RegisterEndpoint("PreparedQuery", &m); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

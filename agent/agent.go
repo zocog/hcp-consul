@@ -1541,11 +1541,11 @@ func segmentConfig(config *config.RuntimeConfig) ([]consul.NetworkSegment, error
 	return segments, nil
 }
 
-// registerEndpoint registers a handler for the consul RPC server
+// RegisterEndpoint registers a handler for the consul RPC server
 // under a unique name while making it accessible under the provided
 // name. This allows overwriting handlers for the golang net/rpc
 // service which does not allow this.
-func (a *Agent) registerEndpoint(name string, handler interface{}) error {
+func (a *Agent) RegisterEndpoint(name string, handler interface{}) error {
 	srv, ok := a.delegate.(*consul.Server)
 	if !ok {
 		panic("agent must be a server")
@@ -4283,7 +4283,7 @@ func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Dura
 func (a *Agent) registerCache() {
 	// Note that you should register the _agent_ as the RPC implementation and not
 	// the a.delegate directly, otherwise tests that rely on overriding RPC
-	// routing via a.registerEndpoint will not work.
+	// routing via a.RegisterEndpoint will not work.
 
 	a.cache.RegisterType(cachetype.ConnectCARootName, &cachetype.ConnectCARoot{RPC: a})
 
