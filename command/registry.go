@@ -130,7 +130,15 @@ type RegisteredCommandFactory interface {
 	RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory
 }
 
-type ConsulCommandFactory struct{}
+type ConsulCommandFactory struct {
+	*consulagent.InjectedDependencies
+}
+
+func NewConsulCommandFactory(deps *consulagent.InjectedDependencies) *ConsulCommandFactory {
+	return &ConsulCommandFactory{
+		InjectedDependencies: deps,
+	}
+}
 
 // RegisteredCommands returns a realized mapping of available CLI commands in a format that
 // the CLI class can consume.
@@ -172,7 +180,7 @@ func (c ConsulCommandFactory) RegisteredCommands(ui cli.Ui) map[string]mcli.Comm
 		Entry{"acl binding-rule update", func(ui cli.Ui) (cli.Command, error) { return aclbrupdate.New(ui), nil }},
 		Entry{"acl binding-rule delete", func(ui cli.Ui) (cli.Command, error) { return aclbrdelete.New(ui), nil }},
 		Entry{"agent", func(ui cli.Ui) (cli.Command, error) {
-			return agent.New(ui, &consulagent.InjectedDependencies{EnterpriseMetaHelper: &consulagent.EnterpriseMetaHelperOSS{}}), nil
+			return agent.New(ui, c.InjectedDependencies), nil
 		}},
 		Entry{"catalog", func(cli.Ui) (cli.Command, error) { return catalog.New(), nil }},
 		Entry{"catalog datacenters", func(ui cli.Ui) (cli.Command, error) { return catlistdc.New(ui), nil }},
