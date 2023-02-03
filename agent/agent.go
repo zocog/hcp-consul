@@ -1062,6 +1062,8 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				proxyTransport: http.DefaultTransport,
 				entMetaHelper:  a.baseDeps.InjectedDependencies.EnterpriseMetaHelper,
 			}
+			a.baseDeps.InjectedDependencies.EnterpriseMetaHelper.SetAgent(a)
+
 			a.configReloaders = append(a.configReloaders, srv.ReloadConfig)
 			a.httpHandlers = srv
 			httpServer := &http.Server{

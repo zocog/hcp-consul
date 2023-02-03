@@ -11,7 +11,10 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
+// HTTPHandler from http_oss.go
 type EnterpriseMetaHelper interface {
+	SetAgent(agent *Agent)
+	GetAgent() *Agent
 	SerfMemberFillAuthzContext(m *serf.Member, ctx *acl.AuthorizerContext)
 	AgentServiceFillAuthzContext(s *api.AgentService, ctx *acl.AuthorizerContext)
 	EnterpriseHandler(next http.Handler) http.Handler
@@ -25,7 +28,17 @@ type EnterpriseMetaHelper interface {
 	ValidateEnterpriseIntentionNamespace(logName, ns string, wildOK bool) error
 }
 
-type EnterpriseMetaHelperOSS struct{}
+type EnterpriseMetaHelperOSS struct {
+	agent *Agent
+}
+
+func (s *EnterpriseMetaHelperOSS) SetAgent(agent *Agent) {
+	s.agent = agent
+}
+
+func (s *EnterpriseMetaHelperOSS) GetAgent() *Agent {
+	return s.agent
+}
 
 func (s *EnterpriseMetaHelperOSS) ParseEntMeta(req *http.Request, entMeta *acl.EnterpriseMeta) error {
 	if headerNS := req.Header.Get("X-Consul-Namespace"); headerNS != "" {
