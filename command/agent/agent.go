@@ -292,6 +292,23 @@ func (c *cmd) run(args []string) int {
 	signalCh = make(chan os.Signal, 10)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGPIPE)
 
+	stopTelemetry := make(chan struct{})
+	if !config.DisableUpdateCheck {
+		go func() {
+			for {
+				select {
+				case <-time.After(lib.RandomStagger(time.Minute)): // setting to a minute for faster local testing, should be at a less frequent cadence
+					err = agent.ReportTelemetry(context.Background(), agent.TelemetryParams())
+					if err != nil {
+						c.logger.Error("ERROR sending telemetry ", err)
+					}
+				case <-stopTelemetry:
+					return
+				}
+			}
+		}()
+	}
+
 	for {
 		var sig os.Signal
 		select {
@@ -306,6 +323,7 @@ func (c *cmd) run(args []string) int {
 			// The deferred Shutdown method will log the appropriate error
 			return 1
 		case <-agent.ShutdownCh():
+			close(stopTelemetry)
 			// agent is already down!
 			return 0
 		}
