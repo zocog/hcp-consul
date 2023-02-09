@@ -1,10 +1,12 @@
 package structs
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"golang.org/x/exp/slices"
 )
 
 // ResourceReference is a reference to a ConfigEntry
@@ -126,12 +128,6 @@ const (
 	ConditionStatusUnknown ConditionStatus = "Unknown"
 )
 
-type conditionReasons struct {
-    ConditionStatusTrue: []string,
-    ConditionStatusFalse: []string,
-    ConditionStatusUnknown: []string,
-}
-
 // RouteConditionType is a type of condition for a route.
 type RouteConditionType string
 
@@ -233,36 +229,6 @@ const (
 	RouteReasonBackendNotFound RouteConditionReason = "BackendNotFound"
 )
 
-var routeConditionReasons {
-    RouteConditionAccepted: conditionReasons{
-        ConditionStatusTrue: [
-            RouteConditionReasonAccepted
-        ],
-        ConditionStatusFalse: [
-            RouteReasonNotAllowedByListeners,
-            RouteReasonNoMatchingListenerHostname,
-            RouteReasonNoMatchingParent,
-            RouteReasonUnsupportedValue,
-            RouteReasonParentRefNotPermitted,
-        ],
-        ConditionStatusUnknown: [
-            RouteReasonPending,
-        ],
-    },
-    RouteConditionResolvedRefs: conditionReasons{
-        ConditionStatusTrue: [
-            RouteReasonResolvedRefs,
-        ],
-        ConditionStatusFalse: [
-            RouteReasonRefNotPermitted,
-            RouteReasonInvalidKind,
-            RouteReasonBackendNotFound,
-        ],
-        ConditionStatusUnknown: [
-        ],
-    }
-}
-
 func (c *Condition) IsCondition(other *Condition) bool {
 	return c.Type == other.Type && c.Resource.IsSame(other.Resource)
 }
@@ -327,16 +293,16 @@ func (u *StatusUpdater) UpdateEntry() (ControlledConfigEntry, bool) {
 
 // NewRouteCondition is a helper to build allowable Conditions for a Route config entry
 func NewRouteCondition(name RouteConditionType, status ConditionStatus, reason RouteConditionReason, message string) Condition {
-	if err = checkRouteConditionReason(name, status, reason); err != nil {
+	if err := checkRouteConditionReason(name, status, reason); err != nil {
 		panic(err)
 	}
 
 	return Condition{
-        Type:               name,
+		Type:               string(name),
 		Status:             status,
-		Reason:             reason,
+		Reason:             string(reason),
 		Message:            message,
-		LastTransitionTime: time.Now(),
+		LastTransitionTime: pointerTo(time.Now().UTC()),
 	}
 }
 
@@ -345,12 +311,47 @@ func checkRouteConditionReason(name RouteConditionType, status ConditionStatus, 
 		return err
 	}
 
-    reasons, ok := routeConditionReasons[name]; if !ok {
-		return fmt.Errorf("unrecognized RouteConditionType %s", name)
-    }
+	routeConditionReasons := map[RouteConditionType]map[ConditionStatus][]RouteConditionReason{
+		RouteConditionAccepted: map[ConditionStatus][]RouteConditionReason{
+			ConditionStatusTrue: []RouteConditionReason{
+				RouteReasonAccepted,
+			},
+			ConditionStatusFalse: []RouteConditionReason{
+				RouteReasonNotAllowedByListeners,
+				RouteReasonNoMatchingListenerHostname,
+				RouteReasonNoMatchingParent,
+				RouteReasonUnsupportedValue,
+				RouteReasonParentRefNotPermitted,
+			},
+			ConditionStatusUnknown: []RouteConditionReason{
+				RouteReasonPending,
+			},
+		},
+		RouteConditionResolvedRefs: map[ConditionStatus][]RouteConditionReason{
+			ConditionStatusTrue: []RouteConditionReason{
+				RouteReasonResolvedRefs,
+			},
+			ConditionStatusFalse: []RouteConditionReason{
+				RouteReasonRefNotPermitted,
+				RouteReasonInvalidKind,
+				RouteReasonBackendNotFound,
+			},
+			ConditionStatusUnknown: []RouteConditionReason{},
+		},
+	}
 
-    if !slices.Contains(reasons[status], reason) {
-        return fmt.Errorf("route condition reason %s not allowed for route condition type %s with status %s", reason, name, status)
+	reasons, ok := routeConditionReasons[name]
+	if !ok {
+		return fmt.Errorf("unrecognized RouteConditionType %s", name)
+	}
+
+	reasonsForStatus, ok := reasons[status]
+	if !ok {
+		return fmt.Errorf("unrecognized ConditionStatus %s", name)
+	}
+
+	if !slices.Contains[RouteConditionReason](reasonsForStatus, reason) {
+		return fmt.Errorf("route condition reason %s not allowed for route condition type %s with status %s", reason, name, status)
 	}
 
 	return nil
@@ -365,4 +366,13 @@ func checkConditionStatus(status ConditionStatus) error {
 	default:
 		return fmt.Errorf("unrecognized ConditionStatus %s", status)
 	}
+
+	// FIXME: this will never be reached, can it be removed somehow?
+	return nil
+}
+
+// FIXME: duplicated from agent/consul/gateways/controller_gateways.go, centralize helper somewhere?
+// pointerTo returns a pointer to the value passed as an argument
+func pointerTo[T any](value T) *T {
+	return &value
 }
