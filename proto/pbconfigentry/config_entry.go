@@ -367,6 +367,8 @@ func conditionStatusToStructs(s string) structs.ConditionStatus {
 	default:
 		return structs.ConditionStatusUnknown
 	}
+
+	return structs.ConditionStatusUnknown
 }
 
 func conditionStatusFromStructs(s structs.ConditionStatus) string {
