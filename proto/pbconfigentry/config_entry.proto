@@ -602,8 +602,7 @@ message Status {
 // name=Structs
 message Condition {
   string Type = 1;
-  // FIXME: how do I convert from ConditionStatus type to avoid error in generated code?
-  // cannot use s.Status (variable of type string) as type structs.ConditionStatus in assignment
+  // mog: func-from=conditionStatusFromStructs func-to=conditionStatusToStructs
   string Status = 2;
   string Reason = 3;
   string Message = 4;
@@ -611,13 +610,6 @@ message Condition {
   // mog: func-to=timeToStructs func-from=timeFromStructs
   google.protobuf.Timestamp LastTransitionTime = 6;
 }
-
-// mog annotation:
-//
-// target=github.com/hashicorp/consul/agent/structs.ConditionStatus
-// output=config_entry.gen.go
-// name=Structs
-message ConditionStatus {
 
 enum APIGatewayListenerProtocol {
   ListenerProtocolHTTP = 0;
