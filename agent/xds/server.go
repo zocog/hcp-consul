@@ -7,6 +7,7 @@ import (
 	"time"
 
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	envoy_secret_v3 "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
 
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
@@ -183,6 +184,7 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 // Register the XDS server handlers to the given gRPC server.
 func (s *Server) Register(srv *grpc.Server) {
 	envoy_discovery_v3.RegisterAggregatedDiscoveryServiceServer(srv, s)
+	envoy_secret_v3.RegisterSecretDiscoveryServiceServer(srv, s)
 }
 
 func (s *Server) authenticate(ctx context.Context) (acl.Authorizer, error) {

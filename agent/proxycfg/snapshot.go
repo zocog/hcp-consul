@@ -906,8 +906,13 @@ DOMAIN_LOOP:
 }
 
 func (c *configSnapshotAPIGateway) toIngressTLS() (*structs.GatewayTLSConfig, error) {
-	// TODO (t-eckert) this is dependent on future SDS work.
-	return &structs.GatewayTLSConfig{}, nil
+	return &structs.GatewayTLSConfig{
+		Enabled: true,
+		SDS: &structs.GatewayTLSSDSConfig{
+			ClusterName:  "local_agent",
+			CertResource: "inline-certificate:default/default/certificate/",
+		},
+	}, nil
 }
 
 type configSnapshotIngressGateway struct {

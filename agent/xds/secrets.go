@@ -37,9 +37,11 @@ func (s *ResourceGenerator) secretsFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot
 func (s *ResourceGenerator) secretsFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	resources := make([]proto.Message, 0, cfgSnap.APIGateway.Certificates.Len())
 
+	fmt.Println("XDS CERT CHECK")
 	cfgSnap.APIGateway.Certificates.ForEachKey(func(ref structs.ResourceReference) bool {
 		cert, ok := cfgSnap.APIGateway.Certificates.Get(ref)
 		if !ok {
+			fmt.Println("NO INLINE CERT")
 			// inline-certificate not present in map for some reason, process others
 			return true
 		}
@@ -63,6 +65,7 @@ func (s *ResourceGenerator) secretsFromSnapshotAPIGateway(cfgSnap *proxycfg.Conf
 		}
 
 		resources = append(resources, secret)
+		fmt.Println("COMPILED RESOURCES", resources)
 		return true
 	})
 
