@@ -51,7 +51,7 @@ func CatalogNodeExists(t *testing.T, c *api.Client, nodeName string) {
 
 // HTTPServiceEchoes verifies that a post to the given ip/port combination returns the data
 // in the response body. Optional path can be provided to differentiate requests.
-func HTTPServiceEchoes(t *testing.T, ip string, port int, path string) {
+func HTTPServiceEchoes(t *testing.T, ip string, port int, path string, headers map[string]string) {
 	const phrase = "hello"
 
 	failer := func() *retry.Timer {
@@ -68,7 +68,18 @@ func HTTPServiceEchoes(t *testing.T, ip string, port int, path string) {
 	retry.RunWith(failer(), t, func(r *retry.R) {
 		t.Logf("making call to %s", url)
 		reader := strings.NewReader(phrase)
-		res, err := client.Post(url, "text/plain", reader)
+		req, err := http.NewRequest("POST", url, reader)
+		assert.NoError(t, err)
+		headers["content-type"] = "text/plain"
+
+		for k, v := range headers {
+			req.Header.Set(k, v)
+
+			if k == "Host" {
+				req.Host = v
+			}
+		}
+		res, err := client.Do(req)
 		if err != nil {
 			r.Fatal("could not make call to service ", url)
 		}
