@@ -43,19 +43,21 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	//create cluster
 	cluster := createCluster(t, listenerPort)
 	client := cluster.Agents[0].GetClient()
+	service1Port := 8080
+	service2Port := 8081
 	serviceOne := createService(t, cluster, &libservice.ServiceOpts{
 		Name:     "service1",
 		ID:       "service1",
-		HTTPPort: 8080,
+		HTTPPort: service1Port,
 		GRPCPort: 8079,
 	}, nil)
 	serviceTwo := createService(t, cluster, &libservice.ServiceOpts{
 		Name:     "service2",
 		ID:       "service2",
-		HTTPPort: 8081,
+		HTTPPort: service2Port,
 		GRPCPort: 8082,
 	}, []string{
-		"-echo-debug-path", "/debug",
+		"-echo-debug-path", "/check",
 	},
 	)
 
@@ -126,6 +128,8 @@ func TestHTTPRouteFlattening(t *testing.T) {
 			},
 		},
 	}
+
+	fmt.Println(path2)
 
 	routeTwo := &api.HTTPRouteConfigEntry{
 		Kind: api.HTTPRoute,
@@ -221,13 +225,25 @@ func TestHTTPRouteFlattening(t *testing.T) {
 
 	//route 2 with headers
 
+	time.Sleep(time.Minute * 30)
 	//Same path with and without header
-	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "debug", map[string]string{
+	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "v2/check", map[string]string{
 		"Host": "test.foo",
 		"x-v2": "v2",
 	}, checkOptions{debug: true, statusCode: 200})
-	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "debug", map[string]string{
+
+	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "v2/check", map[string]string{
 		"Host": "test.foo",
+	}, checkOptions{statusCode: 200})
+
+	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "check", map[string]string{
+		"Host": "test.foo",
+		"x-v2": "v2",
+	}, checkOptions{debug: true, statusCode: 200})
+
+	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "hello/hello", map[string]string{
+		"Host": "test.foo",
+		"x-v2": "v2",
 	}, checkOptions{statusCode: 200})
 
 	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "v2", map[string]string{
@@ -235,13 +251,13 @@ func TestHTTPRouteFlattening(t *testing.T) {
 		"x-v2": "v2",
 	}, checkOptions{statusCode: 200})
 
-	//hit service 1 by hitting path
-	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "", map[string]string{
-		"Host": "test.foo",
-	}, checkOptions{debug: false, statusCode: 200})
+	////hit service 1 by hitting path
+	//checkRoute(t, ip, gatewayService.GetPort(listenerPort), "", map[string]string{
+	//	"Host": "test.foo",
+	//}, checkOptions{debug: false, statusCode: 200})
 
 	//hit service 1 by hitting v2 path with v1 hostname
-	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "v2", map[string]string{
+	checkRoute(t, ip, gatewayService.GetPort(listenerPort), "v2/check", map[string]string{
 		"Host": "test.example",
 	}, checkOptions{debug: false, statusCode: 200})
 

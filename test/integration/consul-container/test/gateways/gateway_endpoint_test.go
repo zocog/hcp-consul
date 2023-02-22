@@ -188,6 +188,7 @@ type checkOptions struct {
 	debug      bool
 	statusCode int
 	testName   string
+	host       string
 }
 
 func checkRoute(t *testing.T, ip string, port int, path string, headers map[string]string, expected checkOptions) {
@@ -230,6 +231,8 @@ func checkRoute(t *testing.T, ip string, port int, path string, headers map[stri
 			r.Fatal("could not read response body ", url)
 		}
 
+		t.Log(res.StatusCode, string(body))
+
 		assert.Equal(t, expected.statusCode, res.StatusCode)
 		if expected.statusCode != res.StatusCode {
 			r.Fatal("unexpecged response code returned")
@@ -239,6 +242,11 @@ func checkRoute(t *testing.T, ip string, port int, path string, headers map[stri
 		assert.Equal(t, expected.debug, strings.Contains(string(body), "debug"))
 		if expected.statusCode != res.StatusCode {
 			r.Fatal("unexpected response body returned")
+		}
+
+		if expected.host != "" {
+			assert.Equal(t, expected.host, res.Header.Get("Host"))
+
 		}
 
 		if !strings.Contains(string(body), phrase) {
