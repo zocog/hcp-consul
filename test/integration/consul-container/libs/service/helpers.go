@@ -22,7 +22,7 @@ type ServiceOpts struct {
 	GRPCPort int
 }
 
-func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts *ServiceOpts) (Service, Service, error) {
+func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts *ServiceOpts, containerArgs ...string) (Service, Service, error) {
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
 	var deferClean utils.ResettableDefer
@@ -53,7 +53,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 	}
 
 	// Create a service and proxy instance
-	serverService, err := NewExampleService(context.Background(), serviceOpts.ID, serviceOpts.HTTPPort, serviceOpts.GRPCPort, node)
+	serverService, err := NewExampleService(context.Background(), serviceOpts.ID, serviceOpts.HTTPPort, serviceOpts.GRPCPort, node, containerArgs...)
 	if err != nil {
 		return nil, nil, err
 	}
