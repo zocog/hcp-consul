@@ -9,6 +9,7 @@ import (
 	"io"
 	"math"
 	"net"
+	"runtime/debug"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -36,6 +37,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+
+	"github.com/kr/pretty"
 )
 
 var RPCCounters = []prometheus.CounterDefinition{
@@ -829,6 +832,18 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 			"datacenter", dc,
 			"method", method,
 		)
+
+		//s.rpcLogger().Error(fmt.Sprintf("\n\n\n\t\tBBB serfWAN %#v\n\n\n", s.serfWAN))
+		//s.rpcLogger().Error(pretty.Sprintf("\n\n\n\t\tBBB serfWAN %#v\n\n\n", s.serfWAN))
+		s.rpcLogger().Error(pretty.Sprint(s.serfWAN))
+		//pretty.Errorf("")
+
+		// Get the stack trace
+		stackTrace := debug.Stack()
+
+		// Print the stack trace to standard output
+		s.rpcLogger().Error(string(stackTrace))
+
 		return structs.ErrNoDCPath
 	}
 

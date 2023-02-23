@@ -217,7 +217,7 @@ endif
 # linux builds a linux binary compatible with the source platform
 linux:
 	@mkdir -p ./pkg/bin/linux_$(GOARCH)
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -o ./pkg/bin/linux_$(GOARCH) -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -gcflags="all=-N -l" -o ./pkg/bin/linux_$(GOARCH) -ldflags "$(GOLDFLAGS)" -tags "$(GOTAGS)"
 
 # dist builds binaries for all platforms and packages them for distribution
 dist:
