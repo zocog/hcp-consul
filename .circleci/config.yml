@@ -939,6 +939,28 @@ jobs:
         - run:
             name: Upgrade Integration Tests
             command: |
+
+            mkdir -p /tmp/test-results/
+            cd ./test/integration/consul-container
+            docker run --rm consul:local consul version
+            gotestsum \
+              --raw-command \
+              --format=short-verbose \
+              --debug \
+              --rerun-fails=3 \
+              --packages="./..." \
+              -- \
+              go test \
+              -p=4 \
+              -timeout=30m \
+              -json \
+              `go list ./... | grep -v upgrade` \
+              --target-image consul \
+              --target-version local \
+              --latest-image consul \
+              --latest-version latest
+            ls -lrt
+
               mkdir -p /tmp/test-results/
               cd ./test/integration/consul-container
               docker run --rm consul:local consul version
