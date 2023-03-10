@@ -11,6 +11,8 @@ This topic provides an overview of the experimental WAL (write-ahead log) LogSto
 
 !> **Experimental feature:** The WAL LogStore backend is experimental.
 
+!> **Known Issues:** Consul 1.15.0 and 1.15.1 have known issues so should not have WAL enabled in production.
+
 ## WAL versus BoltDB
 
 WAL implements a traditional log with rotating, append-only log files. WAL resolves many issues with the existing `LogStore` provided by the BoltDB backend. The BoltDB `LogStore` is a copy-on-write BTree, which is not optimized for append-only, write-heavy workloads. 
