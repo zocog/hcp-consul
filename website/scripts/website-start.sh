@@ -14,19 +14,21 @@ PREVIEW_MODE=developer
 
 should_pull=true
 
-# Clone the dev-portal project, if needed
-if [ ! -d "$PREVIEW_DIR" ]; then
-    echo "⏳ Cloning the $REPO_TO_CLONE repo, this might take a while..."
-    git clone --depth=1 https://github.com/hashicorp/$REPO_TO_CLONE.git "$PREVIEW_DIR"
-    should_pull=false
-fi
+# git clone https://github.com/hashicorp/dev-portal.git website-preview
+
+# # Clone the dev-portal project, if needed
+# if [ ! -d "$PREVIEW_DIR" ]; then
+#     echo "⏳ Cloning the $REPO_TO_CLONE repo, this might take a while..."
+#     git clone --depth=1 https://github.com/hashicorp/$REPO_TO_CLONE.git "$PREVIEW_DIR"
+#     should_pull=false
+# fi
 
 cd "$PREVIEW_DIR"
 
-# If the directory already existed, pull to ensure the clone is fresh
-if [ "$should_pull" = true ]; then
-    git pull origin main
-fi
+# # If the directory already existed, pull to ensure the clone is fresh
+# if [ "$should_pull" = true ]; then
+#     git pull origin main
+# fi
 
 # Run the dev-portal content-repo start script
 REPO=$PRODUCT PREVIEW_MODE=$PREVIEW_MODE npm run start:local-preview

@@ -406,7 +406,8 @@ When using cluster peering connections, intentions secure your deployments with 
       name: 'Name',
       description:
         "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined. Wildcard intentions cannot be used when defining L7 [`Permissions`](/consul/docs/connect/config-entries/service-intentions#permissions).",
-      type: 'string: <required>',
+      required: true
+      type: 'string',
       yaml: false,
     },
     {

@@ -557,15 +557,21 @@ spec:
 
 ## Available Fields
 
+### Hello
+
 <ConfigEntryReference
   keys={[
     {
       name: 'apiVersion',
+      required: true,
+      type: 'string',
       description: 'Must be set to `consul.hashicorp.com/v1alpha1`',
       hcl: false,
     },
     {
       name: 'Kind',
+      required: true,
+      type: 'string',
       description: {
         hcl: 'Must be set to `terminating-gateway`',
         yaml: 'Must be set to `TerminatingGateway`',
@@ -573,13 +579,16 @@ spec:
     },
     {
       name: 'Name',
+      required: true,
       description: 'Set to the name of the gateway being configured.',
-      type: 'string: <required>',
+      type: 'string',
       yaml: false,
     },
     {
       name: 'Namespace',
-      type: `string: "default"`,
+      type: `string`,
+      required: false,
+      default_value: '"default"',
       enterprise: true,
       description:
         'Specifies the namespace to which the configuration entry will apply. This must match the namespace in which the gateway is registered.' +
@@ -589,7 +598,9 @@ spec:
     },
     {
       name: 'Partition',
-      type: `string: "default"`,
+      type: 'string',
+      required: false,
+      default_value: '"default"',
       enterprise: true,
       description:
         'Specifies the admin partition to which the configuration entry will apply. This must match the partition in which the gateway is registered.' +
@@ -599,7 +610,9 @@ spec:
     },
     {
       name: 'Meta',
-      type: 'map<string|string>: nil',
+      type: 'map<string|string>',
+      required: false,
+      default_value: 'nil',
       description:
         'Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.',
       yaml: false,
@@ -609,10 +622,14 @@ spec:
       children: [
         {
           name: 'name',
+          required: true,
+          type: 'string',
           description: 'Set to the name of the gateway being configured.',
         },
         {
           name: 'namespace',
+          required: false,
+          default_value: '"default"',
           description:
             'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
         },
@@ -621,13 +638,15 @@ spec:
     },
     {
       name: 'Services',
-      type: 'array<LinkedService>: <optional>',
+      required: false,
+      type: 'LinkedService[]',
       description: `A list of services or destinations to link
                       with the gateway. The gateway will proxy traffic to these services. These linked services
                       must be registered with Consul for the gateway to discover their addresses. They must also
                       be registered in the same Consul datacenter as the terminating gateway.
                       Destinations are an exception to this requirement, and only need to be defined as a service-defaults configuration entry in the same datacenter.
-                      If Consul ACLs are enabled, the Terminating Gateway's ACL token must grant <code>service:write</code> for all linked services.`,
+                      If Consul ACLs are enabled, the Terminating Gateway's ACL token must grant \`service:write\` for all linked services.
+                  `,
       children: [
         {
           name: 'Name',
@@ -638,7 +657,9 @@ spec:
         {
           name: 'Namespace',
           enterprise: true,
-          type: 'string: ""',
+          required: false,
+          default: '""',
+          type: 'string',
           description:
             'The namespace of the service. If omitted, the namespace will be inherited from the config entry.',
         },
@@ -677,7 +698,8 @@ spec:
         },
         {
           name: 'SNI',
-          type: 'string: ""',
+          type: 'string',
+          required: false,
           description:
           `An optional hostname or domain name to specify during the TLS handshake. This option will also configure [strict SAN matching](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-certificatevalidationcontext-match-typed-subject-alt-names), which requires
             the external services to have certificates with SANs, not having which will result in \`CERTIFICATE_VERIFY_FAILED\` error.`,
