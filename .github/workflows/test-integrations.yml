@@ -1,0 +1,51 @@
+name: test-integrations
+
+on: [push]
+  
+permissions:
+  contents: read
+
+env:
+  TEST_RESULTS: /tmp/test-results # path to where test results are saved
+  GOTESTSUM_VERSION: 1.8.2
+
+jobs:
+  # dev-build: *filter-ignore-non-go-branches
+  # dev-upload-s3:
+  #   needs:
+  #     - dev-build
+  #     filters:
+  #       branches:
+  #         ignore:
+  #           - /^pull\/.*$/ # only push dev builds from non forks
+  #           - main # all main dev uploads will include a UI rebuild in build-distros
+  # dev-upload-docker:
+  # nomad-integration-test:
+  #   needs:
+  #     - dev-build
+  #   matrix:
+  #     parameters:
+  #       nomad-version: *supported_nomad_versions
+  # vault-integration-test:
+  #     matrix:
+  #       parameters:
+  #         vault-version: *supported_vault_versions
+  #     <<: *filter-ignore-non-go-branches
+  # envoy-integration-test:
+  #     needs:
+  #       - dev-build
+  #     matrix:
+  #       parameters:
+  #         envoy-version: *supported_envoy_versions
+  #         xds-target: ["server", "client"]
+  # compatibility-integration-test:
+  #     needs:
+  #       - dev-build
+  # upgrade-integration-test:
+  #     needs:
+  #       - dev-build
+  #     matrix:
+  #       parameters:
+  #         consul-version: *consul_versions
+          
+  # noop:
