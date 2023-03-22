@@ -557,7 +557,36 @@ spec:
 
 ## Available Fields
 
-### Hello
+<!--
+<ConfigEntryReference source="./source/terminating-gateway.hcl" />
+
+<ConfigEntryReference>
+
+  <Reference name="apiVersion" required="true" type="string" hcl="false">
+
+  Must be set to `consul.hashicorp.com/v1alpha1`
+
+  </Reference>
+
+  <Reference name="Kind" required="true" type="string">
+
+    <HclDescription>
+
+    Must be set to `terminating-gateway`
+
+    </HclDescription>  
+
+    <JsonDescription>
+
+    Must be set to `TerminatingGateway`
+
+    </JsonDescription>
+
+  </Reference>
+
+</ConfigEntryReference>
+-->
+
 
 <ConfigEntryReference
   keys={[
