@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-array=$(go list -json="ImportPath,TestGoFiles" ./... | jq --compact-output '. | select(.TestGoFiles != null) | .ImportPath' | jq --slurp --compact-output '.')
+# set matrix var to list of unique packages containing tests
+matrix="$(go list -json="ImportPath,TestGoFiles" ./... | jq --compact-output '. | select(.TestGoFiles != null) | .ImportPath' | jq --slurp --compact-output '.')"
 
-g=4
+#!/usr/bin/env bash
+set -euo pipefail
 
-def nwise($n):
- def _nwise:
-   if length <= $n then . else .[0:$n] , (.[$n:]|_nwise) end;
- _nwise;
+# set matrix var to list of unique packages containing tests
+matrix="$(go list -json="ImportPath,TestGoFiles" ./... | jq --compact-output '. | select(.TestGoFiles != null) | .ImportPath' | jq --slurp --compact-output '.')"
 
-nwise(array)
+echo "matrix=${matrix}" | tee -a "${GITHUB_OUTPUT}"
