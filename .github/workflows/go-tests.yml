@@ -163,6 +163,7 @@ jobs:
       directory: .
       go-version: "1.20"
       uploaded-binary-name: 'consul-bin-arm64'
+      runner-count: 12
       # runs-on: ${{ needs.setup.outputs.compute-arm64 }}
     # steps:
     #   - name: make dev
@@ -185,6 +186,7 @@ jobs:
     with:
       directory: .
       go-version: "1.20"
+      runner-count: 12
     # steps:
     # TODO(JM) confirm where this comes from 
     # and whether it is ok to not get it from an image
