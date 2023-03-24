@@ -49,7 +49,7 @@ jobs:
 
   go-test:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
-    name: "go-test #${{ matrix.runner-index }}"
+    name: "go-test"
     needs:
       - runner-indexes
     strategy:
