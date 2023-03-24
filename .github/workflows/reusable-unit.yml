@@ -26,10 +26,10 @@ on:
         required: false
         type: string
         default: ""
-      # package-names-command:
-      #   required: false
-      #   type: string
-      #   default: "go list -tags "$GOTAGS" ./..."
+      package-names-command:
+        required: false
+        type: string
+        default: "go list -tags "$GOTAGS" ./..."
 
 env:
   TEST_RESULTS: /tmp/test-results
