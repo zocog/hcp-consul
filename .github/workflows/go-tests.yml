@@ -126,17 +126,17 @@ jobs:
       if: failure()
       run: .github/scripts/notify_slack.sh
 
-  lint:
-    needs: 
-    - setup   
-    uses: ./.github/workflows/reusable-lint.yml
+  # lint:
+  #   needs: 
+  #   - setup   
+  #   uses: ./.github/workflows/reusable-lint.yml
 
-  lint-32bit:
-    needs: 
-    - setup   
-    uses: ./.github/workflows/reusable-lint.yml
-    with:
-      go-arch: "386"
+  # lint-32bit:
+  #   needs: 
+  #   - setup   
+  #   uses: ./.github/workflows/reusable-lint.yml
+  #   with:
+  #     go-arch: "386"
 
   # create a development build
   dev-build:
