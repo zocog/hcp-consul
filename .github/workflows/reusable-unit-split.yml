@@ -99,7 +99,8 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          PACKAGE_NAMES=${{ join(matrix.package, '\r\n') }}
+          # tab separate the list
+          PACKAGE_NAMES=${{ join(matrix.package, '\\t') }}
           # PACKAGE_NAMES="${{ matrix.package }}"
 
           # TODO(JM): figure out why this erroring
