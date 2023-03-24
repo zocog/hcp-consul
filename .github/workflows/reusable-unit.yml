@@ -81,7 +81,7 @@ jobs:
             # some tests expect this umask, and arm images have a different default
             umask 0022
 
-            ${{inputs.go-test-flags}}
+            GO_TEST_FLAGS=${{inputs.go-test-flags}}
 
             gotestsum \
               --format=short-verbose \
