@@ -121,7 +121,6 @@ jobs:
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
           -tags="${{env.GOTAGS}}" -p 2 \
           -cover -coverprofile=coverage.txt
-          -run $PACKAGE_NAMES
 
       - uses: actions/upload-artifact@master
         with:
