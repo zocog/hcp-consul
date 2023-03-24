@@ -26,10 +26,10 @@ on:
         required: false
         type: string
         default: ""
-      # package-names-command:
-      #   required: false
-      #   type: string
-      #   default: "go list -tags "$GOTAGS" ./..."
+      package-names-command:
+        required: false
+        type: string
+        default: "go list -tags "$GOTAGS" ./..."
 
 env:
   TEST_RESULTS: /tmp/test-results
@@ -76,7 +76,7 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-            PACKAGE_NAMES=$(go list -tags "$GOTAGS" ./...)
+            PACKAGE_NAMES=$(${{inputs.package-names-command}})
             
             # some tests expect this umask, and arm images have a different default
             umask 0022
