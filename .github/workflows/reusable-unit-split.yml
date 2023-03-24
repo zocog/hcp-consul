@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
       - id: set-matrix
-        run: ./.github/scripts/set-test-package-matrix.sh ${{env.TOTAL_RUNNERS}}
+        run: ./.github/scripts/set_test_package_matrix.sh ${{env.TOTAL_RUNNERS}}
 
   go-test:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
