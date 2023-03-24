@@ -99,7 +99,7 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          PACKAGE_NAMES=${{ join(matrix.package, ' ') }}
+          PACKAGE_NAMES=${{ join(toJSON(matrix.package), ' ') }}
           # PACKAGE_NAMES="${{ matrix.package }}"
 
           # TODO(JM): figure out why this erroring
