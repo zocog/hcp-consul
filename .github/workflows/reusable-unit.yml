@@ -22,14 +22,14 @@ on:
         required: false
         type: string
         default: '["custom", "linux", "xl"]'
-      go-test-flags:
-        required: false
-        type: string
-        default: ""
       package-names-command:
         required: false
         type: string
         default: "go list -tags "$GOTAGS" ./..."
+      go-test-flags:
+        required: false
+        type: string
+        default: ""
 
 env:
   TEST_RESULTS: /tmp/test-results
