@@ -99,7 +99,7 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          MATRIX_PACKAGE=${{ matrix.package }}
+          MATRIX_PACKAGE=${{ fromJson(matrix.package) }}
           PACKAGE_NAMES=$( IFS=$'\n'; echo "${MATRIX_PACKAGE[*]}" )
 
           # TODO(JM): figure out why this erroring
