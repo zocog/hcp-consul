@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-GITHUB_OUTPUT=
+export RUNNER_COUNT=$(($1 + 0))
 # set matrix var to list of unique packages containing tests
-matrix="$(go list -json="ImportPath,TestGoFiles" ./... | jq --compact-output '. | select(.TestGoFiles != null) | .ImportPath' | jq --slurp --compact-output '.'))"
+matrix="$(go list -json="ImportPath,TestGoFiles" ./... | jq --compact-output '. | select(.TestGoFiles != null) | .ImportPath' | jq --slurp --compact-output '.' | jq --argjson runnercount $RUNNER_COUNT  -cM '[_nwise(length / $runnercount | floor)]'))"
 
-# splitMatrix=$("jq -nc '_nwise($matrix;3)'")
 echo "matrix=${matrix}" | tee -a "${GITHUB_OUTPUT}"
