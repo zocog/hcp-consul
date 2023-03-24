@@ -21,7 +21,7 @@ on:
         description: An expression indicating which kind of runners to use.
         required: false
         type: string
-        default: "['ubuntu-latest']"
+        default: '["custom", "linux", "xl"]'
       args:
         required: false
         type: string
@@ -58,7 +58,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: ${{ fromJson(needs.set-test-package-matrix.outputs.package-matrix) }}
+        package: ${{ needs.set-test-package-matrix.outputs.package-matrix }}
     steps:   
       - name: ulimit
         run: |
@@ -99,7 +99,7 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          MATRIX_PACKAGE=${{ fromJson(matrix.package) }}
+          MATRIX_PACKAGE=${{ toJSON(matrix.package) }}
           PACKAGE_NAMES=$( IFS=$'\n'; echo "${MATRIX_PACKAGE[*]}" )
 
           # TODO(JM): figure out why this erroring
