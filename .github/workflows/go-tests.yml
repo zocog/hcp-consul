@@ -165,7 +165,7 @@ jobs:
       uploaded-binary-name: 'consul-bin-arm64'
       runner-count: 12
       # runs-on: ${{ needs.setup.outputs.compute-arm64 }}
-      # go-test-flags: 'if ! [[ "$GITHUB_REF_NAME" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
+      go-test-flags: 'if ! [[ "$GITHUB_REF_NAME" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
 
   go-test:
     needs: 
