@@ -30,11 +30,7 @@ jobs:
     steps:
     - id: setup-outputs
       name: Setup outputs
-      run: |
-          echo 'compute-small=["custom", "linux", "small"]' >> $GITHUB_OUTPUT
-          echo 'compute-medium=["custom", "linux", "medium"]' >> $GITHUB_OUTPUT
-          echo 'compute-large=["custom", "linux", "large"]' >> $GITHUB_OUTPUT
-          echo 'compute-xl=["custom", "linux", "xl"]' >> $GITHUB_OUTPUT
+      run: .github/scripts/get-runner-classes.sh
 
   check-go-mod:
     needs: 
