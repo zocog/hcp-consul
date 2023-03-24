@@ -99,9 +99,7 @@ jobs:
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          MATRIX_PACKAGE=${{ toJSON(matrix.package) }}
-          PACKAGE_NAMES=$( IFS=$'\n'; echo "${MATRIX_PACKAGE[*]}" )
-          echo "PACKAGENAMES: $PACKAGE_NAMES"
+          PACKAGE_NAMES=${{ join(toJSON(matrix.package), " ") }}
           # PACKAGE_NAMES="${{ matrix.package }}"
 
           # TODO(JM): figure out why this erroring
