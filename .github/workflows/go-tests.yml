@@ -181,7 +181,7 @@ jobs:
   go-test:
     needs: 
     - setup   
-    - dev-build
+    # - dev-build
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
       directory: .

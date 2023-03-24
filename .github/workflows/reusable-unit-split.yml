@@ -88,24 +88,19 @@ jobs:
       - name: go mod download
         working-directory: ${{inputs.directory}}
         run: go mod download
-      - name: Download consul
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{inputs.uploaded-binary-name}}
-          path: /usr/local/bin
-      - name: Make sure consul is executable
-        run: sudo chmod +x /usr/local/bin/consul
-      - name: Display downloaded file
-        run: ls -ld consul 
-        working-directory: /usr/local/bin
+      # - name: Download consul
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: ${{inputs.uploaded-binary-name}}
+      #     path: /usr/local/bin
+      # - name: Make sure consul is executable
+      #   run: sudo chmod +x /usr/local/bin/consul
       - run: go env
-      - name: Contents of ${{inputs.directory}}
-        working-directory: ${{inputs.directory}}
-        run: ls -la ${{inputs.directory}}
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
-          PACKAGE_NAMES="${{ matrix.package }}"
+          MATRIX_PACKAGE=${{ matrix.package }}
+          PACKAGE_NAMES=$( IFS=$'\n'; echo "${MATRIX_PACKAGE[*]}" )
 
           # TODO(JM): figure out why this erroring
           # if [[ github.ref == 'refs/heads/main' || !startsWith(github.ref, 'refs/heads/release/') ]]; then
