@@ -71,7 +71,7 @@ func (s *ResourceGenerator) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsho
 		if err != nil {
 			return nil, err
 		}
-		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap)
+		res, err := s.clustersFromSnapshotAPIGateway(cfgSnap)
 		if err != nil {
 			return nil, err
 		}
@@ -774,6 +774,54 @@ func (s *ResourceGenerator) injectGatewayDestinationAddons(cfgSnap *proxycfg.Con
 
 	}
 	return nil
+}
+
+func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	var clusters []proto.Message
+	createdClusters := make(map[proxycfg.UpstreamID]bool)
+	for listenerRef, umaps := range cfgSnap.APIGateway.Upstreams {
+		_, listenerKey, err := refToAPIGatewayListenerKey(cfgSnap, listenerRef)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, upstreams := range umaps {
+			for _, u := range upstreams {
+
+				uid := proxycfg.NewUpstreamID(&u)
+
+				// If we've already created a cluster for this upstream, skip it. Multiple listeners may
+				// reference the same upstream, so we don't need to create duplicate clusters in that case.
+				if createdClusters[uid] {
+					continue
+				}
+
+				chain, ok := cfgSnap.IngressGateway.DiscoveryChain[uid]
+				if !ok {
+					// this should not happen
+					return nil, fmt.Errorf("no discovery chain for upstream %q", uid)
+				}
+
+				upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(
+					uid,
+					&u,
+					chain,
+					cfgSnap,
+					false,
+				)
+				if err != nil {
+					return nil, err
+				}
+
+				for _, c := range upstreamClusters {
+					s.configIngressUpstreamCluster(c, cfgSnap, *listenerKey, &u)
+					clusters = append(clusters, c)
+				}
+				createdClusters[uid] = true
+			}
+		}
+	}
+	return clusters, nil
 }
 
 func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
