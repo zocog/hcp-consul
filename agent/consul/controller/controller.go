@@ -11,11 +11,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-hclog"
-	"golang.org/x/sync/errgroup"
 )
 
 // much of this is a re-implementation of
@@ -53,7 +54,7 @@ type Controller interface {
 	// WithQueueFactory allows a Controller to replace its underlying work queue
 	// implementation. This is most useful for testing. This should only ever be called
 	// prior to running Run.
-	WithQueueFactory(fn func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) WorkQueue) Controller
+	WithQueueFactory(fn func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) WorkQueue[Request]) Controller
 	// AddTrigger allows for triggering a reconciliation request when a
 	// triggering function returns, when the passed in context is canceled
 	// the trigger must return
@@ -79,11 +80,11 @@ type controller struct {
 
 	// makeQueue is the factory used for creating the work queue, generally
 	// this shouldn't be touched, but can be updated for testing purposes
-	makeQueue func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) WorkQueue
+	makeQueue func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) WorkQueue[Request]
 	// workers is the number of workers to use to process data
 	workers int
 	// work is the internal work queue that pending Requests are added to
-	work WorkQueue
+	work WorkQueue[Request]
 	// baseBackoff is the starting backoff time for the work queue's rate limiter
 	baseBackoff time.Duration
 	// maxBackoff is the maximum backoff time for the work queue's rate limiter
@@ -125,7 +126,7 @@ func New(publisher state.EventPublisher, reconciler Reconciler) Controller {
 		workers:     1,
 		baseBackoff: 5 * time.Millisecond,
 		maxBackoff:  1000 * time.Second,
-		makeQueue:   RunWorkQueue,
+		makeQueue:   RunWorkQueue[Request],
 		started:     make(chan struct{}),
 		triggers:    make(map[Request]func()),
 		logger:      hclog.NewNullLogger(),
@@ -179,7 +180,7 @@ func (c *controller) WithLogger(logger hclog.Logger) Controller {
 // WithQueueFactory changes the initialization method for the Controller's work
 // queue, this is predominantly just used for testing. This should only ever be called
 // prior to running Start.
-func (c *controller) WithQueueFactory(fn func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) WorkQueue) Controller {
+func (c *controller) WithQueueFactory(fn func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) WorkQueue[Request]) Controller {
 	c.ensureNotRunning()
 
 	c.makeQueue = fn

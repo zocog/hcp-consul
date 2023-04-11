@@ -159,6 +159,7 @@ func (b *Backend) DeleteCAS(ctx context.Context, id *pbresource.ID, version stri
 	}
 
 	if b.handle.IsLeader() {
+		fmt.Println("====> I AM THE LEADER")
 		_, err := b.raftApply(&pbstorage.Log{
 			Type: pbstorage.LogType_LOG_TYPE_DELETE,
 			Request: &pbstorage.Log_Delete{
@@ -243,6 +244,7 @@ func (b *Backend) Apply(buf []byte, idx uint64) any {
 			},
 		}
 	case pbstorage.LogType_LOG_TYPE_DELETE:
+		fmt.Println("====> HANDLING THE DELETION")
 		req := req.GetDelete()
 		if err := b.store.DeleteCAS(req.Id, req.Version); err != nil {
 			return err

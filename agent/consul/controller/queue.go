@@ -14,41 +14,41 @@ import (
 
 // WorkQueue is an interface for a work queue with semantics to help with
 // retries and rate limiting.
-type WorkQueue interface {
+type WorkQueue[RequestType comparable] interface {
 	// Get retrieves the next Request in the queue, blocking until a Request is
 	// available, if shutdown is true, then the queue is shutting down and should
 	// no longer be used by the caller.
-	Get() (item Request, shutdown bool)
+	Get() (item RequestType, shutdown bool)
 	// Add immediately adds a Request to the work queue.
-	Add(item Request)
+	Add(item RequestType)
 	// AddAfter adds a Request to the work queue after a given amount of time.
-	AddAfter(item Request, duration time.Duration)
+	AddAfter(item RequestType, duration time.Duration)
 	// AddRateLimited adds a Request to the work queue after the amount of time
 	// specified by applying the queue's rate limiter.
-	AddRateLimited(item Request)
+	AddRateLimited(item RequestType)
 	// Forget signals the queue to reset the rate-limiting for the given Request.
-	Forget(item Request)
+	Forget(item RequestType)
 	// Done tells the work queue that the Request has been successfully processed
 	// and can be deleted from the queue.
-	Done(item Request)
+	Done(item RequestType)
 }
 
 // queue implements a rate-limited work queue
-type queue struct {
+type queue[RequestType comparable] struct {
 	// queue holds an ordered list of Requests needing to be processed
-	queue []Request
+	queue []RequestType
 
 	// dirty holds the working set of all Requests, whether they are being
 	// processed or not
-	dirty map[Request]struct{}
+	dirty map[RequestType]struct{}
 	// processing holds the set of current requests being processed
-	processing map[Request]struct{}
+	processing map[RequestType]struct{}
 
 	// deferred is an internal priority queue that tracks deferred
 	// Requests
-	deferred DeferQueue
+	deferred DeferQueue[RequestType]
 	// ratelimiter is the internal rate-limiter for the queue
-	ratelimiter Limiter
+	ratelimiter Limiter[RequestType]
 
 	// cond synchronizes queue access and handles signalling for when
 	// data is available in the queue
@@ -60,13 +60,13 @@ type queue struct {
 
 // RunWorkQueue returns a started WorkQueue that has per-Request exponential backoff rate-limiting.
 // When the passed in context is canceled, the queue shuts down.
-func RunWorkQueue(ctx context.Context, baseBackoff, maxBackoff time.Duration) WorkQueue {
-	q := &queue{
-		ratelimiter: NewRateLimiter(baseBackoff, maxBackoff),
-		dirty:       make(map[Request]struct{}),
-		processing:  make(map[Request]struct{}),
+func RunWorkQueue[RequestType comparable](ctx context.Context, baseBackoff, maxBackoff time.Duration) WorkQueue[RequestType] {
+	q := &queue[RequestType]{
+		ratelimiter: NewRateLimiter[RequestType](baseBackoff, maxBackoff),
+		dirty:       make(map[RequestType]struct{}),
+		processing:  make(map[RequestType]struct{}),
 		cond:        sync.NewCond(&sync.Mutex{}),
-		deferred:    NewDeferQueue(500 * time.Millisecond),
+		deferred:    NewDeferQueue[RequestType](500 * time.Millisecond),
 		ctx:         ctx,
 	}
 	go q.start()
@@ -75,8 +75,8 @@ func RunWorkQueue(ctx context.Context, baseBackoff, maxBackoff time.Duration) Wo
 }
 
 // start begins the asynchronous processing loop for the deferral queue
-func (q *queue) start() {
-	go q.deferred.Process(q.ctx, func(item Request) {
+func (q *queue[RequestType]) start() {
+	go q.deferred.Process(q.ctx, func(item RequestType) {
 		q.Add(item)
 	})
 
@@ -85,7 +85,7 @@ func (q *queue) start() {
 }
 
 // shuttingDown returns whether the queue is in the process of shutting down
-func (q *queue) shuttingDown() bool {
+func (q *queue[RequestType]) shuttingDown() bool {
 	select {
 	case <-q.ctx.Done():
 		return true
@@ -98,7 +98,7 @@ func (q *queue) shuttingDown() bool {
 // an item is available in the queue. If the returned shutdown parameter is true,
 // then the caller should stop using the queue. Any Requests returned by a call
 // to Get must be explicitly marked as processed via the Done method.
-func (q *queue) Get() (item Request, shutdown bool) {
+func (q *queue[RequestType]) Get() (item RequestType, shutdown bool) {
 	q.cond.L.Lock()
 	defer q.cond.L.Unlock()
 	for len(q.queue) == 0 && !q.shuttingDown() {
@@ -106,7 +106,8 @@ func (q *queue) Get() (item Request, shutdown bool) {
 	}
 	if len(q.queue) == 0 {
 		// We must be shutting down.
-		return Request{}, true
+		var zero RequestType
+		return zero, true
 	}
 
 	item, q.queue = q.queue[0], q.queue[1:]
@@ -119,7 +120,7 @@ func (q *queue) Get() (item Request, shutdown bool) {
 
 // Add puts the given Request in the queue. If the Request is already in
 // the queue or the queue is stopping, then this is a no-op.
-func (q *queue) Add(item Request) {
+func (q *queue[RequestType]) Add(item RequestType) {
 	q.cond.L.Lock()
 	defer q.cond.L.Unlock()
 	if q.shuttingDown() {
@@ -139,7 +140,7 @@ func (q *queue) Add(item Request) {
 }
 
 // AddAfter adds a Request to the work queue after a given amount of time.
-func (q *queue) AddAfter(item Request, duration time.Duration) {
+func (q *queue[RequestType]) AddAfter(item RequestType, duration time.Duration) {
 	// don't add if we're already shutting down
 	if q.shuttingDown() {
 		return
@@ -156,18 +157,18 @@ func (q *queue) AddAfter(item Request, duration time.Duration) {
 
 // AddRateLimited adds the given Request to the queue after applying the
 // rate limiter to determine when the Request should next be processed.
-func (q *queue) AddRateLimited(item Request) {
+func (q *queue[RequestType]) AddRateLimited(item RequestType) {
 	q.AddAfter(item, q.ratelimiter.NextRetry(item))
 }
 
 // Forget signals the queue to reset the rate-limiting for the given Request.
-func (q *queue) Forget(item Request) {
+func (q *queue[RequestType]) Forget(item RequestType) {
 	q.ratelimiter.Forget(item)
 }
 
 // Done removes the item from the queue, if it has been marked dirty
 // again while being processed, it is re-added to the queue.
-func (q *queue) Done(item Request) {
+func (q *queue[RequestType]) Done(item RequestType) {
 	q.cond.L.Lock()
 	defer q.cond.L.Unlock()
 

@@ -33,6 +33,7 @@ import (
 	"go.etcd.io/bbolt"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
@@ -65,6 +66,7 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
@@ -72,6 +74,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -409,6 +412,8 @@ type Server struct {
 
 	// peeringServer handles peering RPC requests internal to this cluster, like generating peering tokens.
 	peeringServer *peering.Server
+
+	resourceServer *resourcegrpc.Server
 
 	// xdsCapacityController controls the number of concurrent xDS streams the
 	// server is able to handle.
@@ -802,6 +807,37 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	if err != nil {
 		return nil, err
 	}
+
+	pipe := agentgrpc.ListenPipe()
+	inmemServer := grpc.NewServer()
+	s.resourceServer.Register(inmemServer)
+	go inmemServer.Serve(pipe)
+	go func() {
+		<-shutdownCh
+		inmemServer.Stop()
+	}()
+
+	conn, err := grpc.DialContext(
+		context.Background(),
+		"pipe",
+		grpc.WithBlock(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(pipe.DialContextWithoutNetwork),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	ctrlMgr := controller.NewManager(controller.ManagerDeps{
+		Logger: logger.Named("controller-runtime"),
+		Client: pbresource.NewResourceServiceClient(conn),
+	})
+
+	if s.config.DevMode {
+		ctrlMgr.AddController(demo.ArtistController(logger.Named("artist-controller")))
+	}
+
+	go ctrlMgr.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	return s, nil
 }
@@ -1268,12 +1304,13 @@ func (s *Server) setupExternalGRPC(config *Config, backend storage.Backend, logg
 		demo.Register(registry)
 	}
 
-	resourcegrpc.NewServer(resourcegrpc.Config{
+	s.resourceServer = resourcegrpc.NewServer(resourcegrpc.Config{
 		Registry:    registry,
 		Backend:     backend,
-		ACLResolver: s.ACLResolver,
 		Logger:      logger.Named("grpc-api.resource"),
-	}).Register(s.externalGRPCServer)
+		ACLResolver: s.ACLResolver,
+	})
+	s.resourceServer.Register(s.externalGRPCServer)
 }
 
 // Shutdown is used to shutdown the server

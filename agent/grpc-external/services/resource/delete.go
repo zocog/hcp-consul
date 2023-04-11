@@ -18,6 +18,7 @@ import (
 // Deletes of previously deleted or non-existent resource are no-ops.
 // Returns an Aborted error if the requested Version does not match the stored Version.
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
+	s.Logger.Info("DELETE")
 	// check type registered
 	reg, err := s.resolveType(req.Id.Type)
 	if err != nil {
@@ -27,25 +28,24 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	// TODO(spatel): reg will be used for ACL hooks
 	_ = reg
 
-	versionToDelete := req.Version
-	if versionToDelete == "" {
-		// Delete resource regardless of the stored Version. Hence, strong read
-		// necessary to get latest Version
-		existing, err := s.Backend.Read(ctx, storage.StrongConsistency, req.Id)
-		switch {
-		case err == nil:
-			versionToDelete = existing.Version
-		case errors.Is(err, storage.ErrNotFound):
-			// deletes are idempotent so no-op if resource not found
-			return &pbresource.DeleteResponse{}, nil
-		default:
-			return nil, status.Errorf(codes.Internal, "failed read: %v", err)
-		}
-	}
-
-	err = s.Backend.DeleteCAS(ctx, req.Id, versionToDelete)
+	// Delete resource regardless of the stored Version. Hence, strong read
+	// necessary to get latest Version
+	existing, err := s.Backend.Read(ctx, storage.StrongConsistency, req.Id)
 	switch {
 	case err == nil:
+	case errors.Is(err, storage.ErrNotFound):
+		// deletes are idempotent so no-op if resource not found
+		return &pbresource.DeleteResponse{}, nil
+	default:
+		return nil, status.Errorf(codes.Internal, "failed read: %v", err)
+	}
+
+	// BUG: Need to use the stored ID as it contains the Uid!!!
+	s.Logger.Info("Calling DeleteCAS")
+	err = s.Backend.DeleteCAS(ctx, existing.Id, existing.Version)
+	switch {
+	case err == nil:
+		s.Logger.Info("no error")
 		return &pbresource.DeleteResponse{}, nil
 	case errors.Is(err, storage.ErrCASFailure):
 		return nil, status.Error(codes.Aborted, err.Error())
