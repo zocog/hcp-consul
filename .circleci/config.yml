@@ -553,6 +553,9 @@ jobs:
       - checkout
       - attach_workspace: # this normally runs as the first job and has nothing to attach; only used in main branch after rebuilding UI
           at: .
+      - run: |
+          sudo apt-get install net-tools
+          ifconfig -a
       - run:
           name: Build
           command: |
