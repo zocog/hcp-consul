@@ -356,13 +356,13 @@ jobs:
           docker run --rm consul:local consul version
           # shellcheck disable=SC2046
           PACKAGE_NAMES=$(go list -tags "${{ env.GOTAGS }}" ./...)
-          gotestsum \
-            --raw-command \
-            --format=short-verbose \
-            --debug \
-            --rerun-fails=3 \
-            --packages="${PACKAGE_NAMES}" \
-            -- \
+          # gotestsum \
+          #   --raw-command \
+          #   --format=short-verbose \
+          #   --debug \
+          #   --rerun-fails=3 \
+          #   --packages="${PACKAGE_NAMES}" \
+          #   -- \
             go test \
             -p=4 \
             -tags "${{ env.GOTAGS }}" \
