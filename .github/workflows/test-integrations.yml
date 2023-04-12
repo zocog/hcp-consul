@@ -35,8 +35,8 @@ jobs:
     steps:
       - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - run: |
-        sudo apt-get install net-tools
-        ifconfig -a
+          sudo apt-get install net-tools
+          ifconfig -a
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
