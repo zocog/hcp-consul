@@ -178,11 +178,11 @@ func NewConfigBuilder(ctx *BuildContext) *Builder {
 		context: ctx,
 	}
 
-	b.conf.Set("advertise_addr", "172.17.0.1")
-	b.conf.Set("bind_addr", "172.17.0.1")
+	b.conf.Set("advertise_addr", `{{ GetInterfaceIP "eth0" }}`)
+	b.conf.Set("bind_addr", "0.0.0.0")
 	b.conf.Set("data_dir", "/consul/data")
 	b.conf.Set("bootstrap", true)
-	b.conf.Set("client_addr", "172.17.0.1")
+	b.conf.Set("client_addr", "0.0.0.0")
 	b.conf.Set("connect.enabled", true)
 	b.conf.Set("log_level", "debug")
 	b.conf.Set("server", true)

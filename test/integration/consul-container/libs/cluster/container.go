@@ -529,20 +529,8 @@ func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRe
 		Name:       opts.name + "-pod",
 		SkipReaper: skipReaper,
 		ExposedPorts: []string{
-			"8300/tcp", // Server RPC
-
-			"8301/tcp", // Serf LAN
-			"8301/udp", // Serf LAN
-			"8302/tcp", // Serf WAN
-			"8302/udp", // Serf WAN
-
 			"8500/tcp", // Consul HTTP API
 			"8501/tcp", // Consul HTTPs API
-			"8502/tcp", // Consul grpc API
-			"8503/tcp", // Consul grpc API with TLS
-
-			"8600/tcp", // DNS
-			"8600/udp", // DNS
 
 			"8443/tcp", // Envoy Gateway Listener
 

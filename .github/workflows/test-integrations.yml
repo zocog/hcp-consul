@@ -294,7 +294,7 @@ jobs:
             --packages="./..." \
             -- \
             go test \
-            -p=4 \
+            -parallel=1 \
             -timeout=30m \
             -json \
             `go list ./... | grep -v upgrade` \
@@ -361,7 +361,7 @@ jobs:
             --packages="${PACKAGE_NAMES}" \
             -- \
             go test \
-            -p=4 \
+            -parallel=1 \
             -tags "${{ env.GOTAGS }}" \
             -timeout=30m \
             -json \
