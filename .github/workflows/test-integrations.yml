@@ -21,6 +21,7 @@ env:
   GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
   GOTESTSUM_VERSION: "1.9.0"
   CONSUL_BINARY_UPLOAD_NAME: consul-bin
+  CONSUL_LATEST_IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   setup:
@@ -280,12 +281,12 @@ jobs:
         run: chmod +x consul
 
       - name: Build consul:local image
-        run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
+        run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Compatibility Integration Tests
         run: |
             mkdir -p "/tmp/test-results"
             cd ./test/integration/consul-container
-            docker run --rm consul:local consul version
+            docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
             # shellcheck disable=SC2046
             gotestsum \
               --raw-command \
@@ -296,13 +297,13 @@ jobs:
               -- \
               go test \
               -p=4 \
-              -tags "" \
+              -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
               $(go list ./... | grep -v upgrade) \
-              --target-image consul \
+              --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --target-version local \
-              --latest-image consul \
+              --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --latest-version latest
             ls -lrt
         env:
@@ -348,30 +349,30 @@ jobs:
       - name: restore mode+x
         run: chmod +x consul
       - name: Build consul:local image
-        run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile .
+        run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Upgrade Integration Tests
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           cd ./test/integration/consul-container/test/upgrade
-          docker run --rm consul:local consul version
+          docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
           # shellcheck disable=SC2046
           PACKAGE_NAMES=$(go list -tags "${{ env.GOTAGS }}" ./...)
-          # gotestsum \
-          #   --raw-command \
-          #   --format=short-verbose \
-          #   --debug \
-          #   --rerun-fails=3 \
-          #   --packages="${PACKAGE_NAMES}" \
-          #   -- \
+          gotestsum \
+            --raw-command \
+            --format=short-verbose \
+            --debug \
+            --rerun-fails=3 \
+            --packages="${PACKAGE_NAMES}" \
+            -- \
             go test \
             -p=4 \
             -tags "${{ env.GOTAGS }}" \
             -timeout=30m \
             -json \
             ./... \
-            --target-image consul \
+            --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local \
-            --latest-image consul \
+            --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --latest-version "${{ env.CONSUL_VERSION }}"
           ls -lrt
         env:
