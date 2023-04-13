@@ -255,9 +255,9 @@ jobs:
   generate-compatibility-job-matrices:
     needs: [setup]
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    name: Generate Envoy Job Matrices
+    name: Generate Compatibility Job Matrices
     outputs:
-      envoy-matrix: ${{ steps.set-matrix.outputs.compatibility-matrix }}
+      compatibility-matrix: ${{ steps.set-matrix.outputs.compatibility-matrix }}
     steps:
       - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
       - name: Generate Compatibility Job Matrix
