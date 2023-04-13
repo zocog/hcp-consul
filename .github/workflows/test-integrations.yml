@@ -312,7 +312,9 @@ jobs:
             mkdir -p "/tmp/test-results"
             cd ./test/integration/consul-container
             docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
-            # shellcheck disable=SC2046
+            echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
+            # shellcheck disable=SC2001
+            sed 's,|,\n,g' <<< "${{ matrix.test-cases }}"
             gotestsum \
               --raw-command \
               --format=short-verbose \
