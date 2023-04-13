@@ -375,7 +375,7 @@ jobs:
     needs:
       - setup
       - dev-build
-      - generate-compatibility-job-matrices
+      - generate-upgrade-job-matrices
     strategy:
       matrix:
         consul-version: [ "1.14", "1.15"]
