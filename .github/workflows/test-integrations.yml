@@ -263,7 +263,7 @@ jobs:
       - name: Generate Compatibility Job Matrix
         id: set-matrix
         env:
-          TOTAL_RUNNERS: 3 
+          TOTAL_RUNNERS: 6 
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
           cd ./test/integration/consul-container
@@ -272,7 +272,7 @@ jobs:
             find ./test -maxdepth 2 -type d -print0 | xargs -0 -n 1 \
               | grep -v util | grep -v upgrade \
               | jq --raw-input --argjson runnercount "$TOTAL_RUNNERS" "$JQ_SLICER" \
-              | jq --compact-output 'map(join("|"))'
+              | jq --compact-output 'map(join(" "))'
           } >> "$GITHUB_OUTPUT"
           cat "$GITHUB_OUTPUT"
 
