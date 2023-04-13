@@ -283,8 +283,6 @@ jobs:
       - name: Build consul:local image
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Compatibility Integration Tests
-        env: 
-          GOMAXPROCS: 1
         run: |
             mkdir -p "/tmp/test-results"
             cd ./test/integration/consul-container
@@ -315,6 +313,7 @@ jobs:
           COMPOSE_INTERACTIVE_NO_CLI: 1
           # tput complains if this isn't set to something.
           TERM: ansi
+          GOMAXPROCS: 1
 
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
@@ -352,9 +351,7 @@ jobs:
         run: chmod +x consul
       - name: Build consul:local image
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
-      - name: Upgrade Integration Tests
-        env: 
-          GOMAXPROCS: 1
+      - name: Upgrade Integration Tests  
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           cd ./test/integration/consul-container/test/upgrade
@@ -386,6 +383,7 @@ jobs:
           COMPOSE_INTERACTIVE_NO_CLI: 1
           # tput complains if this isn't set to something.
           TERM: ansi
+          GOMAXPROCS: 1
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: ${{ env.TEST_RESULTS_ARTIFACT_NAME }}
