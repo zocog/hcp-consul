@@ -35,9 +35,6 @@ jobs:
       enterprise: ${{ steps.runners.outputs.enterprise }}
     steps:
       - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
-      - run: |
-          sudo apt-get install net-tools
-          ifconfig -a
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
@@ -296,7 +293,6 @@ jobs:
               --packages="./..." \
               -- \
               go test \
-              # -p=4 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
@@ -366,7 +362,6 @@ jobs:
             --packages="${PACKAGE_NAMES}" \
             -- \
             go test \
-            # -p=4 \
             -tags "${{ env.GOTAGS }}" \
             -timeout=30m \
             -json \
