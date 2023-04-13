@@ -283,6 +283,8 @@ jobs:
       - name: Build consul:local image
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Compatibility Integration Tests
+        env: 
+          GOMAXPROCS: 1
         run: |
             mkdir -p "/tmp/test-results"
             cd ./test/integration/consul-container
@@ -351,6 +353,8 @@ jobs:
       - name: Build consul:local image
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Upgrade Integration Tests
+        env: 
+          GOMAXPROCS: 1
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           cd ./test/integration/consul-container/test/upgrade
