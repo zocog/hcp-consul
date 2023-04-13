@@ -282,17 +282,14 @@ jobs:
         run: |
             mkdir -p "/tmp/test-results"
             cd ./test/integration/consul-container/test
-            docker run --cpus="10" --memory="1g" --rm consul:local consul version
+            docker run --cpus="10" --memory="20g" --rm consul:local consul version
             # shellcheck disable=SC2046
             gotestsum \
               --raw-command \
               --format=short-verbose \
-              --debug \
-              --rerun-fails=3 \
               --packages="./..." \
               -- \
               go test \
-              -p=4 \
               -tags "" \
               -timeout=30m \
               -json \
@@ -350,17 +347,14 @@ jobs:
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           cd ./test/integration/consul-container/test/upgrade
-          docker run --cpus="10" --memory="1g" --rm consul:local consul version
+          docker run --cpus="10" --memory="20g" --rm consul:local consul version
           PACKAGE_NAMES=$(go list -tags "${{ env.GOTAGS }}" ./...)
           gotestsum \
             --raw-command \
             --format=short-verbose \
-            --debug \
-            --rerun-fails=3 \
             --packages="${PACKAGE_NAMES}" \
             -- \
             go test \
-            -p=4 \
             -tags "${{ env.GOTAGS }}" \
             -timeout=30m \
             -json \
