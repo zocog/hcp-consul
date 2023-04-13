@@ -280,18 +280,16 @@ jobs:
       - name: Build consul:local image
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Compatibility Integration Tests
-        run: |
+        uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd  # TSCCR: no entry for repository "nick-fields/retry"
+        with:
+          max_attempts: 3
+          timeout_minutes: 120
+          retry_on: error
+          command: |
             mkdir -p "/tmp/test-results"
             cd ./test/integration/consul-container
             docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
             # shellcheck disable=SC2046
-            gotestsum \
-              --raw-command \
-              --format=short-verbose \
-              --debug \
-              --rerun-fails=3 \
-              --packages="./..." \
-              -- \
               go test \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
@@ -348,19 +346,17 @@ jobs:
       - name: Build consul:local image
         run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
       - name: Upgrade Integration Tests  
-        run: |
+        uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd  # TSCCR: no entry for repository "nick-fields/retry"
+        with:
+          max_attempts: 3
+          timeout_minutes: 120
+          retry_on: error
+          command: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           cd ./test/integration/consul-container/test/upgrade
           docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
           # shellcheck disable=SC2046
           PACKAGE_NAMES=$(go list -tags "${{ env.GOTAGS }}" ./...)
-          gotestsum \
-            --raw-command \
-            --format=short-verbose \
-            --debug \
-            --rerun-fails=3 \
-            --packages="${PACKAGE_NAMES}" \
-            -- \
             go test \
             -tags "${{ env.GOTAGS }}" \
             -timeout=30m \
