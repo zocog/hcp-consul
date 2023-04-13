@@ -282,7 +282,8 @@ jobs:
         run: |
             mkdir -p "/tmp/test-results"
             cd ./test/integration/consul-container/test
-            docker run --cpus="10" --memory="20g" --network host --rm consul:local consul version
+            docker network create -d bridge my-bridge-network
+            docker run --cpus="10" --memory="20g" --network my-bridge-network --rm consul:local consul version
             # shellcheck disable=SC2046
             gotestsum \
               --raw-command \
@@ -347,7 +348,8 @@ jobs:
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           cd ./test/integration/consul-container/test/upgrade
-          docker run --cpus="10" --memory="20g" --network host --rm consul:local consul version
+          docker network create -d bridge my-bridge-network
+          docker run --cpus="10" --memory="20g" --network my-bridge-network --rm consul:local consul version
           PACKAGE_NAMES=$(go list -tags "${{ env.GOTAGS }}" ./...)
           gotestsum \
             --raw-command \
