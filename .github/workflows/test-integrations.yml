@@ -296,7 +296,7 @@ jobs:
               --packages="./..." \
               -- \
               go test \
-              -p=4 \
+              # -p=4 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
@@ -366,7 +366,7 @@ jobs:
             --packages="${PACKAGE_NAMES}" \
             -- \
             go test \
-            -p=4 \
+            # -p=4 \
             -tags "${{ env.GOTAGS }}" \
             -timeout=30m \
             -json \
