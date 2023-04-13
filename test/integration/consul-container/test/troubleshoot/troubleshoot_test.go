@@ -20,7 +20,7 @@ import (
 )
 
 func TestTroubleshootProxy(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
 		NumServers: 1,
 		NumClients: 1,

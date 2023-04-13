@@ -43,7 +43,7 @@ import (
 // - upgrades the cluster
 // - performs these tests again
 func TestIngressGateway_UpgradeToTarget_fromLatest(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 
 	cluster, _, client := topology.NewCluster(t, &topology.ClusterConfig{
 		NumServers: 1,

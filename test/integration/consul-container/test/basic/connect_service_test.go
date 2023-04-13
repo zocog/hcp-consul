@@ -25,7 +25,7 @@ import (
 //   - Create an example static-client sidecar, then register both the service and sidecar with Consul
 //   - Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
 func TestBasicConnectService(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 
 	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
 		NumServers:                1,

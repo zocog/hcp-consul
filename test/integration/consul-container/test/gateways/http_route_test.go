@@ -39,7 +39,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-	t.Parallel()
+	// t.Parallel()
 
 	// infrastructure set up
 	listenerPort := 6004
@@ -289,7 +289,7 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
+	// t.Parallel()
 
 	// infrastructure set up
 	listenerPort := 6009
@@ -523,7 +523,7 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
+	// t.Parallel()
 
 	// infrastructure set up
 	address := "localhost"

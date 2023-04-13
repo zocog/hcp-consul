@@ -291,6 +291,7 @@ jobs:
             docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
             # shellcheck disable=SC2046
             go test \
+              -p 1 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
@@ -357,6 +358,7 @@ jobs:
             # shellcheck disable=SC2046
             PACKAGE_NAMES=$(go list -tags "${{ env.GOTAGS }}" ./...)
             go test \
+              -p 1 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \

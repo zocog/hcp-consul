@@ -16,7 +16,7 @@ import (
 )
 
 func TestPeering_WanFedSecondaryDC(t *testing.T) {
-	t.Parallel()
+	// t.Parallel()
 
 	_, c1Agent := createCluster(t, "primary", func(c *libcluster.ConfigBuilder) {
 		c.Set("primary_datacenter", "primary")

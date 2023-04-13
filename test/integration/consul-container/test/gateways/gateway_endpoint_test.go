@@ -28,7 +28,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	t.Parallel()
+	// t.Parallel()
 
 	gatewayName := randomName("gateway", 16)
 	routeName := randomName("route", 16)
