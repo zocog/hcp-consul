@@ -288,7 +288,7 @@ jobs:
           command: |
             mkdir -p "/tmp/test-results"
             cd ./test/integration/consul-container
-            docker run --cpus 5 --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
+            docker run --cpus=10 --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
             # shellcheck disable=SC2046
             go test \
               -tags "${{ env.GOTAGS }}" \
@@ -353,7 +353,7 @@ jobs:
           command: |
             mkdir -p "${{ env.TEST_RESULTS_DIR }}"
             cd ./test/integration/consul-container/test/upgrade
-            docker run --cpus 5 --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
+            docker run --cpus=10 --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
             # shellcheck disable=SC2046
             PACKAGE_NAMES=$(go list -tags "${{ env.GOTAGS }}" ./...)
             go test \
