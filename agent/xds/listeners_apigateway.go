@@ -18,12 +18,17 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func refToAPIGatewayListenerKey(cfgSnap *proxycfg.ConfigSnapshot, listenerRef structs.ResourceReference) (*structs.APIGatewayListener, *proxycfg.APIGatewayListenerKey, error) {
+func refToAPIGatewayListenerKey(cfgSnap *proxycfg.ConfigSnapshot, listenerRef structs.ResourceReference) (*structs.APIGatewayListener, *structs.BoundAPIGatewayListener, *proxycfg.APIGatewayListenerKey, error) {
 	listenerCfg, ok := cfgSnap.APIGateway.Listeners[listenerRef.Name]
 	if !ok {
-		return nil, nil, fmt.Errorf("no listener config found for listener %s", listenerCfg.Name)
+		return nil, nil, nil, fmt.Errorf("no listener config found for listener %s", listenerCfg.Name)
 	}
-	return &listenerCfg, &proxycfg.APIGatewayListenerKey{Port: listenerCfg.Port, Protocol: string(listenerCfg.Protocol)}, nil
+
+	boundlistenerCfg, ok := cfgSnap.APIGateway.BoundListeners[listenerRef.Name]
+	if !ok {
+		return nil, nil, nil, fmt.Errorf("no listener config found for listener %s", listenerCfg.Name)
+	}
+	return &listenerCfg, &boundlistenerCfg, &proxycfg.APIGatewayListenerKey{Port: listenerCfg.Port, Protocol: string(listenerCfg.Protocol)}, nil
 
 }
 func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {

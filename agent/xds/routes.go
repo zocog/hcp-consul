@@ -424,12 +424,42 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 	return result, nil
 }
 
+func getAPIGatewayListenerServices(c *proxycfg.ConfigSnapshot, l structs.APIGatewayListener, bound structs.BoundAPIGatewayListener) {
+
+	for _, r := range bound.Routes {
+		switch r.Kind {
+		case structs.HTTPRoute:
+			route, ok := c.APIGateway.HTTPRoutes.Get(r)
+			if !ok || l.Protocol != structs.ListenerProtocolHTTP {
+				continue
+			}
+			for _, service := range route.GetServices() {
+				id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
+				if chain := c.DiscoveryChain[id]; chain != nil {
+					chains = append(chains, chain)
+				}
+			}
+		case structs.TCPRoute:
+			route, ok := c.TCPRoutes.Get(routeRef)
+			if !ok || listener.Protocol != structs.ListenerProtocolTCP {
+				continue
+			}
+			for _, service := range route.GetServices() {
+				id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
+				if chain := c.DiscoveryChain[id]; chain != nil {
+					chains = append(chains, chain)
+				}
+			}
+		}
+	}
+}
+
 // routesForAPIGateway returns the xDS API representation of the
 // "routes" in the snapshot.
 func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var result []proto.Message
 	for listenerRef, upstreamMaps := range cfgSnap.APIGateway.Upstreams {
-		listenerCfg, listenerKey, err := refToAPIGatewayListenerKey(cfgSnap, listenerRef)
+		listenerCfg, boundCfg, listenerKey, err := refToAPIGatewayListenerKey(cfgSnap, listenerRef)
 		if err != nil {
 			return nil, err
 		}
@@ -454,7 +484,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			for _, u := range upstreams {
 
 				uid := proxycfg.NewUpstreamID(&u)
-				chain := cfgSnap.IngressGateway.DiscoveryChain[uid]
+				chain := cfgSnap.APIGateway.DiscoveryChain[uid]
 				if chain == nil {
 					continue
 				}
@@ -465,6 +495,9 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 					return nil, err
 				}
 
+				for _, r := range boundCfg.Routes{
+					if r.
+				}
 				svc := findIngressServiceMatchingUpstream(lCfg, u)
 				if svc == nil {
 					return nil, fmt.Errorf("missing service in listener config (service %q listener on proto/port %s/%d)",
@@ -585,10 +618,6 @@ func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u s
 	}
 
 	return domains
-}
-
-func generateUpstreamAPIGatewayDomains(listenerKey proxycfg.APIGatewayListenerKey, u structs.Upstream) []string {
-	return generateUpstreamIngressDomains(listenerKey, u)
 }
 
 func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
