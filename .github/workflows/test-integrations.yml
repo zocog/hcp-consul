@@ -422,7 +422,6 @@ jobs:
             -tags "${{ env.GOTAGS }}" \
             -timeout=30m \
             ${{ matrix.test-cases }}
-            
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local \
             --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
