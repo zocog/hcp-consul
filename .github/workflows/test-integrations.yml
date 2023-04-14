@@ -450,7 +450,8 @@ jobs:
     # - envoy-integration-test
     - generate-compatibility-job-matrices
     - compatibility-integration-test
-    # - upgrade-integration-test
+    - generate-upgrade-job-matrices
+    - upgrade-integration-test
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: |
       (always() && ! cancelled()) &&
