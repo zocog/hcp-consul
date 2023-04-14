@@ -363,7 +363,7 @@ jobs:
           cd ./test/integration/consul-container
           {
             echo -n "upgrade-matrix="
-            find ./test -maxdepth 2 -type f -print0 | xargs -0 -n 1 \
+            find ./test/upgrade -maxdepth 2 -type f -print0 | xargs -0 -n 1 \
               | grep -v util | grep -v upgrade \
               | jq --raw-input --argjson runnercount "$TOTAL_RUNNERS" "$JQ_SLICER" \
               | jq --compact-output 'map(join(" "))'
@@ -406,7 +406,7 @@ jobs:
       - name: Upgrade Integration Tests
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
-          cd ./test/integration/consul-container/test/upgrade
+          cd ./test/integration/consul-container
           docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
           echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
           # shellcheck disable=SC2001
