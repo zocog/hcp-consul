@@ -47,38 +47,20 @@ func (s *ResourceGenerator) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsho
 	case structs.ServiceKindConnectProxy:
 		return s.clustersFromSnapshotConnectProxy(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
-		res, err := s.clustersFromSnapshotTerminatingGateway(cfgSnap)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+		return s.clustersFromSnapshotTerminatingGateway(cfgSnap)
 	case structs.ServiceKindMeshGateway:
-		res, err := s.clustersFromSnapshotMeshGateway(cfgSnap)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+		return s.clustersFromSnapshotMeshGateway(cfgSnap)
 	case structs.ServiceKindIngressGateway:
-		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+		return s.clustersFromSnapshotIngressGateway(cfgSnap)
 	case structs.ServiceKindAPIGateway:
-		// TODO Find a cleaner solution, can't currently pass unexported property types
-		var err error
-		cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
-		if err != nil {
-			return nil, err
-		}
-		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap)
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
+		return s.clustersFromSnapshotAPIGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
+}
+
+func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	return nil, errors.New("implement me")
 }
 
 // clustersFromSnapshot returns the xDS API representation of the "clusters"

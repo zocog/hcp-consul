@@ -41,16 +41,14 @@ func (s *ResourceGenerator) endpointsFromSnapshot(cfgSnap *proxycfg.ConfigSnapsh
 	case structs.ServiceKindIngressGateway:
 		return s.endpointsFromSnapshotIngressGateway(cfgSnap)
 	case structs.ServiceKindAPIGateway:
-		// TODO Find a cleaner solution, can't currently pass unexported property types
-		var err error
-		cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
-		if err != nil {
-			return nil, err
-		}
-		return s.endpointsFromSnapshotIngressGateway(cfgSnap)
+		return s.endpointsFromSnapshotAPIGateway(cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
+}
+
+func (s *ResourceGenerator) endpointsFromSnapshotAPIGateway(cfgsnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	return nil, errors.New("implement me")
 }
 
 // endpointsFromSnapshotConnectProxy returns the xDS API representation of the "endpoints"
