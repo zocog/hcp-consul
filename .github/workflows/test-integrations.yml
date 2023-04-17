@@ -410,12 +410,12 @@ jobs:
           echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
           # shellcheck disable=SC2001
           sed 's,|,\n,g' <<< "${{ matrix.test-cases }}"
-          gotestsum \
-            --raw-command \
-            --format=short-verbose \
-            --debug \
-            --rerun-fails=3 \
-            -- \
+          # gotestsum \
+          #   --raw-command \
+          #   --format=short-verbose \
+          #   --debug \
+          #   --rerun-fails=3 \
+          #   -- \
             go test \
             -p=4 \
             -tags "${{ env.GOTAGS }}" \
