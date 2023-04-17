@@ -363,9 +363,9 @@ jobs:
           cd ./test/integration/consul-container
           {
             echo -n "upgrade-matrix="
-            find ./test/upgrade -maxdepth 2 -type f -print0 | xargs -0 -n 1 \
+            go test ./...  -list=. -json | jq -r '.Output | select (. !=null) |  select(. | startswith("Test"))' \
             | jq --raw-input --argjson runnercount "$TOTAL_RUNNERS" "$JQ_SLICER" \
-            | jq --compact-output 'map(join(" "))'
+            | jq --compact-output 'map(join("|"))'
           } >> "$GITHUB_OUTPUT"
           cat "$GITHUB_OUTPUT"
   
@@ -420,11 +420,12 @@ jobs:
             -p=4 \
             -tags "${{ env.GOTAGS }}" \
             -timeout=30m \
-            ${{ matrix.test-cases }}
+            ./...
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local \
             --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --latest-version "${{ env.CONSUL_VERSION }}"
+            -run "${{ matrix.test-cases }}"
           ls -lrt
         env:
           # this is needed because of incompatibility between RYUK container and circleci
