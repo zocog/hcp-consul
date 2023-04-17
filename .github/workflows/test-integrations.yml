@@ -377,6 +377,7 @@ jobs:
       - generate-upgrade-job-matrices
     strategy:
       matrix:
+        fail-fast: false
         consul-version: [ "1.14", "1.15"]
         test-cases: ${{ fromJSON(needs.generate-upgrade-job-matrices.outputs.upgrade-matrix) }}
     env:
@@ -405,18 +406,11 @@ jobs:
       - name: Upgrade Integration Tests
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
-          cd ./test/integration/consul-container
+          cd ./test/integration/consul-container/test/upgrade
           docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
-          cd ./test/upgrade
           echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
           # shellcheck disable=SC2001
           sed 's,|,\n,g' <<< "${{ matrix.test-cases }}"
-          gotestsum \
-          --raw-command \
-          --format=short-verbose \
-          --debug \
-          --rerun-fails=3 \
-          -- \
           go test \
           -p=4 \
           -tags "${{ env.GOTAGS }}" \
