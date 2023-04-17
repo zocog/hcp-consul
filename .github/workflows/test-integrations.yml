@@ -285,7 +285,6 @@ jobs:
           cat /etc/hosts
           mkdir -p "/tmp/test-results"
           cd ./test/integration/consul-container/test
-          docker network create -d bridge my-bridge-network
           docker run --rm consul:local consul version
           # shellcheck disable=SC2046
           gotestsum \
@@ -355,7 +354,6 @@ jobs:
           cat /etc/hosts
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           cd ./test/integration/consul-container/test/upgrade
-          docker network create -d bridge my-bridge-network
           docker run --rm consul:local consul version
           PACKAGE_NAMES=$(go list -tags "${{ env.GOTAGS }}" ./...)
           gotestsum \
