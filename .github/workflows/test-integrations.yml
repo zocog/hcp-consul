@@ -43,7 +43,7 @@ jobs:
     uses: ./.github/workflows/reusable-dev-build.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-xl }}
-      repository-name: ${{ github.repository }}
+      repository-name: consul
       uploaded-binary-name: 'consul-bin'
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
