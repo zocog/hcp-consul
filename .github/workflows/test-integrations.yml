@@ -360,7 +360,7 @@ jobs:
           TOTAL_RUNNERS: 6 
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
-          cd ./test/integration/consul-container
+          cd ./test/integration/consul-container/test/upgrade
           {
             echo -n "upgrade-matrix="
             go test ./...  -list=. -json | jq -r '.Output | select (. !=null) |  select(. | startswith("Test")) | gsub("[\\n\\t]"; "")' \
@@ -405,7 +405,7 @@ jobs:
       - name: Upgrade Integration Tests
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
-          cd ./test/integration/consul-container
+          cd ./test/integration/consul-container/test/upgrade
           docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
           echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
           # shellcheck disable=SC2001
