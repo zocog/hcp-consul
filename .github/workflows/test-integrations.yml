@@ -405,7 +405,7 @@ jobs:
       - name: Upgrade Integration Tests
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
-          cd ./test/integration/consul-container/test
+          cd ./test/integration/consul-container
           docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
           echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
           # shellcheck disable=SC2001
