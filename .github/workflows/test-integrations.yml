@@ -414,13 +414,13 @@ jobs:
           go test \
           -p=4 \
           -tags "${{ env.GOTAGS }}" \
-          -timeout=30m \
-          ./... \
-          -run "${{ matrix.test-cases }}" \         
+          -timeout=30m \        
           --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
           --target-version local \
           --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-          --latest-version "${{ env.CONSUL_VERSION }}"
+          --latest-version "${{ env.CONSUL_VERSION }}" \
+          -json ./.../upgrade/ \
+          -run "${{ matrix.test-cases }}" \
           ls -lrt
         env:
           # this is needed because of incompatibility between RYUK container and circleci
