@@ -21,7 +21,8 @@ env:
   GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
   GOTESTSUM_VERSION: "1.9.0"
   CONSUL_BINARY_UPLOAD_NAME: consul-bin
-  CONSUL_LATEST_IMAGE_NAME: "${CONSUL_REPO//${{ github.repository }}\//}"
+  # strip the hashicorp/ off the front of github.repository
+  CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && 'consul-enterprise' || 'consul' }}
 
 jobs:
   setup:
