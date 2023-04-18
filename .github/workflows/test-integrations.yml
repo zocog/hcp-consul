@@ -376,8 +376,8 @@ jobs:
       - dev-build
       - generate-upgrade-job-matrices
     strategy:
+      fail-fast: false
       matrix:
-        fail-fast: false
         consul-version: [ "1.14", "1.15"]
         test-cases: ${{ fromJSON(needs.generate-upgrade-job-matrices.outputs.upgrade-matrix) }}
     env:
