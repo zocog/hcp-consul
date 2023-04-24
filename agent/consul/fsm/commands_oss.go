@@ -794,7 +794,7 @@ func (c *FSM) applyManualVirtualIPs(buf []byte, index uint64) interface{} {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
-	if err := c.state.AssignManualVirtualIPs(index, req.Service, req.ManualIPs); err != nil {
+	if _, _, err := c.state.AssignManualVirtualIPs(index, req.Service, req.ManualIPs); err != nil {
 		c.logger.Warn("AssignManualVirtualIPs failed", "error", err)
 		return err
 	}

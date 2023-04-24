@@ -1965,7 +1965,10 @@ func TestStateStore_AssignManualVirtualIPs(t *testing.T) {
 
 	// Attempt to assign manual virtual IPs to a service that doesn't exist - should be a no-op.
 	psn := structs.PeeredServiceName{ServiceName: structs.ServiceName{Name: "foo"}}
-	require.NoError(t, s.AssignManualVirtualIPs(0, psn, []string{"7.7.7.7", "8.8.8.8"}))
+	found, svcs, err := s.AssignManualVirtualIPs(0, psn, []string{"7.7.7.7", "8.8.8.8"})
+	require.NoError(t, err)
+	require.False(t, found)
+	require.Empty(t, svcs)
 	serviceVIP, err := s.ServiceManualVIPs(psn)
 	require.NoError(t, err)
 	require.Nil(t, serviceVIP)
@@ -1997,7 +2000,10 @@ func TestStateStore_AssignManualVirtualIPs(t *testing.T) {
 	require.Empty(t, serviceVIP.ManualIPs)
 
 	// Attempt to assign manual virtual IPs again.
-	require.NoError(t, s.AssignManualVirtualIPs(2, psn, []string{"7.7.7.7", "8.8.8.8"}))
+	found, svcs, err = s.AssignManualVirtualIPs(2, psn, []string{"7.7.7.7", "8.8.8.8"})
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Empty(t, svcs)
 	serviceVIP, err = s.ServiceManualVIPs(psn)
 	require.NoError(t, err)
 	require.Equal(t, "0.0.0.1", serviceVIP.IP.String())
@@ -2023,7 +2029,10 @@ func TestStateStore_AssignManualVirtualIPs(t *testing.T) {
 
 	// Attempt to assign manual virtual IPs for bar, with one IP overlapping with foo.
 	// This should cause the ip to be removed from foo's list of manual IPs.
-	require.NoError(t, s.AssignManualVirtualIPs(4, psn2, []string{"7.7.7.7", "9.9.9.9"}))
+	found, svcs, err = s.AssignManualVirtualIPs(4, psn2, []string{"7.7.7.7", "9.9.9.9"})
+	require.NoError(t, err)
+	require.True(t, found)
+	require.ElementsMatch(t, svcs, []structs.ServiceName{psn.ServiceName})
 
 	serviceVIP, err = s.ServiceManualVIPs(psn)
 	require.NoError(t, err)
