@@ -578,7 +578,7 @@ func (s *HTTPHandlers) AssignManualServiceVIPs(resp http.ResponseWriter, req *ht
 	metrics.IncrCounterWithLabels([]string{"client", "api", "service_virtual_ips"}, 1,
 		s.nodeMetricsLabels())
 
-	var args structs.AssignServiceManualVIPsRequest
+	var args structs.AssignManualServiceVIPsRequest
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}

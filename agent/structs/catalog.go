@@ -60,6 +60,13 @@ func (h *HealthSummary) Add(status string) {
 	}
 }
 
+type AssignManualServiceVIPsRequest struct {
+	Service    string
+	ManualVIPs []string
+
+	DCSpecificRequest
+}
+
 type AssignManualServiceVIPsResponse struct {
 	Found          bool
 	UnassignedFrom []PeeredServiceName

@@ -741,7 +741,7 @@ func (m *Internal) PeeredUpstreams(args *structs.PartitionSpecificRequest, reply
 		})
 }
 
-func (m *Internal) AssignManualServiceVIPs(args *structs.AssignServiceManualVIPsRequest, reply *structs.AssignManualServiceVIPsResponse) error {
+func (m *Internal) AssignManualServiceVIPs(args *structs.AssignManualServiceVIPsRequest, reply *structs.AssignManualServiceVIPsResponse) error {
 	if done, err := m.srv.ForwardRPC("Internal.AssignManualServiceVIPs", args, reply); done {
 		return err
 	}
