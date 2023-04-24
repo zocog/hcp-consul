@@ -1091,14 +1091,14 @@ func assignServiceVirtualIP(tx WriteTxn, idx uint64, psn structs.PeeredServiceNa
 	return result.String(), nil
 }
 
-// AssignManualVirtualIPs attempts to associate a list of manual virtual IP addresses with a given service name.
+// AssignManualServiceVIPs attempts to associate a list of manual virtual IP addresses with a given service name.
 // Any IP addresses given will be removed from other services in the same partition. This is done to ensure
 // that a manual VIP can only exist once for a given partition.
 // This function returns:
 // - a bool indicating whether the given service exists.
 // - a list of service names that had ip addresses removed from them.
 // - an error indicating success or failure of the call.
-func (s *Store) AssignManualVirtualIPs(idx uint64, psn structs.PeeredServiceName, ips []string) (bool, []structs.ServiceName, error) {
+func (s *Store) AssignManualServiceVIPs(idx uint64, psn structs.PeeredServiceName, ips []string) (bool, []structs.PeeredServiceName, error) {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
@@ -1107,7 +1107,7 @@ func (s *Store) AssignManualVirtualIPs(idx uint64, psn structs.PeeredServiceName
 	for _, ip := range ips {
 		assignedIPs[ip] = struct{}{}
 	}
-	modifiedEntries := make(map[structs.ServiceName]struct{})
+	modifiedEntries := make(map[structs.PeeredServiceName]struct{})
 	for ip := range assignedIPs {
 		entry, err := tx.First(tableServiceVirtualIPs, indexManualVIPs, psn.ServiceName.PartitionOrDefault(), ip)
 		if err != nil {
@@ -1137,7 +1137,7 @@ func (s *Store) AssignManualVirtualIPs(idx uint64, psn structs.PeeredServiceName
 		if err := tx.Insert(tableServiceVirtualIPs, newEntry); err != nil {
 			return false, nil, fmt.Errorf("failed inserting service virtual IP entry: %s", err)
 		}
-		modifiedEntries[newEntry.Service.ServiceName] = struct{}{}
+		modifiedEntries[newEntry.Service] = struct{}{}
 	}
 
 	entry, err := tx.First(tableServiceVirtualIPs, indexID, psn)

@@ -741,7 +741,7 @@ func (m *Internal) PeeredUpstreams(args *structs.PartitionSpecificRequest, reply
 		})
 }
 
-func (m *Internal) AssignManualServiceVIPs(args *structs.AssignServiceManualVIPsRequest, reply *struct{}) error {
+func (m *Internal) AssignManualServiceVIPs(args *structs.AssignServiceManualVIPsRequest, reply *structs.AssignManualServiceVIPsResponse) error {
 	if done, err := m.srv.ForwardRPC("Internal.AssignManualServiceVIPs", args, reply); done {
 		return err
 	}
@@ -751,7 +751,7 @@ func (m *Internal) AssignManualServiceVIPs(args *structs.AssignServiceManualVIPs
 	if err != nil {
 		return err
 	}
-	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(args.Service, &authzCtx); err != nil {
+	if err := authz.ToAllowAuthorizer().MeshWriteAllowed(&authzCtx); err != nil {
 		return err
 	}
 
@@ -763,10 +763,16 @@ func (m *Internal) AssignManualServiceVIPs(args *structs.AssignServiceManualVIPs
 		Service:   structs.PeeredServiceName{ServiceName: structs.ServiceNameFromString(args.Service)},
 		ManualIPs: args.ManualVIPs,
 	}
-
-	_, err = m.srv.raftApply(structs.UpdateVirtualIPRequestType, req)
-
-	return err
+	resp, err := m.srv.raftApplyMsgpack(structs.UpdateVirtualIPRequestType, req)
+	if err != nil {
+		return err
+	}
+	typedResp, ok := resp.(structs.AssignManualServiceVIPsResponse)
+	if !ok {
+		return fmt.Errorf("unexpected type %T for AssignManualServiceVIPs", resp)
+	}
+	*reply = typedResp
+	return nil
 }
 
 // EventFire is a bit of an odd endpoint, but it allows for a cross-DC RPC

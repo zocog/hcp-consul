@@ -594,7 +594,7 @@ func (s *HTTPHandlers) AssignManualServiceVIPs(resp http.ResponseWriter, req *ht
 	s.parseToken(req, &args.Token)
 
 	// Forward to the servers
-	var out struct{}
+	var out structs.AssignManualServiceVIPsResponse
 	if err := s.agent.RPC(req.Context(), "Internal.AssignManualServiceVIPs", &args, &out); err != nil {
 		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "service_virtual_ips"}, 1,
 			s.nodeMetricsLabels())
@@ -602,5 +602,5 @@ func (s *HTTPHandlers) AssignManualServiceVIPs(resp http.ResponseWriter, req *ht
 	}
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "service_virtual_ips"}, 1,
 		s.nodeMetricsLabels())
-	return true, nil
+	return out, nil
 }
