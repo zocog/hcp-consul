@@ -37,7 +37,7 @@ type MetricsClient interface {
 }
 
 // cloudConfig represents cloud config for TLS abstracted in an interface for easy testing.
-type cloudConfig interface {
+type CloudConfig interface {
 	HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfig, error)
 }
 
@@ -50,7 +50,7 @@ type otlpClient struct {
 
 // TelemetryClientCfg is used to configure the MetricsClient.
 type TelemetryClientCfg struct {
-	CloudCfg cloudConfig
+	CloudCfg CloudConfig
 	Logger   hclog.Logger
 }
 
@@ -78,7 +78,7 @@ func NewMetricsClient(cfg *TelemetryClientCfg) (MetricsClient, error) {
 }
 
 // newHTTPClient configures the retryable HTTP client.
-func newHTTPClient(cloudCfg cloudConfig, logger hclog.Logger) (*retryablehttp.Client, error) {
+func newHTTPClient(cloudCfg CloudConfig, logger hclog.Logger) (*retryablehttp.Client, error) {
 	hcpCfg, err := cloudCfg.HCPConfig()
 	if err != nil {
 		return nil, err
