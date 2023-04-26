@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/go-hclog"
 	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
+	"github.com/hashicorp/hcp-sdk-go/profile"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,15 +32,12 @@ func (m *mockHCPCfg) Token() (*oauth2.Token, error) {
 	}, nil
 }
 
-func (m *mockHCPCfg) APITLSConfig() *tls.Config { return nil }
-
-func (m *mockHCPCfg) SCADAAddress() string { return "" }
-
-func (m *mockHCPCfg) SCADATLSConfig() *tls.Config { return &tls.Config{} }
-
-func (m *mockHCPCfg) APIAddress() string { return "" }
-
-func (m *mockHCPCfg) PortalURL() *url.URL { return &url.URL{} }
+func (m *mockHCPCfg) APITLSConfig() *tls.Config     { return nil }
+func (m *mockHCPCfg) SCADAAddress() string          { return "" }
+func (m *mockHCPCfg) SCADATLSConfig() *tls.Config   { return &tls.Config{} }
+func (m *mockHCPCfg) APIAddress() string            { return "" }
+func (m *mockHCPCfg) PortalURL() *url.URL           { return &url.URL{} }
+func (m *mockHCPCfg) Profile() *profile.UserProfile { return &profile.UserProfile{} }
 
 type mockCloudCfg struct{}
 
