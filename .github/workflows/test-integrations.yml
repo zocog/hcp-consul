@@ -337,6 +337,7 @@ jobs:
             #   --debug \
             #   --rerun-fails=3 \
             #   -- \
+              env TESTCONTAINERS_RYUK_DISABLED=true \
               go test \
               -p=4 \
               -tags "${{ env.GOTAGS }}" \
