@@ -40,6 +40,14 @@ jobs:
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
+  get-docker-info:
+    needs: [setup]
+    runs-on: ${{ needs.setup.outputs.compute-xl }}
+    steps:
+    - run: docker --version
+    - run: docker-compose -v
+
+    
   dev-build:
     needs: [setup]
     uses: ./.github/workflows/reusable-dev-build.yml
