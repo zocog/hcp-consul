@@ -294,7 +294,7 @@ jobs:
     needs:
       - setup
       - dev-build
-      - generate-compatibility-job-matrices
+      # - generate-compatibility-job-matrices
     # strategy:
     #   fail-fast: false
     #   matrix:
@@ -337,7 +337,7 @@ jobs:
             #   --debug \
             #   --rerun-fails=3 \
             #   -- \
-            env TESTCONTAINERS_RYUK_DISABLED=true \
+          
             go test \
             -p=4 \
             -tags "${{ env.GOTAGS }}" \
