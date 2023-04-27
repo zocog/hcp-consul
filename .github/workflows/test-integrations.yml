@@ -323,6 +323,8 @@ jobs:
           cat /etc/hosts && echo "-----------"
           sudo sed -i 's/::1 *localhost ip6-localhost ip6-loopback/::1 ip6-localhost ip6-loopback/g' /etc/hosts
           cat /etc/hosts
+      - name: docker-compose version
+        run: docker-compose -v
       - name: Compatibility Integration Tests
         run: |
             mkdir -p "/tmp/test-results"
