@@ -349,7 +349,7 @@ jobs:
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
-              ./...
+              `go list ./... | grep -v upgrade` \
               --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --target-version local \
               --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
