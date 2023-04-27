@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/consul/agent/hcp/telemetry"
 	"github.com/hashicorp/go-hclog"
 	wal "github.com/hashicorp/raft-wal"
 	"github.com/hashicorp/raft-wal/verifier"
@@ -105,7 +106,11 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 		if err != nil {
 			return d, err
 		}
-		cfg.Telemetry.HCPSinkOpts = d.HCP.SinkOpts
+		hcpSink, err := telemetry.NewOTELSink(d.HCP.MetricsClient, d.Logger)
+		if err != nil {
+			return d, err
+		}
+		cfg.Telemetry.ExtraSinks = append(cfg.Telemetry.ExtraSinks, hcpSink)
 	}
 
 	d.MetricsConfig, err = lib.InitTelemetry(cfg.Telemetry, d.Logger)

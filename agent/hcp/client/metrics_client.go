@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"sync"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -33,7 +35,7 @@ const (
 
 // MetricsClient exports Consul metrics in OTLP format to the HCP Telemetry Gateway.
 type MetricsClient interface {
-	ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error
+	ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics) error
 }
 
 // cloudConfig represents cloud config for TLS abstracted in an interface for easy testing.
@@ -44,14 +46,20 @@ type CloudConfig interface {
 // otlpClient is an implementation of MetricsClient with a retryable http client for retries and to honor throttle.
 // It also holds default HTTP headers to add to export requests.
 type otlpClient struct {
-	client  *retryablehttp.Client
-	headers map[string]string
+	client           *retryablehttp.Client
+	headers          map[string]string
+	endpointProvider TelemetryEndpointProvider
 }
 
 // TelemetryClientCfg is used to configure the MetricsClient.
 type TelemetryClientCfg struct {
-	CloudCfg CloudConfig
-	Logger   hclog.Logger
+	CloudCfg         CloudConfig
+	EndpointProvider TelemetryEndpointProvider
+	Logger           hclog.Logger
+}
+
+type TelemetryEndpointProvider interface {
+	Endpoint(ctx context.Context) (string, error)
 }
 
 // NewMetricsClient returns a configured MetricsClient.
@@ -72,8 +80,9 @@ func NewMetricsClient(cfg *TelemetryClientCfg) (MetricsClient, error) {
 	}
 
 	return &otlpClient{
-		client:  c,
-		headers: headers,
+		client:           c,
+		headers:          headers,
+		endpointProvider: cfg.EndpointProvider,
 	}, nil
 }
 
@@ -111,9 +120,7 @@ func newHTTPClient(cloudCfg CloudConfig, logger hclog.Logger) (*retryablehttp.Cl
 }
 
 // ExportMetrics is the single method exposed by MetricsClient to export OTLP metrics to the desired HCP endpoint.
-// The endpoint is configurable as the endpoint can change during periodic refresh of CCM telemetry config.
-// By configuring the endpoint here, we can re-use the same client and override the endpoint when making a request.
-func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error {
+func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics) error {
 	pbRequest := &colmetricpb.ExportMetricsServiceRequest{
 		ResourceMetrics: []*metricpb.ResourceMetrics{protoMetrics},
 	}
@@ -121,6 +128,11 @@ func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.R
 	body, err := proto.Marshal(pbRequest)
 	if err != nil {
 		return fmt.Errorf("failed to export metrics: %v", err)
+	}
+
+	endpoint, err := o.endpointProvider.Endpoint(ctx)
+	if err != nil {
+		return fmt.Errorf("fail to find metrics export endpoint: %w", err)
 	}
 
 	req, err := retryablehttp.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(body))
@@ -155,4 +167,73 @@ func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.R
 	}
 
 	return nil
+}
+
+func NewRefreshableTelemetryEndpointProvider(client Client) TelemetryEndpointProvider {
+	p := &RefreshableTelemetryEndpointProvider{
+		client: client,
+	}
+	ep, err := p.refresh(context.Background())
+	p.endpoint = ep
+	p.err = err
+	return p
+}
+
+type RefreshableTelemetryEndpointProvider struct {
+	client   Client
+	endpoint string
+	err      error
+	mu       sync.Mutex
+}
+
+func (p *RefreshableTelemetryEndpointProvider) Endpoint(ctx context.Context) (string, error) {
+	return p.endpoint, p.err
+}
+
+func (p *RefreshableTelemetryEndpointProvider) Refresh(ctx context.Context) error {
+	endpoint, err := p.refresh(ctx)
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if err != nil {
+		if p.endpoint == "" {
+			p.err = err
+		}
+		return err
+	}
+	p.endpoint = endpoint
+	p.err = nil
+	return nil
+}
+
+func (p *RefreshableTelemetryEndpointProvider) refresh(ctx context.Context) (string, error) {
+	reqCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	telemetryCfg, err := p.client.FetchTelemetryConfig(reqCtx)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch telemetry config %w", err)
+	}
+
+	endpoint := telemetryCfg.Endpoint
+	if override := telemetryCfg.MetricsOverride.Endpoint; override != "" {
+		endpoint = override
+	}
+
+	if endpoint == "" {
+		return "", fmt.Errorf("server not registed with management plane")
+	}
+
+	// The endpoint from the HCP gateway is a domain without scheme, so it must be added.
+	url, err := url.Parse(fmt.Sprintf("https://%s/v1/metrics", endpoint))
+	if err != nil {
+		return "", fmt.Errorf("failed to parse url: %w", err)
+	}
+
+	return url.String(), nil
+}
+
+type StaticTelemetryEndpoint string
+
+func (s StaticTelemetryEndpoint) Endpoint(_ context.Context) (string, error) {
+	return string(s), nil
 }

@@ -102,8 +102,9 @@ func TestExportMetrics(t *testing.T) {
 			defer srv.Close()
 
 			cfg := &TelemetryClientCfg{
-				Logger:   hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-				CloudCfg: MockCloudCfg{},
+				Logger:           hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+				CloudCfg:         MockCloudCfg{},
+				EndpointProvider: StaticTelemetryEndpoint(srv.URL),
 			}
 
 			client, err := NewMetricsClient(cfg)
@@ -111,7 +112,7 @@ func TestExportMetrics(t *testing.T) {
 
 			ctx := context.Background()
 			metrics := &metricpb.ResourceMetrics{}
-			err = client.ExportMetrics(ctx, metrics, srv.URL)
+			err = client.ExportMetrics(ctx, metrics)
 
 			if test.wantErr != "" {
 				require.Error(t, err)
