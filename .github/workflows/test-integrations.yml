@@ -325,9 +325,9 @@ jobs:
           cat /etc/hosts
       - name: Check docker version
         run: docker --version
-      - uses: KengoTODA/actions-setup-docker-compose@v1
-        with:
-          version: '2.17.2' # the full version of `docker-compose` command
+      # - uses: KengoTODA/actions-setup-docker-compose@v1
+      #   with:
+      #     version: '2.17.2' # the full version of `docker-compose` command
       - name: Check docker-compose version
         run: docker-compose -v
       - name: Compatibility Integration Tests
