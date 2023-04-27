@@ -337,13 +337,12 @@ jobs:
             #   --debug \
             #   --rerun-fails=3 \
             #   -- \
-              env TESTCONTAINERS_RYUK_DISABLED=true \
               go test \
               -p=4 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
-              "$(find ./test -maxdepth 2 -type d -print0 | xargs -0 -n 1 | grep -v util | grep -v upgrade)" \
+              ./...
               --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --target-version local \
               --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
