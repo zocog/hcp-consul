@@ -337,16 +337,17 @@ jobs:
             #   --debug \
             #   --rerun-fails=3 \
             #   -- \
-              go test \
-              -p=4 \
-              -tags "${{ env.GOTAGS }}" \
-              -timeout=30m \
-              -json \
-              ./...
-              --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-              --target-version local \
-              --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-              --latest-version latest
+            env TESTCONTAINERS_RYUK_DISABLED=true \
+            go test \
+            -p=4 \
+            -tags "${{ env.GOTAGS }}" \
+            -timeout=30m \
+            -json \
+            ./...
+            --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+            --target-version local \
+            --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+            --latest-version latest
             ls -lrt
         env:
           # this is needed because of incompatibility between RYUK container and GHA
