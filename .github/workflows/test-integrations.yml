@@ -324,8 +324,8 @@ jobs:
           sudo sed -i 's/::1 *localhost ip6-localhost ip6-loopback/::1 ip6-localhost ip6-loopback/g' /etc/hosts
           cat /etc/hosts
       - uses: KengoTODA/actions-setup-docker-compose@v1
-          with:
-            version: '2.17.2' # the full version of `docker-compose` command
+        with:
+          version: '2.17.2' # the full version of `docker-compose` command
       - name: Check docker-compose version
         run: docker-compose -v
       - name: Compatibility Integration Tests
