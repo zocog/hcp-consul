@@ -258,36 +258,37 @@ jobs:
   #         name: ${{ env.TEST_RESULTS_ARTIFACT_NAME }}
   #         path: ${{ env.TEST_RESULTS_DIR }}
 
-  generate-compatibility-job-matrices:
-    needs: [setup]
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    name: Generate Compatibility Job Matrices
-    outputs:
-      compatibility-matrix: ${{ steps.set-matrix.outputs.compatibility-matrix }}
-    steps:
-      - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
-      - name: Generate Compatibility Job Matrix
-        id: set-matrix
-        env:
-          TOTAL_RUNNERS: 1
-          JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
-        run: |
-          cd ./test/integration/consul-container
-          NUM_RUNNERS=$TOTAL_RUNNERS
-          NUM_DIRS=$(find ./test -maxdepth 2 -type d | wc -l)
-          if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
-            echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
-            NUM_RUNNERS=$NUM_DIRS
-          fi
-          # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
-          NUM_RUNNERS=$((NUM_RUNNERS-1))
-          {
-            echo -n "compatibility-matrix="
-            find ./test -maxdepth 2 -type d -print0 | xargs -0 -n 1 \
-              | grep -v util | grep -v upgrade \
-              | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
-              | jq --compact-output 'map(join(" "))'
-          } >> "$GITHUB_OUTPUT"
+  # generate-compatibility-job-matrices:
+  #   needs: [setup]
+  #   runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+  #   name: Generate Compatibility Job Matrices
+  #   outputs:
+  #     compatibility-matrix: ${{ steps.set-matrix.outputs.compatibility-matrix }}
+  #   steps:
+  #     - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f # v3.4.0
+  #     - name: Generate Compatibility Job Matrix
+  #       id: set-matrix
+  #       env:
+  #         TOTAL_RUNNERS: 1
+  #         JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
+  #       run: |
+  #         cd ./test/integration/consul-container
+  #         NUM_RUNNERS=$TOTAL_RUNNERS
+  #         NUM_DIRS=$(find ./test -maxdepth 2 -type d | wc -l)
+  #         if [ "$NUM_DIRS" -lt "$NUM_RUNNERS" ]; then
+  #           echo "TOTAL_RUNNERS is larger than the number of tests/packages to split."
+  #           NUM_RUNNERS=$NUM_DIRS
+  #         fi
+  #         # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
+  #         NUM_RUNNERS=$((NUM_RUNNERS-1))
+  #         {
+  #           echo -n "compatibility-matrix="
+  #           find ./test -maxdepth 2 -type d -print0 | xargs -0 -n 1 \
+  #             | grep -v util | grep -v upgrade \
+  #             | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
+  #             | jq --compact-output 'map(join(" "))'
+  #         } >> "$GITHUB_OUTPUT"
+
   compatibility-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     needs:
@@ -330,12 +331,12 @@ jobs:
             # echo "Running $(sed 's,|, ,g' <<< "${{ matrix.test-cases }}" |wc -w) subtests"
             # shellcheck disable=SC2001
             # sed 's,|,\n,g' <<< "${{ matrix.test-cases }}"
-            go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --raw-command \
-              --format=short-verbose \
-              --debug \
-              --rerun-fails=3 \
-              -- \
+            # go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+            #   --raw-command \
+            #   --format=short-verbose \
+            #   --debug \
+            #   --rerun-fails=3 \
+            #   -- \
               go test \
               -p=4 \
               -tags "${{ env.GOTAGS }}" \
