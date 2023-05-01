@@ -9,19 +9,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDemo(t *testing.T) {
+func TestTutorial(t *testing.T) {
 	vault := NewTestVaultServer(t, "vault", "local")
 	defer vault.Stop()
 	consul := NewTestConsulServer(t, "consul", "local")
 	defer consul.Stop()
 
 	t.Run("demo", func(t *testing.T) {
-		demo(t, consul, vault)
+		tutorial(t, consul, vault)
 	})
 }
 
 // Vault as a Consul Service Mesh Certificate Authority demo in code
-func demo(t *testing.T, c TestConsulServer, v TestVaultServer) {
+func tutorial(t *testing.T, c TestConsulServer, v TestVaultServer) {
 	// vault setup
 	err := v.Client().Sys().Mount(rootPath+"/", &vapi.MountInput{Type: "pki"})
 	require.NoError(t, err)

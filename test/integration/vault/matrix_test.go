@@ -8,14 +8,14 @@ import (
 // The matrix test
 func TestMatrix(t *testing.T) {
 	matrix := NewMatrix()
-	for i := 0; i < 10; i++ {
+	for i := 0; i < len(matrix.pairs); i++ {
 		consul, vault, more := matrix.NextPair(t)
 		if !more {
 			return
 		}
 		t.Run(fmt.Sprintf("demo-consul_%v-vault_%v", consul.version, vault.version),
 			func(t *testing.T) {
-				demo(t, consul, vault)
+				tutorial(t, consul, vault)
 			})
 		consul.Stop()
 		vault.Stop()
@@ -32,7 +32,7 @@ type Matrix struct {
 func NewMatrix() Matrix {
 	cvs := latestReleases("consul", 1)
 	vvs := latestReleases("vault", 3)
-	pairs := make([]pair, 0, 9)
+	pairs := make([]pair, 0, (3 * 1))
 	for _, cv := range cvs {
 		for _, vv := range vvs {
 			pairs = append(pairs, pair{vault: vv, consul: cv})
