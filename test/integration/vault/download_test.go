@@ -14,11 +14,11 @@ func TestDownload(t *testing.T) {
 
 	// calls API
 	t.Run("latestReleases", func(t *testing.T) {
-		consuls := latestReleases("consul")
-		if len(consuls) != 3 {
+		consuls := latestReleases("consul", 1)
+		if len(consuls) != 1 {
 			t.Errorf("weird number of versions?? `%v`", consuls)
 		}
-		vaults := latestReleases("vault")
+		vaults := latestReleases("vault", 3)
 		if len(vaults) != 3 {
 			t.Errorf("weird number of versions?? `%v`", vaults)
 		}
@@ -26,7 +26,7 @@ func TestDownload(t *testing.T) {
 
 	// calls API
 	t.Run("downloadURL", func(t *testing.T) {
-		for _, v := range latestReleases("vault") {
+		for _, v := range latestReleases("vault", 3) {
 			v := v
 			url := downloadURL("vault", v)
 			if !(strings.HasPrefix(url, "http") && strings.HasSuffix(url, "zip")) && url != "goodurl" {
@@ -59,7 +59,7 @@ func TestDownload(t *testing.T) {
 			tc := tc
 			t.Run(tc.name, func(t *testing.T) {
 				lastTwenty = func(string, string) []byte { return []byte(tc.json) }
-				result := latestReleases("dummy")
+				result := latestReleases("dummy", 3)
 				require.EqualValues(t, tc.expected, result)
 			})
 		}

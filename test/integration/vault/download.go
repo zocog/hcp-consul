@@ -12,7 +12,7 @@ import (
 
 // latestReleases for 'product' it checks throught the last 20 releases for the
 // 3 most recent minor versions (semantic versioning, major.MINOR.micro).
-func latestReleases(product string) []string {
+func latestReleases(product string, count int) []string {
 	jsonBody := lastTwenty(product, "")
 
 	type jsonVersion struct {
@@ -23,10 +23,10 @@ func latestReleases(product string) []string {
 		panic(err)
 	}
 
-	unique := make(map[string]struct{}, 3)
+	unique := make(map[string]struct{}, count)
 	result := []string{}
 	for _, v := range versions {
-		if len(unique) >= 3 {
+		if len(unique) >= count {
 			break
 		}
 		vl := strings.Split(v.Version, ".")

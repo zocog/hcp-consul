@@ -30,8 +30,8 @@ type Matrix struct {
 
 // Returns a matrix ready for use in testing
 func NewMatrix() Matrix {
-	cvs := latestReleases("consul")
-	vvs := latestReleases("vault")
+	cvs := latestReleases("consul", 1)
+	vvs := latestReleases("vault", 3)
 	pairs := make([]pair, 0, 9)
 	for _, cv := range cvs {
 		for _, vv := range vvs {
