@@ -22,20 +22,27 @@ func TestTutorial(t *testing.T) {
 
 // Vault as a Consul Service Mesh Certificate Authority demo in code
 func tutorial(t *testing.T, c TestConsulServer, v TestVaultServer) {
+	c.flagForRestart()
+	const (
+		policyName = "ca"
+		rootName   = "connect_root"
+		intrName   = "connect_dc1_inter"
+		leafName   = "leaf"
+	)
 	// vault setup
-	err := v.Client().Sys().Mount(rootPath+"/", &vapi.MountInput{Type: "pki"})
+	err := v.Client().Sys().Mount(rootName+"/", &vapi.MountInput{Type: "pki"})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		err := v.Client().Sys().Unmount(rootPath + "/")
+		err := v.Client().Sys().Unmount(rootName + "/")
 		require.NoError(t, err)
 	})
-	err = v.Client().Sys().Mount(intrPath+"/", &vapi.MountInput{Type: "pki"})
+	err = v.Client().Sys().Mount(intrName+"/", &vapi.MountInput{Type: "pki"})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		err := v.Client().Sys().Unmount(intrPath + "/")
+		err := v.Client().Sys().Unmount(intrName + "/")
 		require.NoError(t, err)
 	})
-	err = v.Client().Sys().PutPolicy(policyName, policyRules(rootPath, intrPath))
+	err = v.Client().Sys().PutPolicy(policyName, policyVaultMg(rootName, intrName))
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		err := v.Client().Sys().DeletePolicy(policyName)
@@ -52,7 +59,7 @@ func tutorial(t *testing.T, c TestConsulServer, v TestVaultServer) {
 
 	// consul setup
 	_, err = c.Client().Connect().CASetConfig(
-		caConf(v.Addr, token, rootPath, intrPath), nil)
+		caConf(v.Addr, token, rootName, intrName), nil)
 	require.NoError(t, err)
 	// can't undo this... maybe add note that new tests that touch this
 	// will need to overwrite other setups
@@ -64,12 +71,12 @@ func tutorial(t *testing.T, c TestConsulServer, v TestVaultServer) {
 	roots, _, err := c.Client().Agent().ConnectCARoots(nil)
 	require.NoError(t, err)
 	require.Len(t, roots.Roots, 2)
-	leaf, _, err := c.Client().Agent().ConnectCALeaf(leafPath, nil)
+	leaf, _, err := c.Client().Agent().ConnectCALeaf(leafName, nil)
 	require.NoError(t, err)
 	certpem1 := leaf.CertPEM
 	require.Contains(t, certpem1, "CERTIFICATE")
 	require.Contains(t, leaf.PrivateKeyPEM, "PRIVATE")
-	leaf, _, err = c.Client().Agent().ConnectCALeaf(leafPath, nil)
+	leaf, _, err = c.Client().Agent().ConnectCALeaf(leafName, nil)
 	require.NoError(t, err)
 	certpem2 := leaf.CertPEM
 	require.Contains(t, certpem2, "CERTIFICATE")
@@ -92,48 +99,3 @@ func curlTests(t *testing.T, c TestConsulServer, v TestVaultServer) {
 	require.NoError(t, err)
 	fmt.Printf("%s\n", out)
 }
-
-const (
-	rootPath   = "connect_root"
-	intrPath   = "connect_dc1_inter"
-	leafPath   = "leaf"
-	policyName = "ca"
-)
-
-func policyRules(rootPath, intrPath string) string {
-	return fmt.Sprintf(policyRulesTmpl, rootPath, intrPath)
-}
-
-const policyRulesTmpl = `
-path "/sys/mounts/%[1]s" {
-  capabilities = [ "read" ]
-}
-
-path "/sys/mounts/%[2]s" {
-  capabilities = [ "read" ]
-}
-
-path "/sys/mounts/%[2]s/tune" {
-  capabilities = [ "update" ]
-}
-
-path "/%[1]s/*" {
-  capabilities = [ "read", "update" ]
-}
-
-path "%[1]s/root/sign-intermediate" {
-  capabilities = [ "update" ]
-}
-
-path "%[2]s/*" {
-  capabilities = [ "create", "read", "update", "delete", "list" ]
-}
-
-path "auth/token/renew-self" {
-  capabilities = [ "update" ]
-}
-
-path "auth/token/lookup-self" {
-  capabilities = [ "read" ]
-}
-`
