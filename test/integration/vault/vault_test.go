@@ -15,10 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func vaultClient(v TestVaultServer) (*api.Client, error) {
-	return api.NewClient(&api.Config{})
-}
-
 // Holds a running server and connected client.
 // Plus anscillary data useful in testing.
 type TestVaultServer struct {
