@@ -27,6 +27,7 @@ type TestVaultServer struct {
 	version   string
 	cmd       *exec.Cmd
 	client    *api.Client
+	restart   *bool
 }
 
 // NewTestVaultServer runs the Vault binary given on the path and returning
@@ -74,6 +75,7 @@ func NewTestVaultServer(t *testing.T, path, version string) TestVaultServer {
 		version:   version,
 		cmd:       cmd,
 		client:    client,
+		restart:   new(bool),
 	}
 
 	testVault.WaitUntilReady(t)
@@ -83,6 +85,14 @@ func NewTestVaultServer(t *testing.T, path, version string) TestVaultServer {
 
 func (v TestVaultServer) Client() *api.Client {
 	return v.client
+}
+
+func (s TestVaultServer) flagForRestart() {
+	*s.restart = true
+}
+
+func (s TestVaultServer) needsRestart() bool {
+	return *s.restart
 }
 
 func (v TestVaultServer) WaitUntilReady(t *testing.T) {

@@ -14,8 +14,9 @@ import (
 // Plus anscillary data useful in testing is available on embedded TestServer.
 type TestConsulServer struct {
 	*testutil.TestServer
-	client  *capi.Client
-	version string
+	client        *capi.Client
+	version, path string
+	restart       *bool
 }
 
 // NewTestConsulServer runs the Consul binary given on the path and returning
@@ -51,7 +52,9 @@ func NewTestConsulServer(t *testing.T, path, version string) TestConsulServer {
 		t.Fatalf("failed to create consul client: %v", err)
 	}
 
-	return TestConsulServer{TestServer: consul, client: client, version: version}
+	return TestConsulServer{
+		TestServer: consul, client: client,
+		version: version, path: path, restart: new(bool)}
 }
 
 func (s TestConsulServer) Client() *capi.Client {
@@ -71,4 +74,12 @@ func caConf(addr, token, rootPath, intrPath string) *capi.CAConfig {
 			"IntermediateCertTTL": "8760h",
 		},
 	}
+}
+
+func (s TestConsulServer) flagForRestart() {
+	*s.restart = true
+}
+
+func (s TestConsulServer) needsRestart() bool {
+	return *s.restart
 }
