@@ -13,7 +13,7 @@ func TestACLs(t *testing.T) {
 	vault := NewTestVaultServer(t, "vault", "local")
 	consul := NewTestConsulServer(t, "consul", "local")
 
-	t.Run("ConsulACLs", func(t *testing.T) {
+	t.Run("consul-managed-acls", func(t *testing.T) {
 		testConsulManagedACLs(t, consul, vault)
 	})
 
@@ -29,7 +29,7 @@ func TestACLs(t *testing.T) {
 		vault = NewTestVaultServer(t, "vault", "local")
 	}
 
-	t.Run("ConsulACLs", func(t *testing.T) {
+	t.Run("vault-managed-acls", func(t *testing.T) {
 		testVaultManagedACLs(t, consul, vault)
 	})
 
