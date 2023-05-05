@@ -61,21 +61,6 @@ func (s TestConsulServer) Client() *capi.Client {
 	return s.client
 }
 
-func caConf(addr, token, rootPath, intrPath string) *capi.CAConfig {
-	return &capi.CAConfig{
-		Provider: "vault",
-		Config: map[string]any{
-			"Address":             addr,
-			"Token":               token,
-			"RootPKIPath":         rootPath,
-			"IntermediatePKIPath": intrPath,
-			"LeafCertTTL":         "72h",
-			"RotationPeriod":      "2160h",
-			"IntermediateCertTTL": "8760h",
-		},
-	}
-}
-
 func (s TestConsulServer) flagForRestart() {
 	*s.restart = true
 }
