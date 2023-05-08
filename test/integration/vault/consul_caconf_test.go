@@ -40,10 +40,6 @@ func testCaConf(t *testing.T, c TestConsulServer, v TestVaultServer) {
 	require.NoError(t, err)
 
 	token := secret.Auth.ClientToken
-	t.Cleanup(func() {
-		err := v.Client().Auth().Token().RevokeTree(token)
-		require.NoError(t, err)
-	})
 
 	// test
 	// NOTE: can't clean this up, requires restart

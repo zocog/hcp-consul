@@ -51,10 +51,6 @@ func tutorial(t *testing.T, c TestConsulServer, v TestVaultServer) {
 	secret, err := v.Client().Auth().Token().Create(
 		&vapi.TokenCreateRequest{Policies: []string{policyName}})
 	token := secret.Auth.ClientToken
-	t.Cleanup(func() {
-		err := v.Client().Auth().Token().RevokeTree(token)
-		require.NoError(t, err)
-	})
 	require.NoError(t, err)
 
 	// consul setup
