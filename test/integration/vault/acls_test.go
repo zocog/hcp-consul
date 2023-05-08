@@ -66,10 +66,10 @@ func testConsulManagedACLs(t *testing.T, c TestConsulServer, v TestVaultServer) 
 	// test
 	// NOTE: can't clean this up, requires restart
 	_, err = c.Client().Connect().CASetConfig(
-		caConf(v.Addr, token, rootName, intrName), nil)
+		caConfReq(v.Addr, token, rootName, intrName), nil)
 	require.NoError(t, err)
 	_, err = c.Client().Connect().CASetConfig(
-		caConf(v.Addr, "bad-token", rootName, intrName), nil)
+		caConfReq(v.Addr, "bad-token", rootName, intrName), nil)
 	require.Error(t, err)
 
 	// Cleanup Vault side of CASetConfig call
@@ -133,10 +133,10 @@ func testVaultManagedACLs(t *testing.T, c TestConsulServer, v TestVaultServer) {
 	// test
 	// NOTE: can't clean this up, requires restart
 	_, err = c.Client().Connect().CASetConfig(
-		caConf(v.Addr, token, rootName, intrName), nil)
+		caConfReq(v.Addr, token, rootName, intrName), nil)
 	require.NoError(t, err)
 	_, err = c.Client().Connect().CASetConfig(
-		caConf(v.Addr, "bad-token", rootName, intrName), nil)
+		caConfReq(v.Addr, "bad-token", rootName, intrName), nil)
 	require.Error(t, err)
 
 	// check that it took and certs exist

@@ -48,13 +48,22 @@ func testCaConf(t *testing.T, c TestConsulServer, v TestVaultServer) {
 	// test
 	// NOTE: can't clean this up, requires restart
 	// set then get to test
-	caconfSet := caConfAll(v.Addr, token, rootName, intrName)
-	_, err = c.Client().Connect().CASetConfig(caconfSet, nil)
+	// first set minimal required for it to work
+	caconfReq := caConfReq(v.Addr, token, rootName, intrName)
+	_, err = c.Client().Connect().CASetConfig(caconfReq, nil)
 	require.NoError(t, err)
-	caconfGet, _, err := c.Client().Connect().CAGetConfig(nil)
+	caconfReqGet, _, err := c.Client().Connect().CAGetConfig(nil)
+	require.NoError(t, err)
+	require.Equal(t, caconfReq.Config, caconfReqGet.Config)
+
+	// next set all options (sans auth-method) to make sure they take
+	caconfAll := caConfAll(v.Addr, token, rootName, intrName)
+	_, err = c.Client().Connect().CASetConfig(caconfAll, nil)
+	require.NoError(t, err)
+	caconfAllGet, _, err := c.Client().Connect().CAGetConfig(nil)
 	require.NoError(t, err)
 
-	require.Equal(t, caconfSet.Config, caconfGet.Config)
+	require.Equal(t, caconfAll.Config, caconfAllGet.Config)
 
 	// Cleanup Vault side of CASetConfig call
 	t.Cleanup(func() {

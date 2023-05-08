@@ -59,7 +59,7 @@ func tutorial(t *testing.T, c TestConsulServer, v TestVaultServer) {
 
 	// consul setup
 	_, err = c.Client().Connect().CASetConfig(
-		caConf(v.Addr, token, rootName, intrName), nil)
+		caConfReq(v.Addr, token, rootName, intrName), nil)
 	require.NoError(t, err)
 	// can't undo this... maybe add note that new tests that touch this
 	// will need to overwrite other setups

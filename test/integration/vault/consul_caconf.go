@@ -7,7 +7,7 @@ import (
 )
 
 // basica ca-conf for testing
-func caConf(addr, token, rootPath, intrPath string) *capi.CAConfig {
+func caConfReq(addr, token, rootPath, intrPath string) *capi.CAConfig {
 	return &capi.CAConfig{
 		Provider: "vault",
 		Config: map[string]any{
