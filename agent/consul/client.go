@@ -23,8 +23,10 @@ import (
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -451,3 +453,6 @@ func (c *Client) AgentEnterpriseMeta() *acl.EnterpriseMeta {
 func (c *Client) agentSegmentName() string {
 	return c.config.Segment
 }
+
+func (*Client) ResourceServiceClient() pbresource.ResourceServiceClient { return nil }
+func (*Client) TypeRegistry() resource.Registry                         { return nil }

@@ -36,6 +36,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/uiserver"
 	"github.com/hashicorp/consul/api"
+	resourcehttp "github.com/hashicorp/consul/internal/resource/http"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
@@ -244,6 +245,15 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 		}
 		handleFuncMetrics(pattern, s.wrap(bound, methods))
 	}
+
+	mux.Handle("/api/",
+		http.StripPrefix("/api",
+			resourcehttp.NewHandler(
+				s.agent.delegate.ResourceServiceClient(),
+				s.agent.delegate.TypeRegistry(),
+			),
+		),
+	)
 
 	// If enableDebug or ACL enabled, register wrapped pprof handlers
 	if enableDebug || !s.checkACLDisabled() {
