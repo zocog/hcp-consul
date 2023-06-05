@@ -1,3 +1,8 @@
 ```release-note:feature
 reloadable config: Made enable_debug config reloadable and enable pprof command to work when config toggles to true
 ```
+
+```release-note:breaking-change
+reloadable config: the GET call to /debug/pprof/profile -> will not return 400 now [returns 200], because earlier the handlers were added after checking enable_debug flag and checking ACLDisabled status.
+Now the handlers are attached anyhow, and these checks are added inside the handlers so that the same logic persists. This will enable the able when flag is toggled.
+```
