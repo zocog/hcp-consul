@@ -76,6 +76,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
+	"github.com/hashicorp/consul/internal/server"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
@@ -850,6 +851,8 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	// Now we are setup, configure the HCP manager
 	go s.hcpManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
+	go s.broadcastMetadata(&lib.StopChannelContext{StopCh: shutdownCh})
+
 	err = s.runEnterpriseRateLimiterConfigEntryController()
 	if err != nil {
 		return nil, err
@@ -864,6 +867,8 @@ func (s *Server) registerResources() {
 
 	mesh.RegisterTypes(s.typeRegistry)
 	reaper.RegisterControllers(s.controllerManager)
+
+	server.RegisterTypes(s.typeRegistry)
 
 	if s.config.DevMode {
 		demo.RegisterTypes(s.typeRegistry)

@@ -1543,6 +1543,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
 
 	cfg.ServerRejoinAgeMax = runtimeCfg.ServerRejoinAgeMax
+	cfg.VersionWithMetadata = runtimeCfg.VersionWithMetadata()
 
 	enterpriseConsulConfig(cfg, runtimeCfg)
 

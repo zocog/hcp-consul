@@ -19,6 +19,9 @@ type Registry interface {
 
 	// Resolve the given resource type and its hooks.
 	Resolve(typ *pbresource.Type) (reg Registration, ok bool)
+
+	// Types returns the registered resource types.
+	Types() []*pbresource.Type
 }
 
 type Registration struct {
@@ -136,6 +139,17 @@ func (r *TypeRegistry) Resolve(typ *pbresource.Type) (reg Registration, ok bool)
 		return registration, true
 	}
 	return Registration{}, false
+}
+
+func (r *TypeRegistry) Types() []*pbresource.Type {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	types := make([]*pbresource.Type, 0, len(r.registrations))
+	for _, r := range r.registrations {
+		types = append(types, r.Type)
+	}
+	return types
 }
 
 func ToGVK(resourceType *pbresource.Type) string {

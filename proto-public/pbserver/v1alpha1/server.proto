@@ -1,0 +1,24 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.server.v1alpha1;
+
+import "google/protobuf/timestamp.proto";
+
+// ServerMetadata contains the information a server broadcasts about itself.
+//
+// It is used to make decisions based on the state of the cluster, for example
+// only translating resources to a new form once it is supported by all servers.
+message ServerMetadata {
+  // Version is the server's Consul version.
+  string version = 1;
+
+  // Features contains flags for the features the server claims it supports.
+  repeated string features = 2;
+
+  // LastHeartbeat is the last time the server published its metadata. It can be
+  // used to determine when to stop considering a server that left the cluster.
+  google.protobuf.Timestamp last_heartbeat = 3;
+}
