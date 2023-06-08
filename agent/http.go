@@ -215,6 +215,7 @@ func (s *HTTPHandlers) handler() http.Handler {
 
 			// If enableDebug or ACL enabled, register wrapped pprof handlers
 			if !s.agent.config.EnableDebug && s.checkACLDisabled() {
+				resp.WriteHeader(http.StatusNotFound)
 				return
 			}
 

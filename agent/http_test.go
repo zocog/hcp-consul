@@ -1089,7 +1089,7 @@ func TestHTTPServer_PProfHandlers_DisableDebugNoACLs(t *testing.T) {
 	httpServer := &HTTPHandlers{agent: a.Agent}
 	httpServer.handler().ServeHTTP(resp, req)
 
-	require.Equal(t, http.StatusOK, resp.Code)
+	require.Equal(t, http.StatusNotFound, resp.Code)
 }
 
 func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
