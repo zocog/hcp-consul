@@ -20,6 +20,8 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
+	"github.com/hashicorp/consul/internal/proxystate"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -451,6 +453,12 @@ type Server struct {
 	reportingManager *reporting.ReportingManager
 }
 
+// ProxyConfigSource is the interface xds.Server requires to consume proxy
+// config updates.
+type ProxyConfigSourceV2 interface {
+	Watch(proxyID structs.ServiceID, nodeName string, token string) (<-chan *proxystate.FullProxyState, limiter.SessionTerminatedChan, func(), error)
+}
+
 func (s *Server) DecrementBlockingQueries() uint64 {
 	return atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
 }
@@ -471,7 +479,7 @@ type connHandler interface {
 
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger) (*Server, error) {
+func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger, source ProxyConfigSourceV2) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -807,7 +815,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		s.internalResourceServiceClient,
 		logger.Named(logging.ControllerRuntime),
 	)
-	s.registerResources()
+	s.registerResources(source)
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	go s.trackLeaderChanges()
@@ -858,8 +866,10 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	return s, nil
 }
 
-func (s *Server) registerResources() {
+func (s *Server) registerResources(cfgSource ProxyConfigSourceV2) {
 	catalog.RegisterTypes(s.typeRegistry)
+	deps := catalog.DefaultControllerDependencies()
+	deps.CfgSource = cfgSource
 	catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
 
 	mesh.RegisterTypes(s.typeRegistry)

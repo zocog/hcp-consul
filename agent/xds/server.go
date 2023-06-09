@@ -10,6 +10,7 @@ import (
 	"time"
 
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/hashicorp/consul/internal/proxystate"
 
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 
@@ -100,6 +101,12 @@ type ProxyConfigSource interface {
 	Watch(id structs.ServiceID, nodeName string, token string) (<-chan *proxycfg.ConfigSnapshot, limiter.SessionTerminatedChan, proxycfg.CancelFunc, error)
 }
 
+// ProxyConfigSource is the interface xds.Server requires to consume proxy
+// config updates.
+type ProxyConfigSourceV2 interface {
+	Watch(proxyID structs.ServiceID, nodeName string, token string) (<-chan *proxystate.FullProxyState, limiter.SessionTerminatedChan, func(), error)
+}
+
 // Server represents a gRPC server that can handle xDS requests from Envoy. All
 // of it's public members must be set before the gRPC server is started.
 //
@@ -109,6 +116,7 @@ type Server struct {
 	NodeName     string
 	Logger       hclog.Logger
 	CfgSrc       ProxyConfigSource
+	CfgSrcV2     ProxyConfigSourceV2
 	ResolveToken ACLResolverFunc
 	CfgFetcher   ConfigFetcher
 
@@ -160,6 +168,7 @@ func NewServer(
 	nodeName string,
 	logger hclog.Logger,
 	cfgMgr ProxyConfigSource,
+	cfgSrc ProxyConfigSourceV2,
 	resolveTokenSecret ACLResolverFunc,
 	cfgFetcher ConfigFetcher,
 ) *Server {
@@ -167,6 +176,7 @@ func NewServer(
 		NodeName:           nodeName,
 		Logger:             logger,
 		CfgSrc:             cfgMgr,
+		CfgSrcV2:           cfgSrc,
 		ResolveToken:       resolveTokenSecret,
 		CfgFetcher:         cfgFetcher,
 		AuthCheckFrequency: DefaultAuthCheckFrequency,

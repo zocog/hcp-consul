@@ -52,7 +52,7 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	proxycfgglue "github.com/hashicorp/consul/agent/proxycfg-glue"
-	catalogproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalog"
+	catalogv2proxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalogv2"
 	localproxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/local"
 	"github.com/hashicorp/consul/agent/rpcclient"
 	"github.com/hashicorp/consul/agent/rpcclient/configentry"
@@ -365,6 +365,8 @@ type Agent struct {
 	// server to be pushed out to Envoy.
 	proxyConfig *proxycfg.Manager
 
+	catalogv2ProxyCfgSource *catalogv2proxycfg.ConfigSource
+
 	// serviceManager is the manager for combining local service registrations with
 	// the centrally configured proxy/service defaults.
 	serviceManager *ServiceManager
@@ -660,7 +662,14 @@ func (a *Agent) Start(ctx context.Context) error {
 			incomingRPCLimiter,
 		)
 
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger)
+		catalogv2Cfg := catalogv2proxycfg.NewConfigSource()
+		go func() {
+			<-a.shutdownCh
+			catalogv2Cfg.Shutdown()
+		}()
+		a.catalogv2ProxyCfgSource = catalogv2Cfg
+
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger, catalogv2Cfg)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
@@ -891,26 +900,29 @@ func (a *Agent) listenAndServeGRPC() error {
 	// TODO(agentless): rather than asserting the concrete type of delegate, we
 	// should add a method to the Delegate interface to build a ConfigSource.
 	var cfg xds.ProxyConfigSource = localproxycfg.NewConfigSource(a.proxyConfig)
-	if server, ok := a.delegate.(*consul.Server); ok {
-		catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
-			NodeName:          a.config.NodeName,
-			LocalState:        a.State,
-			LocalConfigSource: cfg,
-			Manager:           a.proxyConfig,
-			GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
-			Logger:            a.proxyConfig.Logger.Named("server-catalog"),
-			SessionLimiter:    a.baseDeps.XDSStreamLimiter,
-		})
+	var cfgSrc *catalogv2proxycfg.ConfigSource
+	if _, ok := a.delegate.(*consul.Server); ok {
+		//catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
+		//	NodeName:          a.config.NodeName,
+		//	LocalState:        a.State,
+		//	LocalConfigSource: cfg,
+		//	Manager:           a.proxyConfig,
+		//	GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
+		//	Logger:            a.proxyConfig.Logger.Named("server-catalog"),
+		//	SessionLimiter:    a.baseDeps.XDSStreamLimiter,
+		//})
+		catalogv2Cfg := catalogv2proxycfg.NewConfigSource()
 		go func() {
 			<-a.shutdownCh
-			catalogCfg.Shutdown()
+			catalogv2Cfg.Shutdown()
 		}()
-		cfg = catalogCfg
+		cfgSrc = catalogv2Cfg
 	}
 	a.xdsServer = xds.NewServer(
 		a.config.NodeName,
 		a.logger.Named(logging.Envoy),
 		cfg,
+		cfgSrc,
 		func(id string) (acl.Authorizer, error) {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},
