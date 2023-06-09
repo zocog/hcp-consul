@@ -1068,6 +1068,8 @@ func TestHTTPServer_PProfHandlers_EnableDebug(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/debug/pprof/profile?seconds=1", nil)
 
+	a.config.EnableDebug = true
+
 	httpServer := &HTTPHandlers{agent: a.Agent}
 	httpServer.handler().ServeHTTP(resp, req)
 
