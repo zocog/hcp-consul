@@ -16,6 +16,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -419,8 +420,10 @@ func TestWrite_Update_GroupVersion(t *testing.T) {
 	}
 	res.Data.MarshalFrom(artistV1)
 
-	_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	rsp2, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
 	require.NoError(t, err)
+
+	require.True(t, resource.EqualType(rsp2.Resource.Id.Type, demo.TypeV1Artist))
 }
 
 func TestWrite_NonCASUpdate_Success(t *testing.T) {

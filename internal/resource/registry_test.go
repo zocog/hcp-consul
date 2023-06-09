@@ -4,10 +4,13 @@
 package resource_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
+	pbtest "github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -114,4 +117,97 @@ func TestResolve(t *testing.T) {
 	registration, ok := r.Resolve(serviceType)
 	assert.True(t, ok)
 	assert.Equal(t, registration.Type, serviceType)
+}
+
+func TestTranslate(t *testing.T) {
+	r := resource.NewRegistry()
+
+	var (
+		v1 = &pbresource.Type{Group: "foo", GroupVersion: "v1", Kind: "Bar"}
+		v2 = &pbresource.Type{Group: "foo", GroupVersion: "v2", Kind: "Bar"}
+		v3 = &pbresource.Type{Group: "foo", GroupVersion: "v3", Kind: "Bar"}
+		v4 = &pbresource.Type{Group: "foo", GroupVersion: "v4", Kind: "Bar"}
+	)
+
+	r.Register(resource.Registration{
+		Type:  v1,
+		Proto: &pbtest.Req{},
+		VersionMappings: []resource.VersionMapping{
+			{
+				To: v2,
+				Translate: func(msg proto.Message) (proto.Message, error) {
+					v1, ok := msg.(*pbtest.Req)
+					if !ok {
+						return nil, fmt.Errorf("Unexpected message type: %T", msg)
+					}
+					return &pbtest.Req{
+						Datacenter: strings.ToUpper(v1.Datacenter),
+					}, nil
+				},
+			},
+		},
+	})
+
+	r.Register(resource.Registration{
+		Type:  v2,
+		Proto: &pbtest.Req{},
+		VersionMappings: []resource.VersionMapping{
+			{
+				To: v1,
+				Translate: func(msg proto.Message) (proto.Message, error) {
+					v2, ok := msg.(*pbtest.Req)
+					if !ok {
+						return nil, fmt.Errorf("Unexpected message type: %T", msg)
+					}
+					return &pbtest.Req{
+						Datacenter: strings.ToLower(v2.Datacenter),
+					}, nil
+				},
+			},
+			{
+				To: v3,
+				Translate: func(msg proto.Message) (proto.Message, error) {
+					v2, ok := msg.(*pbtest.Req)
+					if !ok {
+						return nil, fmt.Errorf("Unexpected message type: %T", msg)
+					}
+					return &pbtest.Req{
+						Datacenter: strings.Repeat(v2.Datacenter, 2),
+					}, nil
+				},
+			},
+		},
+	})
+
+	t.Run("v1 => v2", func(t *testing.T) {
+		translate, ok := r.Translate(v1, v2)
+		require.True(t, ok)
+
+		output, err := translate(&pbtest.Req{Datacenter: "hello"})
+		require.NoError(t, err)
+		require.Equal(t, "HELLO", output.(*pbtest.Req).Datacenter)
+	})
+
+	t.Run("v2 => v3", func(t *testing.T) {
+		translate, ok := r.Translate(v2, v3)
+		require.True(t, ok)
+
+		output, err := translate(&pbtest.Req{Datacenter: "hello"})
+		require.NoError(t, err)
+		require.Equal(t, "hellohello", output.(*pbtest.Req).Datacenter)
+	})
+
+	t.Run("v1 => v3", func(t *testing.T) {
+		translate, ok := r.Translate(v1, v3)
+		require.True(t, ok)
+
+		output, err := translate(&pbtest.Req{Datacenter: "hello"})
+		require.NoError(t, err)
+		require.Equal(t, "HELLOHELLO", output.(*pbtest.Req).Datacenter)
+	})
+
+	t.Run("v1 => v4", func(t *testing.T) {
+		_, ok := r.Translate(v1, v4)
+		require.False(t, ok)
+	})
 }

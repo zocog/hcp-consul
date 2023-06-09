@@ -150,7 +150,8 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		case err == nil || errors.As(err, &mismatchError):
 			// Allow writes that update GroupVersion.
 			if mismatchError.Stored != nil {
-				existing = mismatchError.Stored
+				existing = clone(mismatchError.Stored)
+				existing.Id.Type = input.Id.Type
 			}
 			// Use the stored ID because it includes the Uid.
 			//

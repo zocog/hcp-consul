@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -60,13 +61,20 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 			return status.Errorf(codes.Internal, "failed next: %v", err)
 		}
 
-		// drop group versions that don't match
-		if event.Resource.Id.Type.GroupVersion != req.Type.GroupVersion {
-			continue
+		r := event.Resource
+		if !resource.EqualType(r.Id.Type, req.Type) {
+			r, err = s.Translate(r, req.Type)
+			switch {
+			case errors.Is(err, errCannotTranslate):
+				continue
+			case err != nil:
+				return status.Errorf(codes.Internal, "failed to translate resource: %v", err)
+			}
+			event.Resource = r
 		}
 
 		// filter out items that don't pass read ACLs
-		err = reg.ACLs.Read(authz, event.Resource.Id)
+		err = reg.ACLs.Read(authz, r.Id)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue

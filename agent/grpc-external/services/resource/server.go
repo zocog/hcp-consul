@@ -5,6 +5,7 @@ package resource
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
@@ -106,6 +107,33 @@ func (s *Server) getAuthorizer(token string) (acl.Authorizer, error) {
 		return nil, status.Errorf(codes.Internal, "failed getting authorizer: %v", err)
 	}
 	return authz, nil
+}
+
+var errCannotTranslate = errors.New("no translation function available")
+
+func (s *Server) Translate(res *pbresource.Resource, to *pbresource.Type) (*pbresource.Resource, error) {
+	translate, ok := s.Registry.Translate(res.Id.Type, to)
+	if !ok {
+		return nil, errCannotTranslate
+	}
+
+	data, err := res.Data.UnmarshalNew()
+	if err != nil {
+		return nil, err
+	}
+
+	trans, err := translate(data)
+	if err != nil {
+		return nil, err
+	}
+
+	res = clone(res)
+	if err := res.Data.MarshalFrom(trans); err != nil {
+		return nil, err
+	}
+	res.Id.Type = to
+
+	return res, nil
 }
 
 func isGRPCStatusError(err error) bool {

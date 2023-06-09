@@ -65,7 +65,11 @@ func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusReq
 	var result *pbresource.Resource
 	err = s.retryCAS(ctx, req.Version, func() error {
 		resource, err := s.Backend.Read(ctx, storage.EventualConsistency, req.Id)
-		if err != nil {
+		var gvm storage.GroupVersionMismatchError
+		switch {
+		case errors.As(err, &gvm):
+			resource = gvm.Stored
+		case err != nil:
 			return err
 		}
 

@@ -60,10 +60,14 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	deleteId := req.Id
 	if deleteVersion == "" || deleteId.Uid == "" {
 		existing, err := s.Backend.Read(ctx, storage.StrongConsistency, req.Id)
+		var gvm storage.GroupVersionMismatchError
 		switch {
 		case err == nil:
 			deleteVersion = existing.Version
 			deleteId = existing.Id
+		case errors.As(err, &gvm):
+			deleteVersion = gvm.Stored.Version
+			deleteId = gvm.Stored.Id
 		case errors.Is(err, storage.ErrNotFound):
 			// Deletes are idempotent so no-op when not found
 			return &pbresource.DeleteResponse{}, nil

@@ -5,11 +5,13 @@ package resource
 
 import (
 	"context"
+	"errors"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -51,21 +53,26 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 	}
 
 	result := make([]*pbresource.Resource, 0)
-	for _, resource := range resources {
-		// filter out non-matching GroupVersion
-		if resource.Id.Type.GroupVersion != req.Type.GroupVersion {
-			continue
+	for _, r := range resources {
+		if !resource.EqualType(req.Type, r.Id.Type) {
+			r, err = s.Translate(r, req.Type)
+			switch {
+			case errors.Is(err, errCannotTranslate):
+				continue
+			case err != nil:
+				return nil, status.Errorf(codes.Internal, "failed to translate resource: %v", err)
+			}
 		}
 
 		// filter out items that don't pass read ACLs
-		err = reg.ACLs.Read(authz, resource.Id)
+		err = reg.ACLs.Read(authz, r.Id)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue
 		case err != nil:
 			return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
 		}
-		result = append(result, resource)
+		result = append(result, r)
 	}
 	return &pbresource.ListResponse{Resources: result}, nil
 }

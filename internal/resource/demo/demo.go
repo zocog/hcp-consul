@@ -133,6 +133,21 @@ func RegisterTypes(r resource.Registry) {
 			List:  makeListACL(TypeV1Artist),
 		},
 		Validate: validateV1ArtistFn,
+		VersionMappings: []resource.VersionMapping{
+			{
+				To: TypeV2Artist,
+				Translate: func(msg proto.Message) (proto.Message, error) {
+					v1, ok := msg.(*pbdemov1.Artist)
+					if !ok {
+						return nil, fmt.Errorf("unexpected message type: %T", msg)
+					}
+					return &pbdemov2.Artist{
+						Name: v1.Name,
+						// TODO: all the rest!
+					}, nil
+				},
+			},
+		},
 	})
 
 	r.Register(resource.Registration{

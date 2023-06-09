@@ -40,14 +40,22 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 		return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
 	}
 
+	var gvm storage.GroupVersionMismatchError
 	resource, err := s.Backend.Read(ctx, readConsistencyFrom(ctx), req.Id)
 	switch {
 	case err == nil:
 		return &pbresource.ReadResponse{Resource: resource}, nil
 	case errors.Is(err, storage.ErrNotFound):
 		return nil, status.Error(codes.NotFound, err.Error())
-	case errors.As(err, &storage.GroupVersionMismatchError{}):
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+	case errors.As(err, &gvm):
+		resource, err := s.Translate(gvm.Stored, gvm.RequestedType)
+		switch {
+		case errors.Is(err, errCannotTranslate):
+			return nil, status.Error(codes.InvalidArgument, gvm.Error())
+		case err != nil:
+			return nil, status.Errorf(codes.Internal, "failed to translate resource: %v", err)
+		}
+		return &pbresource.ReadResponse{Resource: resource}, nil
 	default:
 		return nil, status.Errorf(codes.Internal, "failed read: %v", err)
 	}
