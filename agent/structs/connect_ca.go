@@ -247,6 +247,10 @@ type IssuedCert struct {
 	RaftIndex
 }
 
+func (i *IssuedCert) Key() string {
+	return i.ServiceURI
+}
+
 // CAOp is the operation for a request related to intentions.
 type CAOp string
 

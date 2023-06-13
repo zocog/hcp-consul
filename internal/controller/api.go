@@ -7,8 +7,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/internal/resource"
@@ -44,6 +46,39 @@ func (c Controller) WithWatch(watchedType *pbresource.Type, mapper DependencyMap
 
 	c.watches = append(c.watches, watch{watchedType, mapper})
 	return c
+}
+
+func (c Controller) WithCustomWatch(eventSource *Source, mapper CustomDependencyMapper) Controller {
+	if eventSource == nil {
+		panic("source must not be nil")
+	}
+	if mapper == nil {
+		panic("mapper must not be nil")
+	}
+
+	c.customWatches = append(c.customWatches, customWatch{source: eventSource, mapper: mapper})
+
+	return c
+}
+
+// Source is used as a generic source of events. This can be used when events aren't coming from resources
+// stored by the resource API.
+type Source struct {
+	// once ensures the event distribution goroutine will be performed only once
+	once sync.Once
+
+	Source <-chan Event
+
+	// stop is to end ongoing goroutine, and close the channels
+	stop <-chan struct{}
+}
+
+type Event struct {
+	Obj queue.ItemType
+}
+
+func (e Event) Key() string {
+	return e.Obj.Key()
 }
 
 // WithLogger changes the controller's logger.
@@ -107,18 +142,23 @@ func (c Controller) backoff() (time.Duration, time.Duration) {
 // Use the builder methods in this package (starting with ForType) to construct
 // a controller, and then pass it to a Manager to be executed.
 type Controller struct {
-	managedType *pbresource.Type
-	reconciler  Reconciler
-	logger      hclog.Logger
-	watches     []watch
-	baseBackoff time.Duration
-	maxBackoff  time.Duration
-	placement   Placement
+	managedType   *pbresource.Type
+	reconciler    Reconciler
+	logger        hclog.Logger
+	watches       []watch
+	customWatches []customWatch
+	baseBackoff   time.Duration
+	maxBackoff    time.Duration
+	placement     Placement
 }
 
 type watch struct {
 	watchedType *pbresource.Type
 	mapper      DependencyMapper
+}
+type customWatch struct {
+	source *Source
+	mapper CustomDependencyMapper
 }
 
 // Request represents a request to reconcile the resource with the given ID.

@@ -881,6 +881,22 @@ func (s *Server) registerResources(cfgSource ProxyConfigSourceV2) {
 	}
 }
 
+//// failed attempt to make agent cache reasonable
+//func (s *Server) RegisterResources(cache *cache.Cache) {
+//	catalog.RegisterTypes(s.typeRegistry)
+//	deps := catalog.DefaultControllerDependencies()
+//	deps.Cache = cache
+//	catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
+//
+//	mesh.RegisterTypes(s.typeRegistry)
+//	reaper.RegisterControllers(s.controllerManager)
+//
+//	if s.config.DevMode {
+//		demo.RegisterTypes(s.typeRegistry)
+//		demo.RegisterControllers(s.controllerManager)
+//	}
+//}
+
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
 	if s.peeringBackend == nil {
 		panic("peeringBackend is required during construction")

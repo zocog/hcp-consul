@@ -4689,3 +4689,18 @@ func defaultIfEmpty(val, defaultVal string) string {
 	}
 	return defaultVal
 }
+
+//func RegisterResources(cache *cache.Cache, registry resource.Registry, mgr *controller.Manager, devMode bool) {
+//	catalog.RegisterTypes(registry)
+//	deps := catalog.DefaultControllerDependencies()
+//	deps.Cache = cache
+//	catalog.RegisterControllers(mgr, catalog.DefaultControllerDependencies())
+//
+//	mesh.RegisterTypes(registry)
+//	reaper.RegisterControllers(mgr)
+//
+//	if devMode {
+//		demo.RegisterTypes(registry)
+//		demo.RegisterControllers(mgr)
+//	}
+//}

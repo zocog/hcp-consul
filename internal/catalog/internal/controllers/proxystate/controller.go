@@ -2,29 +2,128 @@ package proxystate
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/cache"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	catalogv2proxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalogv2"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/proxystate"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func ProxyStateController(source *catalogv2proxycfg.ConfigSource) controller.Controller {
+type ControllerDeps struct {
+	cache  *cache.Cache
+	source *catalogv2proxycfg.ConfigSource
+}
+
+func ProxyStateController(deps ControllerDeps) controller.Controller {
+	// Create event channel
+	ec := make(chan controller.Event)
+
 	// this should eventually be ProxyState resource but we're using workload for now.
 	return controller.ForType(types.WorkloadType).
-		WithReconciler(&proxyStateReconciler{cfgSource: source})
+		WithCustomWatch(&controller.Source{Source: ec}, MapLeafCertEvents).
+		WithReconciler(&proxyStateReconciler{cfgSource: deps.source, leafCertChan: ec, cache: deps.cache, trackedCerts: make(map[*pbresource.ID]bool)})
+}
+
+func MapLeafCertEvents(ctx context.Context, rt controller.Runtime, event controller.Event) ([]controller.Request, error) {
+	var workloadRequests []controller.Request
+	// Get cert from event.
+	cert, ok := event.Obj.(*structs.IssuedCert)
+	if !ok {
+		return nil, errors.New("invalid type")
+	}
+
+	// do it the dumb way for now. This is probably ok because leaf cert events should happen that often.
+	tenancy := &pbresource.Tenancy{
+		Namespace: cert.NamespaceOrDefault(),
+		Partition: cert.PartitionOrDefault(),
+		PeerName:  "local",
+	}
+	lr, err := rt.Client.List(ctx, &pbresource.ListRequest{Type: types.WorkloadType, Tenancy: tenancy})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, resource := range lr.Resources {
+		var workload pbcatalog.Workload
+		err = resource.Data.UnmarshalTo(&workload)
+		if err != nil {
+			return nil, err
+		}
+
+		// todo: this should have an identity instead.
+		if workload.Identity == cert.Service {
+			workloadRequests = append(workloadRequests, controller.Request{
+				ID: resource.Id,
+			})
+		}
+	}
+
+	return workloadRequests, nil
 }
 
 type proxyStateReconciler struct {
-	cfgSource *catalogv2proxycfg.ConfigSource
+	cfgSource    *catalogv2proxycfg.ConfigSource
+	leafCertChan chan controller.Event
+	cache        *cache.Cache
+	trackedCerts map[*pbresource.ID]bool
 }
 
 func (r *proxyStateReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
-	var cfgSnap *proxystate.FullProxyState
-	err := r.cfgSource.PushChange(req.ID, cfgSnap)
+	// get the workload. We assume the workload is on the mesh.
+	res, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: req.ID})
 	if err != nil {
 		return err
 	}
+
+	var workload pbcatalog.Workload
+	err = res.Resource.Data.UnmarshalTo(&workload)
+	if err != nil {
+		return err
+	}
+
+	// Notify us of any leaf changes if we haven't seen this workload yet
+	// todo: we need to stop this tracking if the workload is deleted.
+	if ok := r.trackedCerts[req.ID]; !ok {
+		err = r.cache.NotifyCallback(ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
+			//Datacenter:     s.source.Datacenter,
+			//Token:          s.token,
+			Service:        workload.Identity,
+			EnterpriseMeta: acl.EnterpriseMeta{},
+		}, "", func(ctx context.Context, event cache.UpdateEvent) {
+			cert, ok := event.Result.(*structs.IssuedCert)
+			if !ok {
+				panic("wrong type")
+			}
+			controllerEvent := controller.Event{
+				Obj: cert,
+			}
+			r.leafCertChan <- controllerEvent
+		})
+	}
+
+	// Look up the leaf cert in the cache.
+	result, _, err := r.cache.Get(ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
+		//Datacenter:     s.source.Datacenter,
+		//Token:          s.token,
+		Service:        workload.Identity,
+		EnterpriseMeta: acl.EnterpriseMeta{},
+	})
+	if err != nil {
+		return err
+	}
+	cert, ok := result.(*structs.IssuedCert)
+	if !ok {
+		return errors.New("invalid type")
+	}
+
+	fmt.Println("==============received cert", cert)
 
 	return nil
 }
