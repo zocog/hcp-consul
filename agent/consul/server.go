@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/blockingquery"
+	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -61,6 +62,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
 	"github.com/hashicorp/consul/agent/hcp"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/agent/leafcert"
 	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -481,7 +483,16 @@ type connHandler interface {
 
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger, source ProxyConfigSourceV2) (*Server, error) {
+func NewServer(
+	config *Config,
+	flat Deps,
+	externalGRPCServer *grpc.Server,
+	incomingRPCLimiter rpcRate.RequestLimitsHandler,
+	serverLogger hclog.InterceptLogger,
+	source ProxyConfigSourceV2,
+	cache cacheshim.Cache,
+	leafCertManager *leafcert.Manager,
+) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -817,7 +828,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		s.internalResourceServiceClient,
 		logger.Named(logging.ControllerRuntime),
 	)
-	s.registerResources(flat, source)
+	s.registerResources(flat, source, cache, leafCertManager)
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	go s.trackLeaderChanges()
@@ -868,11 +879,18 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	return s, nil
 }
 
-func (s *Server) registerResources(deps Deps, cfgSource ProxyConfigSourceV2) {
-	if stringslice.Contains(deps.Experiments, catalogResourceExperimentName) {
+// failed attempt to make agent cache reasonable
+func (s *Server) registerResources(
+	srvDeps Deps,
+	cfgSource ProxyConfigSourceV2,
+	cache cacheshim.Cache,
+	leafCertManager *leafcert.Manager,
+) {
+	if stringslice.Contains(srvDeps.Experiments, catalogResourceExperimentName) {
 		catalog.RegisterTypes(s.typeRegistry)
 		deps := catalog.DefaultControllerDependencies()
 		deps.CfgSource = cfgSource
+		deps.Cache = cache
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
 
 		mesh.RegisterTypes(s.typeRegistry)
@@ -885,22 +903,6 @@ func (s *Server) registerResources(deps Deps, cfgSource ProxyConfigSourceV2) {
 		demo.RegisterControllers(s.controllerManager)
 	}
 }
-
-//// failed attempt to make agent cache reasonable
-//func (s *Server) RegisterResources(cache *cache.Cache) {
-//	catalog.RegisterTypes(s.typeRegistry)
-//	deps := catalog.DefaultControllerDependencies()
-//	deps.Cache = cache
-//	catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
-//
-//	mesh.RegisterTypes(s.typeRegistry)
-//	reaper.RegisterControllers(s.controllerManager)
-//
-//	if s.config.DevMode {
-//		demo.RegisterTypes(s.typeRegistry)
-//		demo.RegisterControllers(s.controllerManager)
-//	}
-//}
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
 	if s.peeringBackend == nil {

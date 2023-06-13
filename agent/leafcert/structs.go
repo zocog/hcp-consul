@@ -8,7 +8,7 @@ import (
 	"github.com/mitchellh/hashstructure"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -91,8 +91,8 @@ func (req *ConnectCALeafRequest) TargetPartition() string {
 	return req.PartitionOrDefault()
 }
 
-func (r *ConnectCALeafRequest) CacheInfo() cache.RequestInfo {
-	return cache.RequestInfo{
+func (r *ConnectCALeafRequest) CacheInfo() cacheshim.RequestInfo {
+	return cacheshim.RequestInfo{
 		Token:          r.Token,
 		Key:            r.Key(),
 		Datacenter:     r.Datacenter,

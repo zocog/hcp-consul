@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 )
@@ -305,7 +304,7 @@ func (m *Manager) generateNewLeaf(
 
 	reply, err := m.certSigner.SignCert(context.Background(), &args)
 	if err != nil {
-		if err.Error() == consul.ErrRateLimited.Error() {
+		if err.Error() == structs.ErrRateLimited.Error() {
 			if firstTime {
 				// This was a first fetch - we have no good value in cache. In this case
 				// we just return the error to the caller rather than rely on surprising

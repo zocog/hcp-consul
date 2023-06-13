@@ -19,6 +19,11 @@ const (
 	errServiceNotFound            = "Service not found: "
 	errQueryNotFound              = "Query not found"
 	errLeaderNotTracked           = "Raft leader not found in server lookup mapping"
+
+	errConnectNotEnabled    = "Connect must be enabled in order to use this endpoint"
+	errRateLimited          = "Rate limit reached, try again later" // Note: we depend on this error message in the gRPC ConnectCA.Sign endpoint (see: isRateLimitError).
+	errNotPrimaryDatacenter = "not the primary datacenter"
+	errStateReadOnly        = "CA Provider State is read-only"
 )
 
 var (
@@ -31,6 +36,20 @@ var (
 	ErrDCNotAvailable             = errors.New(errDCNotAvailable)
 	ErrQueryNotFound              = errors.New(errQueryNotFound)
 	ErrLeaderNotTracked           = errors.New(errLeaderNotTracked)
+
+	// Err strings. net/rpc doesn't have a way to transport typed/rich errors so
+	// we currently rely on sniffing the error string in a few cases where we need
+	// to change client behavior. These are the canonical error strings to use.
+	// Note though that client code can't use `err == consul.Err*` directly since
+	// the error returned by RPC will be a plain error.errorString created by
+	// net/rpc client so will not be the same _instance_ that this package
+	// variable points to. Clients need to compare using `err.Error() ==
+	// consul.ErrRateLimited.Error()` which is very sad. Short of replacing our
+	// RPC mechanism it's hard to know how to make that much better though.
+	ErrConnectNotEnabled    = errors.New(errConnectNotEnabled)
+	ErrRateLimited          = errors.New(errRateLimited) // Note: we depend on this error message in the gRPC ConnectCA.Sign endpoint (see: isRateLimitError).
+	ErrNotPrimaryDatacenter = errors.New(errNotPrimaryDatacenter)
+	ErrStateReadOnly        = errors.New(errStateReadOnly)
 )
 
 func IsErrNoDCPath(err error) bool {

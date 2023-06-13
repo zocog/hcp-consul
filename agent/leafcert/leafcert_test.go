@@ -14,9 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -306,12 +305,12 @@ func TestManager_CSRRateLimiting(t *testing.T) {
 		// First call return rate limit error. This is important as it checks
 		// behavior when cache is empty and we have to return a nil Value but need to
 		// save state to do the right thing for retry.
-		consul.ErrRateLimited, // inc
+		structs.ErrRateLimited, // inc
 		// Then succeed on second call
 		nil,
 		// Then be rate limited again on several further calls
-		consul.ErrRateLimited, // inc
-		consul.ErrRateLimited, // inc
+		structs.ErrRateLimited, // inc
+		structs.ErrRateLimited, // inc
 	// Then fine after that
 	)
 
@@ -329,7 +328,7 @@ func TestManager_CSRRateLimiting(t *testing.T) {
 		t.Fatal("shouldn't block longer than one jitter window for success")
 	case result := <-getCh:
 		require.Error(t, result.Err)
-		require.Equal(t, consul.ErrRateLimited.Error(), result.Err.Error())
+		require.Equal(t, structs.ErrRateLimited.Error(), result.Err.Error())
 	}
 
 	// Second call should return correct cert immediately.
@@ -708,7 +707,7 @@ func TestManager_workflow_good(t *testing.T) {
 
 	type reply struct {
 		cert *structs.IssuedCert
-		meta cache.ResultMeta
+		meta cacheshim.ResultMeta
 		err  error
 	}
 
@@ -1088,7 +1087,7 @@ func (r *testRootsReader) Get() (*structs.IndexedCARoots, error) {
 	return r.roots, nil
 }
 
-func (r *testRootsReader) Notify(ctx context.Context, correlationID string, ch chan<- cache.UpdateEvent) error {
+func (r *testRootsReader) Notify(ctx context.Context, correlationID string, ch chan<- cacheshim.UpdateEvent) error {
 	r.mu.Lock()
 	watcher := r.watcher
 	r.mu.Unlock()
@@ -1099,10 +1098,10 @@ func (r *testRootsReader) Notify(ctx context.Context, correlationID string, ch c
 		r.mu.Lock()
 		defer r.mu.Unlock()
 
-		ch <- cache.UpdateEvent{
+		ch <- cacheshim.UpdateEvent{
 			CorrelationID: correlationID,
 			Result:        r.roots,
-			Meta:          cache.ResultMeta{Index: r.index},
+			Meta:          cacheshim.ResultMeta{Index: r.index},
 			Err:           nil,
 		}
 	}()

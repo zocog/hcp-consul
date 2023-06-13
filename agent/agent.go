@@ -684,7 +684,16 @@ func (a *Agent) Start(ctx context.Context) error {
 		}()
 		a.catalogv2ProxyCfgSource = catalogv2Cfg
 
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger, catalogv2Cfg)
+		server, err := consul.NewServer(
+			consulCfg,
+			a.baseDeps.Deps,
+			a.externalGRPCServer,
+			incomingRPCLimiter,
+			serverLogger,
+			catalogv2Cfg,
+			a.cache,
+			a.leafCertManager,
+		)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
@@ -4697,18 +4706,3 @@ func defaultIfEmpty(val, defaultVal string) string {
 	}
 	return defaultVal
 }
-
-//func RegisterResources(cache *cache.Cache, registry resource.Registry, mgr *controller.Manager, devMode bool) {
-//	catalog.RegisterTypes(registry)
-//	deps := catalog.DefaultControllerDependencies()
-//	deps.Cache = cache
-//	catalog.RegisterControllers(mgr, catalog.DefaultControllerDependencies())
-//
-//	mesh.RegisterTypes(registry)
-//	reaper.RegisterControllers(mgr)
-//
-//	if devMode {
-//		demo.RegisterTypes(registry)
-//		demo.RegisterControllers(mgr)
-//	}
-//}

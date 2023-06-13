@@ -58,6 +58,7 @@ func (c *controllerRunner) run(ctx context.Context) error {
 	}
 
 	for _, cw := range c.ctrl.customWatches {
+		cw := cw
 		customMapQueue := runQueue[Event](groupCtx, c.ctrl)
 
 		// Custom Events → Mapper Queue

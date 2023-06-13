@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cache"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/cacheshim"
+	"github.com/hashicorp/consul/agent/leafcert"
 	catalogv2proxycfg "github.com/hashicorp/consul/agent/proxycfg-sources/catalogv2"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
@@ -16,19 +16,24 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-type ControllerDeps struct {
-	cache  *cache.Cache
-	source *catalogv2proxycfg.ConfigSource
-}
-
-func ProxyStateController(deps ControllerDeps) controller.Controller {
+func ProxyStateController(
+	cache cacheshim.Cache,
+	source *catalogv2proxycfg.ConfigSource,
+	leafCertManager *leafcert.Manager,
+) controller.Controller {
 	// Create event channel
 	ec := make(chan controller.Event)
 
 	// this should eventually be ProxyState resource but we're using workload for now.
 	return controller.ForType(types.WorkloadType).
 		WithCustomWatch(&controller.Source{Source: ec}, MapLeafCertEvents).
-		WithReconciler(&proxyStateReconciler{cfgSource: deps.source, leafCertChan: ec, cache: deps.cache, trackedCerts: make(map[*pbresource.ID]bool)})
+		WithReconciler(&proxyStateReconciler{
+			cfgSource:       source,
+			leafCertChan:    ec,
+			cache:           cache,
+			leafCertManager: leafCertManager,
+			trackedCerts:    make(map[*pbresource.ID]bool),
+		})
 }
 
 func MapLeafCertEvents(ctx context.Context, rt controller.Runtime, event controller.Event) ([]controller.Request, error) {
@@ -69,10 +74,11 @@ func MapLeafCertEvents(ctx context.Context, rt controller.Runtime, event control
 }
 
 type proxyStateReconciler struct {
-	cfgSource    *catalogv2proxycfg.ConfigSource
-	leafCertChan chan controller.Event
-	cache        *cache.Cache
-	trackedCerts map[*pbresource.ID]bool
+	cfgSource       *catalogv2proxycfg.ConfigSource
+	leafCertChan    chan controller.Event
+	cache           cacheshim.Cache
+	leafCertManager *leafcert.Manager
+	trackedCerts    map[*pbresource.ID]bool
 }
 
 func (r *proxyStateReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
@@ -91,12 +97,12 @@ func (r *proxyStateReconciler) Reconcile(ctx context.Context, rt controller.Runt
 	// Notify us of any leaf changes if we haven't seen this workload yet
 	// todo: we need to stop this tracking if the workload is deleted.
 	if ok := r.trackedCerts[req.ID]; !ok {
-		err = r.cache.NotifyCallback(ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
+		err = r.leafCertManager.NotifyCallback(ctx, &leafcert.ConnectCALeafRequest{
 			//Datacenter:     s.source.Datacenter,
 			//Token:          s.token,
 			Service:        workload.Identity,
 			EnterpriseMeta: acl.EnterpriseMeta{},
-		}, "", func(ctx context.Context, event cache.UpdateEvent) {
+		}, "", func(ctx context.Context, event cacheshim.UpdateEvent) {
 			cert, ok := event.Result.(*structs.IssuedCert)
 			if !ok {
 				panic("wrong type")
@@ -109,7 +115,7 @@ func (r *proxyStateReconciler) Reconcile(ctx context.Context, rt controller.Runt
 	}
 
 	// Look up the leaf cert in the cache.
-	result, _, err := r.cache.Get(ctx, cachetype.ConnectCALeafName, &cachetype.ConnectCALeafRequest{
+	cert, _, err := r.leafCertManager.Get(ctx, &leafcert.ConnectCALeafRequest{
 		//Datacenter:     s.source.Datacenter,
 		//Token:          s.token,
 		Service:        workload.Identity,
@@ -117,10 +123,6 @@ func (r *proxyStateReconciler) Reconcile(ctx context.Context, rt controller.Runt
 	})
 	if err != nil {
 		return err
-	}
-	cert, ok := result.(*structs.IssuedCert)
-	if !ok {
-		return errors.New("invalid type")
 	}
 
 	fmt.Println("==============received cert", cert)

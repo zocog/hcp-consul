@@ -4,7 +4,6 @@
 package consul
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -17,19 +16,10 @@ import (
 )
 
 var (
-	// Err strings. net/rpc doesn't have a way to transport typed/rich errors so
-	// we currently rely on sniffing the error string in a few cases where we need
-	// to change client behavior. These are the canonical error strings to use.
-	// Note though that client code can't use `err == consul.Err*` directly since
-	// the error returned by RPC will be a plain error.errorString created by
-	// net/rpc client so will not be the same _instance_ that this package
-	// variable points to. Clients need to compare using `err.Error() ==
-	// consul.ErrRateLimited.Error()` which is very sad. Short of replacing our
-	// RPC mechanism it's hard to know how to make that much better though.
-	ErrConnectNotEnabled    = errors.New("Connect must be enabled in order to use this endpoint")
-	ErrRateLimited          = errors.New("Rate limit reached, try again later") // Note: we depend on this error message in the gRPC ConnectCA.Sign endpoint (see: isRateLimitError).
-	ErrNotPrimaryDatacenter = errors.New("not the primary datacenter")
-	ErrStateReadOnly        = errors.New("CA Provider State is read-only")
+	ErrConnectNotEnabled    = structs.ErrConnectNotEnabled
+	ErrRateLimited          = structs.ErrRateLimited
+	ErrNotPrimaryDatacenter = structs.ErrNotPrimaryDatacenter
+	ErrStateReadOnly        = structs.ErrStateReadOnly
 )
 
 const (
