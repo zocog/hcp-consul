@@ -20,8 +20,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/grpc-external/limiter"
-	"github.com/hashicorp/consul/internal/proxystate"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -38,7 +36,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/blockingquery"
@@ -53,6 +50,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	aclgrpc "github.com/hashicorp/consul/agent/grpc-external/services/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
@@ -75,12 +73,14 @@ import (
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh"
+	"github.com/hashicorp/consul/internal/proxystate"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
@@ -133,6 +133,8 @@ const (
 	reconcileChSize = 256
 
 	LeaderTransferMinVersion = "1.6.0"
+
+	catalogResourceExperimentName = "resource-apis"
 )
 
 const (
@@ -815,7 +817,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		s.internalResourceServiceClient,
 		logger.Named(logging.ControllerRuntime),
 	)
-	s.registerResources(source)
+	s.registerResources(flat, source)
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	go s.trackLeaderChanges()
@@ -866,13 +868,16 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	return s, nil
 }
 
-func (s *Server) registerResources(cfgSource ProxyConfigSourceV2) {
-	catalog.RegisterTypes(s.typeRegistry)
-	deps := catalog.DefaultControllerDependencies()
-	deps.CfgSource = cfgSource
-	catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
+func (s *Server) registerResources(deps Deps, cfgSource ProxyConfigSourceV2) {
+	if stringslice.Contains(deps.Experiments, catalogResourceExperimentName) {
+		catalog.RegisterTypes(s.typeRegistry)
+		deps := catalog.DefaultControllerDependencies()
+		deps.CfgSource = cfgSource
+		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
 
-	mesh.RegisterTypes(s.typeRegistry)
+		mesh.RegisterTypes(s.typeRegistry)
+	}
+
 	reaper.RegisterControllers(s.controllerManager)
 
 	if s.config.DevMode {
