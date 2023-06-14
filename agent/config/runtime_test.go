@@ -17,6 +17,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -324,7 +325,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DevMode = true
 			rt.DisableAnonymousSignature = true
 			rt.DisableKeyringFile = true
-			rt.EnableDebug = true
+			rt.EnableDebug = atomic.Bool{}
+			rt.EnableDebug.Store(true)
 			rt.UIConfig.Enabled = true
 			rt.LeaveOnTerm = false
 			rt.Logging.LogLevel = "DEBUG"
@@ -5963,7 +5965,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			// The logstore settings from first file should not be overridden by a
 			// later file with nothing to say about logstores!
 			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendWAL
-			rt.EnableDebug = true
+			rt.EnableDebug = atomic.Bool{}
+			rt.EnableDebug.Store(true)
 		},
 	})
 }
@@ -6066,6 +6069,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		_, n, _ := net.ParseCIDR(s)
 		return n
 	}
+	atomicBoolTrue := atomic.Bool{}
+	atomicBoolTrue.Store(true)
 
 	defaultEntMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 	nodeEntMeta := structs.NodeEnterpriseMetaInDefaultPartition()
@@ -6351,7 +6356,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		DiscoveryMaxStale:                5 * time.Second,
 		EnableAgentTLSForChecks:          true,
 		EnableCentralServiceConfig:       false,
-		EnableDebug:                      true,
+		EnableDebug:                      *atomicBool(true),
 		EnableRemoteScriptChecks:         true,
 		EnableLocalScriptChecks:          true,
 		EncryptKey:                       "A4wELWqH",

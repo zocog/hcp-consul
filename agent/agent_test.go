@@ -4204,7 +4204,7 @@ func TestAgent_ReloadConfig_EnableDebug(t *testing.T) {
 		},
 	)
 	require.NoError(t, a.reloadConfigInternal(c))
-	require.Equal(t, true, a.config.EnableDebug)
+	require.Equal(t, true, a.config.EnableDebug.Load())
 
 	c = TestConfig(
 		testutil.Logger(t),
@@ -4215,7 +4215,7 @@ func TestAgent_ReloadConfig_EnableDebug(t *testing.T) {
 		},
 	)
 	require.NoError(t, a.reloadConfigInternal(c))
-	require.Equal(t, false, a.config.EnableDebug)
+	require.Equal(t, false, a.config.EnableDebug.Load())
 }
 
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
