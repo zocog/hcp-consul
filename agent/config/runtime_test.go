@@ -327,7 +327,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DisableKeyringFile = true
 			rt.EnableDebug = atomic.Bool{}
 			rt.EnableDebug.Store(true)
-			rt.EnableDebug = true
+			rt.EnableDebug = atomic.Bool{}
+			rt.EnableDebug.Store(true)
 			rt.Experiments = []string{"resource-apis"}
 			rt.UIConfig.Enabled = true
 			rt.LeaveOnTerm = false
