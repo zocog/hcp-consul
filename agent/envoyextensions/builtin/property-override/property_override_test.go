@@ -220,8 +220,8 @@ func TestConstructor(t *testing.T) {
 			arguments: makeArguments(map[string]any{"Patches": []map[string]any{
 				makePatch(map[string]any{
 					"ResourceFilter": makeResourceFilter(map[string]any{
-						"Services": []ServiceName{
-							{CompoundServiceName: api.CompoundServiceName{}},
+						"Services": []map[string]any{
+							{},
 						},
 					}),
 				}),
@@ -236,9 +236,45 @@ func TestConstructor(t *testing.T) {
 		// enforces expected behavior until we do. Multi-member slices should be unaffected
 		// by WeakDecode as it is a more-permissive version of the default behavior.
 		"single value Patches decoded as map construction succeeds": {
-			arguments: makeArguments(map[string]any{"Patches": makePatch(map[string]any{})}),
+			arguments: makeArguments(map[string]any{"Patches": makePatch(map[string]any{}), "ProxyType": nil}),
 			expected:  validTestCase(OpAdd, extensioncommon.TrafficDirectionOutbound, ResourceTypeRoute).expected,
 			ok:        true,
+		},
+		// Ensure that embedded api struct used for Services is parsed correctly.
+		// See also above comment on decode.HookWeakDecodeFromSlice.
+		"single value Services decoded as map construction succeeds": {
+			arguments: makeArguments(map[string]any{"Patches": []map[string]any{
+				makePatch(map[string]any{
+					"ResourceFilter": makeResourceFilter(map[string]any{
+						"Services": []map[string]any{
+							{"Name": "foo"},
+						},
+					}),
+				}),
+			}}),
+			expected: propertyOverride{
+				Patches: []Patch{
+					{
+						ResourceFilter: ResourceFilter{
+							ResourceType:     ResourceTypeRoute,
+							TrafficDirection: extensioncommon.TrafficDirectionOutbound,
+							Services: []*ServiceName{
+								{CompoundServiceName: api.CompoundServiceName{
+									Name:      "foo",
+									Namespace: "default",
+									Partition: "default",
+								}},
+							},
+						},
+						Op:    OpAdd,
+						Path:  "/name",
+						Value: "foo",
+					},
+				},
+				Debug:     true,
+				ProxyType: api.ServiceKindConnectProxy,
+			},
+			ok: true,
 		},
 		"invalid ProxyType": {
 			arguments: makeArguments(map[string]any{
@@ -559,6 +595,7 @@ type MockPatcher[K proto.Message] struct {
 	appliedPatches []Patch
 }
 
+//nolint:unparam
 func (m *MockPatcher[K]) applyPatch(k K, p Patch, _ bool) (result K, e error) {
 	m.appliedPatches = append(m.appliedPatches, p)
 	return k, nil
@@ -581,7 +618,7 @@ func TestCanApply(t *testing.T) {
 		},
 		"invalid proxy type": {
 			ext: &propertyOverride{
-				ProxyType: api.ServiceKindTerminatingGateway,
+				ProxyType: api.ServiceKindConnectProxy,
 			},
 			conf: &extensioncommon.RuntimeConfig{
 				Kind: api.ServiceKindMeshGateway,

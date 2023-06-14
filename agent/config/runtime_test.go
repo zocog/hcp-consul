@@ -327,6 +327,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DisableKeyringFile = true
 			rt.EnableDebug = atomic.Bool{}
 			rt.EnableDebug.Store(true)
+			rt.EnableDebug = true
+			rt.Experiments = []string{"resource-apis"}
 			rt.UIConfig.Enabled = true
 			rt.LeaveOnTerm = false
 			rt.Logging.LogLevel = "DEBUG"
@@ -6360,6 +6362,7 @@ func TestLoad_FullConfig(t *testing.T) {
 		EnableRemoteScriptChecks:         true,
 		EnableLocalScriptChecks:          true,
 		EncryptKey:                       "A4wELWqH",
+		Experiments:                      []string{"foo"},
 		StaticRuntimeConfig: StaticRuntimeConfig{
 			EncryptVerifyIncoming: true,
 			EncryptVerifyOutgoing: true,
