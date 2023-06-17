@@ -4162,8 +4162,6 @@ func (a *Agent) reloadConfig(autoReload bool) error {
 		}
 	}
 
-	a.enableDebug.Store(newCfg.EnableDebug)
-
 	return a.reloadConfigInternal(newCfg)
 }
 
@@ -4297,6 +4295,8 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	a.proxyConfig.SetUpdateRateLimit(newCfg.XDSUpdateRateLimit)
+
+	a.enableDebug.Store(newCfg.EnableDebug)
 
 	return nil
 }
