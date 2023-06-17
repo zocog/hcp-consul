@@ -1010,7 +1010,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		DiscoveryMaxStale:          b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
 		EnableAgentTLSForChecks:    boolVal(c.EnableAgentTLSForChecks),
 		EnableCentralServiceConfig: boolVal(c.EnableCentralServiceConfig),
-		EnableDebug:                c.EnableDebug,
+		EnableDebug:                *c.EnableDebug,
 		EnableRemoteScriptChecks:   enableRemoteScriptChecks,
 		EnableLocalScriptChecks:    enableLocalScriptChecks,
 		EncryptKey:                 stringVal(c.EncryptKey),
