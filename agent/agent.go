@@ -691,7 +691,6 @@ func (a *Agent) Start(ctx context.Context) error {
 			incomingRPCLimiter,
 			serverLogger,
 			catalogv2Cfg,
-			a.cache,
 			a.leafCertManager,
 		)
 		if err != nil {

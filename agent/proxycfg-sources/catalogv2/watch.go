@@ -14,7 +14,7 @@ type Watcher interface {
 }
 
 type ConfigSource struct {
-	proxies map[*pbresource.ID]proxyWatchData
+	proxies map[*pbresource.ID]*proxyWatchData
 }
 
 type proxyWatchData struct {
@@ -26,7 +26,7 @@ type proxyWatchData struct {
 
 func NewConfigSource() *ConfigSource {
 	return &ConfigSource{
-		proxies: make(map[*pbresource.ID]proxyWatchData),
+		proxies: make(map[*pbresource.ID]*proxyWatchData),
 	}
 }
 
@@ -48,7 +48,9 @@ func (r *ConfigSource) Watch(id structs.ServiceID, nodeName string, token string
 
 	proxyStateChan := make(chan *proxystate.FullProxyState)
 	// todo: lock it
-	r.proxies[rid] = proxyStateChan
+	r.proxies[rid] = &proxyWatchData{
+		notify: proxyStateChan,
+	}
 
 	// send it if it's ready here as well.
 
@@ -63,8 +65,8 @@ func (r *ConfigSource) Watch(id structs.ServiceID, nodeName string, token string
 func (r *ConfigSource) PushChange(id *pbresource.ID, snapshot *proxystate.FullProxyState) error {
 	// this is not thread safe!
 	// todo: this needs to implement rate limiting like our current code
-	if ch, ok := r.proxies[id]; ok {
-		ch <- snapshot
+	if d, ok := r.proxies[id]; ok {
+		d.notify <- snapshot
 	} else {
 		return fmt.Errorf("could not send changes to proxy")
 	}

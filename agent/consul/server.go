@@ -39,7 +39,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/blockingquery"
-	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -490,7 +489,6 @@ func NewServer(
 	incomingRPCLimiter rpcRate.RequestLimitsHandler,
 	serverLogger hclog.InterceptLogger,
 	source ProxyConfigSourceV2,
-	cache cacheshim.Cache,
 	leafCertManager *leafcert.Manager,
 ) (*Server, error) {
 	logger := flat.Logger
@@ -828,7 +826,7 @@ func NewServer(
 		s.internalResourceServiceClient,
 		logger.Named(logging.ControllerRuntime),
 	)
-	s.registerResources(flat, source, cache, leafCertManager)
+	s.registerResources(flat, source, leafCertManager)
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	go s.trackLeaderChanges()
@@ -883,15 +881,15 @@ func NewServer(
 func (s *Server) registerResources(
 	srvDeps Deps,
 	cfgSource ProxyConfigSourceV2,
-	cache cacheshim.Cache,
 	leafCertManager *leafcert.Manager,
 ) {
 	if stringslice.Contains(srvDeps.Experiments, catalogResourceExperimentName) {
 		catalog.RegisterTypes(s.typeRegistry)
 		deps := catalog.DefaultControllerDependencies()
 		deps.CfgSource = cfgSource
-		deps.Cache = cache
-		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
+		deps.LeafCertManager = leafCertManager
+		deps.Datacenter = s.config.Datacenter
+		catalog.RegisterControllers(s.controllerManager, deps)
 
 		mesh.RegisterTypes(s.typeRegistry)
 	}
