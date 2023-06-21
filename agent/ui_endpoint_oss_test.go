@@ -58,7 +58,6 @@ func TestUIEndpoint_MetricsProxy_ACLDeny(t *testing.T) {
 	`, backendURL))
 	defer a.Shutdown()
 
-	a.enableDebug = atomic.Bool{}
 	a.enableDebug.Store(true)
 
 	h := a.srv.handler()

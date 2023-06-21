@@ -600,7 +600,6 @@ func (a *Agent) Start(ctx context.Context) error {
 	// Overwrite the configuration.
 	a.config = c
 
-	a.enableDebug = atomic.Bool{}
 	a.enableDebug.Store(c.EnableDebug)
 
 	if err := a.tlsConfigurator.Update(a.config.TLS); err != nil {
