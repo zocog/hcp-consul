@@ -155,7 +155,7 @@ type ACLPolicy struct {
 	Description string
 	Rules       string
 	Datacenters []string
-	Hash        []byte
+	Hash        []byte `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
 

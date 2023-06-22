@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-rootcerts"
@@ -1057,6 +1058,7 @@ func (c *Client) newRequest(method, path string) *request {
 // doRequest runs a request with our client
 func (c *Client) doRequest(r *request) (time.Duration, *http.Response, error) {
 	req, err := r.toHTTP()
+	spew.Dump("REQUEST", req)
 	if err != nil {
 		return 0, nil, err
 	}
