@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/consul/command"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/version"
-	_ "github.com/hashicorp/consul/service_os"
+	_ "github.com/hashicorp/consul/internal/service_os"
 )
 
 func main() {

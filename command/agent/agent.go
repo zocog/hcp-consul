@@ -25,9 +25,9 @@ import (
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/command/cli"
 	"github.com/hashicorp/consul/command/flags"
+	"github.com/hashicorp/consul/internal/service_os"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/service_os"
 	consulversion "github.com/hashicorp/consul/version"
 )
 
