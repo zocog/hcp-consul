@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/internal/types"
 )
 
 // NewTracker returns an implementation of the router.ServerTracker interface

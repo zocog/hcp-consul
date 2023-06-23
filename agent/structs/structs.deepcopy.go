@@ -3,7 +3,7 @@
 package structs
 
 import (
-	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/internal/types"
 	"time"
 )
 

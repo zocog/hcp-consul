@@ -16,8 +16,8 @@ import (
 	"github.com/hashicorp/consul/agent/consul/autopilotevents"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/types"
 )
 
 var AutopilotGauges = []prometheus.GaugeDefinition{

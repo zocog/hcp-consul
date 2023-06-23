@@ -20,12 +20,12 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/proto/private/pbpeerstream"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/types"
 )
 
 func TestPeeringBackend_ForwardToLeader(t *testing.T) {

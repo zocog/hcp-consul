@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
-	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/internal/types"
 )
 
 func TestSink(t *testing.T) {

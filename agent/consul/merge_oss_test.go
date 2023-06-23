@@ -12,8 +12,8 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/types"
 )
 
 func TestMerge_OSS_LAN(t *testing.T) {

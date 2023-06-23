@@ -18,9 +18,9 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/private/pbconfig"
-	"github.com/hashicorp/consul/types"
 )
 
 // ALPNWrapper is a function that is used to wrap a non-TLS connection and

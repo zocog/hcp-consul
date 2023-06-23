@@ -33,12 +33,12 @@ import (
 	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
 )
 
 // testCase used to test different config loading and flag parsing scenarios.

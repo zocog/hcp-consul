@@ -29,11 +29,11 @@ import (
 	token_store "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/logging/monitor"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/version"
 )
 

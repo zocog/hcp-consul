@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/serviceconfig"
 
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/internal/types"
 )
 
 func TestServerResolverBuilder(t *testing.T) {

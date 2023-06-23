@@ -21,9 +21,9 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/types"
 
 	"github.com/stretchr/testify/require"
 )

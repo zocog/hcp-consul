@@ -10,8 +10,8 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/version"
 )
 

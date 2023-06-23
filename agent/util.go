@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/internal/types"
 )
 
 func stringHashSHA256(s string) string {

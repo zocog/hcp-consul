@@ -16,8 +16,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/types"
 )
 
 func (s *ResourceGenerator) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {

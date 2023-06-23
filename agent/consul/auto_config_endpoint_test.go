@@ -26,13 +26,13 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/proto/private/pbautoconf"
 	"github.com/hashicorp/consul/proto/private/pbconfig"
 	"github.com/hashicorp/consul/proto/private/pbconnect"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
 
 	"gopkg.in/square/go-jose.v2/jwt"
 )

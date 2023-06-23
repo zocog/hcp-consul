@@ -23,10 +23,10 @@ import (
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
 )
 
 var ClientCounters = []prometheus.CounterDefinition{

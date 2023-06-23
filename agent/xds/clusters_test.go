@@ -21,8 +21,8 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/types"
 )
 
 type clusterTestCase struct {

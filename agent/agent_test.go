@@ -57,6 +57,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/private/pbautoconf"
@@ -65,7 +66,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
 )
 
 func getService(a *TestAgent, id string) *structs.NodeService {

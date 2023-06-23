@@ -14,9 +14,9 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/types"
 )
 
 // Router keeps track of a set of network areas and their associated Serf

@@ -39,13 +39,13 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
 	libtempl "github.com/hashicorp/consul/lib/template"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
 )
 
 type FlagValuesTarget = decodeTarget

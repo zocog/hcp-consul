@@ -20,8 +20,8 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/types"
 )
 
 func TestConfigEntries_ACLs(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/internal/types"
 )
 
 type MeshConfigEntry struct {

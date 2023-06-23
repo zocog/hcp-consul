@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
 )

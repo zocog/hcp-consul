@@ -19,8 +19,8 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
-	"github.com/hashicorp/consul/types"
 )
 
 const (

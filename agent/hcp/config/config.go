@@ -6,7 +6,7 @@ package config
 import (
 	"crypto/tls"
 
-	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/internal/types"
 	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
 	"github.com/hashicorp/hcp-sdk-go/resource"
 )

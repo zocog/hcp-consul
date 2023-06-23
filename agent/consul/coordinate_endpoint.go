@@ -15,8 +15,8 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/types"
 )
 
 // Coordinate manages queries and updates for network coordinates.

@@ -12,8 +12,8 @@ import (
 	"github.com/miekg/dns"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/lib/stringslice"
-	"github.com/hashicorp/consul/types"
 )
 
 const (

@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/internal/types"
 )
 
 type DeprecatedConfig struct {

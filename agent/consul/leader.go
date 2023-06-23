@@ -28,9 +28,9 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/types"
 )
 
 var LeaderSummaries = []prometheus.SummaryDefinition{

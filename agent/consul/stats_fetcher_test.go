@@ -12,9 +12,9 @@ import (
 	"github.com/hashicorp/raft"
 
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/types"
 )
 
 func TestStatsFetcher(t *testing.T) {

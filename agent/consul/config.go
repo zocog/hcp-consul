@@ -17,9 +17,9 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/types"
 	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/version"
 )
 

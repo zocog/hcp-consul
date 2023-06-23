@@ -77,6 +77,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -84,7 +85,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
 	cslversion "github.com/hashicorp/consul/version"
 )
 

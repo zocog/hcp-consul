@@ -17,11 +17,11 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/proto/private/pbpeerstream"
 	"github.com/hashicorp/consul/proto/private/pbservice"
 	"github.com/hashicorp/consul/proto/private/pbstatus"
-	"github.com/hashicorp/consul/types"
 )
 
 /*

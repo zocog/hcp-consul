@@ -18,8 +18,8 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/types"
 )
 
 var testTxnRules = `

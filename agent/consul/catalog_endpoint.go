@@ -23,8 +23,8 @@ import (
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/consul/types"
 )
 
 var CatalogCounters = []prometheus.CounterDefinition{

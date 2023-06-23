@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/types"
 )
 
 // sessionCreateResponse is used to wrap the session ID

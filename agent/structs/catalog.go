@@ -6,7 +6,7 @@ package structs
 import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/internal/types"
 )
 
 // These are used to manage the built-in "serfHealth" check that's attached

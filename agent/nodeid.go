@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/shirou/gopsutil/v3/host"

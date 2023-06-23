@@ -21,11 +21,11 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-internal/resolver"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
 )
 
 // useTLSForDcAlwaysTrue tell GRPC to always return the TLS is enabled

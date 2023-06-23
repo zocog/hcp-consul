@@ -15,8 +15,8 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/types"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/consul/types"
 )
 
 func testUUID() string {
