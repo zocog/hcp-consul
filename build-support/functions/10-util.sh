@@ -130,7 +130,7 @@ function parse_version {
    #   If the GOTAGS environment variable is present then it is used to determine which
    #   version file to use for parsing.
 
-   local vfile="${1}/version/version.go"
+   local vfile="${1}/version/VERSION"
 
    # ensure the version file exists
    if ! test -f "${vfile}"
@@ -161,19 +161,20 @@ function parse_version {
    fi
 
    # Get the main version out of the source file
-   version_main=$(awk '$1 == "Version" && $2 == "=" { gsub(/"/, "", $3); print $3 }' < ${vfile})
-   release_main=$(awk '$1 == "VersionPrerelease" && $2 == "=" { gsub(/"/, "", $3); print $3 }' < ${vfile})
+   full_version=`cat ${vfile}`
+   version_main="${full_version%%-*}"
+   release_main="${full_version#*-}"
 
 
    # try to determine the version if we have build tags
    for tag in "$GOTAGS"
    do
-      for vfile in $(find "${1}/version" -name "version_*.go" 2> /dev/null| sort)
+      for vfile in $(find "${1}/version" -name "VERSION_*" 2> /dev/null| sort)
       do
          if grep -q "// +build $tag" "${vfile}"
          then
-            version_main=$(awk '$1 == "Version" && $2 == "=" { gsub(/"/, "", $3); print $3 }' < ${vfile})
-            release_main=$(awk '$1 == "VersionPrerelease" && $2 == "=" { gsub(/"/, "", $3); print $3 }' < ${vfile})
+            version_main="${full_version%%-*}"
+            release_main="${full_version#*-}"
          fi
       done
    done
