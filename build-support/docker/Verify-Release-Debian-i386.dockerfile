@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
-FROM debian:latest
+FROM i386/debian:latest
 RUN apt update && apt install -y software-properties-common curl gnupg
 RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -
 ARG TARGETARCH=amd64

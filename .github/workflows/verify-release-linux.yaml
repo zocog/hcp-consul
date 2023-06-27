@@ -55,8 +55,8 @@ jobs:
           docker build \
           --build-arg PACKAGE=${{ inputs.packageName }} \
           --build-arg VERSION=${{ inputs.version }} \
-          --build-arg TARGETARCH=amd64 \
-          -f ./build-support/docker/Verify-Release-Debian.dockerfile .
+          --build-arg TARGETARCH=i386 \
+          -f ./build-support/docker/Verify-Release-Ubuntu-i386.dockerfile .
   
   verify-debian-i386:
     runs-on: ubuntu-latest
