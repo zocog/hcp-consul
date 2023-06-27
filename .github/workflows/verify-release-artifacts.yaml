@@ -4,7 +4,6 @@
 name: Verify Release Artifacts
 
 on:
-  push:
   workflow_dispatch:
     inputs:
       version:
@@ -22,21 +21,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: docker pull OSS - docker hub
-        run: docker pull hashicorp/consul:${{ inputs:version }}
+        run: docker pull hashicorp/consul:${{ inputs.version }}
       - name: docker pull OSS - ECR
-        run: docker pull public.ecr.aws/hashicorp/consul:${{ inputs:version }}
+        run: docker pull public.ecr.aws/hashicorp/consul:${{ ${{ inputs.version }} }}
   verify-ent-docker-images:
     runs-on: ubuntu-latest
     steps:
       - name: docker pull ENT - docker hub
-        run: docker pull hashicorp/consul-enterprise:${{ inputs:version }}-ent
+        run: docker pull hashicorp/consul-enterprise:${{ ${{ inputs.version }} }}-ent
       - name: docker pull ENT - ECR
-        run: docker pull public.ecr.aws/hashicorp/consul-enterprise:${{ inputs:version }}-ent
+        run: docker pull public.ecr.aws/hashicorp/consul-enterprise:${{ ${{ inputs.version }} }}-ent
   verify-fips-docker-images:
     runs-on: ubuntu-latest
     steps:
       - name: docker pull ENT FIPS - docker hub
-        run: docker pull hashicorp/consul-enterprise:${{ inputs:version }}-ent.fips1402
+        run: docker pull hashicorp/consul-enterprise:${{ ${{ inputs.version }} }}-ent.fips1402
       - name: docker pull ENT FIPS - ECR
-        run: docker pull public.ecr.aws/hashicorp/consul-enterprise:${{ inputs:version }}-ent.fips1402
+        run: docker pull public.ecr.aws/hashicorp/consul-enterprise:${{ ${{ inputs.version }} }}-ent.fips1402
 
