@@ -20,8 +20,8 @@ on:
         type: string
 
 jobs:
-  # DEBIAN / AMD64
-  verify-ubuntu-amd64:
+  # DEBIAN / amd64
+  verify-debian-amd64-ubuntu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -31,9 +31,9 @@ jobs:
           --build-arg PACKAGE=${{ inputs.packageName }} \
           --build-arg VERSION=${{ inputs.version }} \
           --build-arg TARGETARCH=amd64 \
-          -f ./build-support/docker/Verify-Release-Ubuntu.dockerfile .
+          -f ./build-support/docker/Verify-Release-Ubuntu-amd64.dockerfile .
 
-  verify-debian-amd64:
+  verify-debian-amd64--debian:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -43,10 +43,10 @@ jobs:
           --build-arg PACKAGE=${{ inputs.packageName }} \
           --build-arg VERSION=${{ inputs.version }} \
           --build-arg TARGETARCH=amd64 \
-          -f ./build-support/docker/Verify-Release-Debian.dockerfile .
+          -f ./build-support/docker/Verify-Release-Debian-amd64.dockerfile .
             
   # DEBIAN / i386
-  verify-ubuntu-i386:
+  verify-debian-i386-ubuntu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -58,7 +58,7 @@ jobs:
           --build-arg TARGETARCH=i386 \
           -f ./build-support/docker/Verify-Release-Ubuntu-i386.dockerfile .
   
-  verify-debian-i386:
+  verify-debian-i386-debian:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -70,32 +70,8 @@ jobs:
           --build-arg TARGETARCH=i386 \
           -f ./build-support/docker/Verify-Release-Debian-i386.dockerfile .
 
-  # verify-debian-arm64:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-  #     - name: docker build with version
-  #       run: |
-  #         docker build \
-  #         --build-arg PACKAGE=${{ inputs.packageName }} \
-  #         --build-arg VERSION=${{ inputs.version }} \
-  #         --build-arg TARGETARCH=arm64 \
-  #         -f ./build-support/docker/Verify-Release-Debian.dockerfile .
-
-  # verify-ubuntu-arm64:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-  #     - name: docker build with version
-  #       run: |
-  #         docker build \
-  #         --build-arg PACKAGE=${{ inputs.packageName }} \
-  #         --build-arg VERSION=${{ inputs.version }} \
-  #         --build-arg TARGETARCH=arm64 \
-  #         -f ./build-support/docker/Verify-Release-Ubuntu.dockerfile .
-
-  # RPM
-  verify-fedora:
+  # DEBIAN / arm64
+  verify-debian-arm64-debian:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -104,9 +80,10 @@ jobs:
           docker build \
           --build-arg PACKAGE=${{ inputs.packageName }} \
           --build-arg VERSION=${{ inputs.version }} \
-          -f ./build-support/docker/Verify-Release-Fedora.dockerfile .
+          --build-arg TARGETARCH=arm64 \
+          -f ./build-support/docker/Verify-Release-Debian-arm64.dockerfile .
 
-  verify-centos:
+  verify-debian-arm64-ubuntu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -115,9 +92,11 @@ jobs:
           docker build \
           --build-arg PACKAGE=${{ inputs.packageName }} \
           --build-arg VERSION=${{ inputs.version }} \
-          -f ./build-support/docker/Verify-Release-CentOS.dockerfile .
+          --build-arg TARGETARCH=arm64 \
+          -f ./build-support/docker/Verify-Release-Ubuntu-arm64.dockerfile .
 
-  verify-amazon:
+  # RPM / amd64
+  verify-rpm-amd64-fedora:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -126,4 +105,29 @@ jobs:
           docker build \
           --build-arg PACKAGE=${{ inputs.packageName }} \
           --build-arg VERSION=${{ inputs.version }} \
-          -f ./build-support/docker/Verify-Release-Amazon.dockerfile .
+          -f ./build-support/docker/Verify-Release-Fedora-amd64.dockerfile .
+
+  verify-rpm-amd64-centos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: docker build with version
+        run: |
+          docker build \
+          --build-arg PACKAGE=${{ inputs.packageName }} \
+          --build-arg VERSION=${{ inputs.version }} \
+          -f ./build-support/docker/Verify-Release-CentOS-amd64.dockerfile .
+
+  verify-rpm-amd64-amazon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: docker build with version
+        run: |
+          docker build \
+          --build-arg PACKAGE=${{ inputs.packageName }} \
+          --build-arg VERSION=${{ inputs.version }} \
+          -f ./build-support/docker/Verify-Release-Amazon-amd64.dockerfile .
+
+# RPM / amd64
+  
