@@ -556,7 +556,7 @@ function assert_intention_denied {
 function docker_consul {
   local DC=$1
   shift 1
-  docker_exec envoy_consul-${DC}_1 "$@"
+  docker_exec envoy_consul-${DC}_1 consul "$@"
 }
 
 function docker_consul_for_proxy_bootstrap {
@@ -565,7 +565,9 @@ function docker_consul_for_proxy_bootstrap {
 
   local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$DC"_1
 
-  docker.exe exec -i $CONTAINER_NAME bash.exe -c "$@"
+  docker run -i --rm --network container:envoy_consul-${DC}_1 windows/consul:local $@ 2>/dev/null
+
+
 }
 
 function docker_exec {
@@ -578,7 +580,7 @@ function docker_exec {
 function docker_consul_exec {
   local DC=$1
   shift 1
-  docker_exec envoy_consul-${DC}_1 "$@"
+  docker_exec envoy_consul-${DC}_1 $@
 }
 
 function kill_envoy {
@@ -746,18 +748,25 @@ function gen_envoy_bootstrap {
     PROXY_ID="$SERVICE-sidecar-proxy"
     ADMIN_HOST="127.0.0.1"
   fi
+  echo "DC=${DC}"
+  echo "PROXY_ID=${PROXY_ID}"
+  echo "ENVOY_VERSION=${ENVOY_VERSION}"
+  echo "${ADMIN_HOST}:${ADMIN_PORT} ${EXTRA_ENVOY_BS_ARGS}"
 
-  if output=$(docker_consul_for_proxy_bootstrap $DC "consul connect envoy -bootstrap \
+
+  if output=$(docker_consul_for_proxy_bootstrap $DC "connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
     -envoy-version "$ENVOY_VERSION" \
     -http-addr envoy_consul-${DC}_1:8500 \
     -grpc-addr envoy_consul-${DC}_1:8502 \
     -admin-access-log-path="C:/envoy/envoy.log" \
-    -admin-bind $ADMIN_HOST:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} \
-    > /c/workdir/${DC}/envoy/${SERVICE}-bootstrap.json"); then
+    -admin-bind $ADMIN_HOST:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS}"); then
     # All OK, write config to file
+  	echo "Consuld connect envoy succeeded"
     echo "$output" > workdir/${DC}/envoy/$SERVICE-bootstrap.json
   else
+  	echo "Consul connect envoy failed"
+	sleep 600
     status=$?
     # Command failed, instead of swallowing error (printed on stdout by docker
     # it seems) by writing it to file, echo it
@@ -811,6 +820,13 @@ function setup_upsert_l4_intention {
   local ACTION=$3
   get_consul_hostname primary
   retry_default docker_consul_exec primary bash -c "curl -sL -X PUT -d '{\"Action\": \"${ACTION}\"}' 'http://${CONSUL_HOSTNAME}:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}'"
+}
+
+function upsert_config_entry {
+  local DC="$1"
+  local BODY="$2"
+
+  echo "$BODY" | docker_consul "$DC" consul config write -
 }
 
 function upsert_l4_intention {
@@ -898,6 +914,22 @@ function get_upstream_fortio_name {
   fi
   [ "$status" == 0 ]
   echo "$output" | grep -E "^FORTIO_NAME="
+}
+
+
+function assert_config_entry_status {
+  local TYPE="$1"
+  local STATUS="$2"
+  local REASON="$3"
+  local DC="$4"
+  local KIND="$5"
+  local NAME="$6"
+  local NS=${7:-}
+  local AP=${8:-}
+  local PEER=${9:-}
+
+  status=$(curl -s -f "consul-${DC}-client:8500/v1/config/${KIND}/${NAME}?passing&ns=${NS}&partition=${AP}&peer=${PEER}" | jq ".Status.Conditions[] | select(.Type == \"$TYPE\" and .Status == \"$STATUS\" and .Reason == \"$REASON\")")
+  [ -n "$status" ]
 }
 
 function assert_expected_fortio_name {

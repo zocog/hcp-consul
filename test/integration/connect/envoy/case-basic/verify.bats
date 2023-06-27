@@ -3,6 +3,7 @@
 load helpers
 
 @test "s1 proxy is running correct version" {
+#sleep 9999
   assert_envoy_version 19000
 }
 
@@ -31,6 +32,7 @@ load helpers
 }
 
 @test "s1 upstream should be able to connect to s2" {
+  #sleep 9999
   run retry_default curl -s -f -d hello localhost:5000
   [ "$status" -eq 0 ]
   [[ "$output" == *"hello"* ]]

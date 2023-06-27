@@ -3,23 +3,22 @@
 # SPDX-License-Identifier: MPL-2.0
 
 function docker_exec {
-  if ! docker.exe exec -i "$@"; then
-    echo "Failed to execute: docker exec -i $@" 1>&2
-    return 1
-  fi
+	 if ! docker.exe exec -i "$@"; then
+		 echo "Failed to execute: docker exec -i $@" 1>&2
+		 return 1
+	 fi
 }
 
 function docker_consul {
-  local DC=$1
-  shift 1
-  docker_exec envoy_consul-${DC}_1 "$@"
+	local DC=$1
+	shift 1
+	docker_exec envoy_consul-${DC}_1 "$@"
 }
 
-function upsert_config_entry {
-  local DC="$1"
-  local BODY="$2"
-
-  echo "$BODY" | docker_consul "$DC" consul config write -
+function docker_consul_exec {
+	local DC=$1
+	shift 1
+	docker_exec envoy_consul-${DC}_1 "$@"
 }
 
 set -euo pipefail
@@ -172,36 +171,41 @@ parents = [
 ]
 '
 
-function docker_exec {
-  if ! docker.exe exec -i "$@"; then
-    echo "Failed to execute: docker exec -i $@" 1>&2
-    return 1
-  fi
-}
-
-function docker_consul_exec {
-  local DC=$1
-  shift 1
-  docker_exec envoy_consul-${DC}_1 "$@"
-}
-
-function wait_for_leader {
-  echo "batman"
-  get_consul_hostname primary
-  retry_default docker_consul_exec "$1" bash -c "[[ $(curl --fail -sS http://${CONSUL_HOSTNAME}:8500/v1/status/leader) ]]"
-}
 
 function wait_for_leader {
   retry_default docker_consul_exec "$1" sh -c '[[ $(curl --fail -sS http://127.0.0.1:8500/v1/status/leader) ]]'
 }
 
 function register_services {
-  local DC=${1:-primary}
-  wait_for_leader "$DC"
-  docker_consul_exec ${DC} bash -c "consul services register workdir/${DC}/register/service_*.hcl"
-}
+	local DC=${1:-primary}
+	local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$DC"_1
+	 wait_for_leader "$DC"
+
+	  docker_consul_exec ${DC} bash -c "consul services register workdir/${DC}/register/service_*.hcl"
+  }
 
 register_services primary
+
+function docker_consul_for_proxy_bootstrap {
+  local DC=$1
+  shift 1
+
+  local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$DC"_1
+
+  echo "-----------"
+  echo "-----------"
+  echo "-----------"
+  echo "-----------"
+  echo "-----------"
+  echo $CONTAINER_NAME
+  echo $@
+
+  docker.exe exec -i $CONTAINER_NAME bash.exe -c "$@"
+  echo "-----------"
+  echo "-----------"
+  echo "-----------"
+  echo "-----------"
+}
 
 function gen_envoy_bootstrap {
   SERVICE=$1
@@ -209,27 +213,21 @@ function gen_envoy_bootstrap {
   DC=${3:-primary}
   IS_GW=${4:-0}
   EXTRA_ENVOY_BS_ARGS="${5-}"
+  ADMIN_HOST="0.0.0.0"
 
   PROXY_ID="$SERVICE"
   if ! is_set "$IS_GW"; then
     PROXY_ID="$SERVICE-sidecar-proxy"
+    ADMIN_HOST="127.0.0.1"
   fi
-
-  if output=$(docker_consul_for_proxy_bootstrap "$DC" connect envoy -bootstrap \
+   
+    docker_consul_for_proxy_bootstrap $DC "consul connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
     -envoy-version "$ENVOY_VERSION" \
-    -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
+    -admin-bind $ADMIN_HOST:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} > /c/workdir/${DC}/envoy/$SERVICE-bootstrap.json"
 
-    # All OK, write config to file
-    echo "$output" >workdir/${DC}/envoy/$SERVICE-bootstrap.json
-  else
-    status=$?
-    # Command failed, instead of swallowing error (printed on stdout by docker
-    # it seems) by writing it to file, echo it
-    echo "$output"
-    return $status
-  fi
 }
+
 
 gen_envoy_bootstrap api-gateway 20000 primary true
 gen_envoy_bootstrap s1 19000

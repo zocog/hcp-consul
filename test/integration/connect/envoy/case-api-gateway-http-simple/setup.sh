@@ -2,6 +2,14 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
 
+
+function docker_exec {
+  if ! docker.exe exec -i "$@"; then
+    echo "Failed to execute: docker exec -i $@" 1>&2
+    return 1
+  fi
+}
+
 function docker_exec {
   if ! docker.exe exec -i "$@"; then
     echo "Failed to execute: docker exec -i $@" 1>&2
@@ -17,11 +25,17 @@ function docker_consul {
 
 
 
+function docker_consul_exec {
+  local DC=$1
+  shift 1
+  docker_exec envoy_consul-${DC}_1 "$@"
+}
+
 function upsert_config_entry {
   local DC="$1"
   local BODY="$2"
 
-  echo "$BODY" | docker_consul "$DC" config write -
+  echo "$BODY" | docker_consul "$DC" consul config write -
 }
 
 set -euo pipefail
@@ -115,6 +129,11 @@ sources {
 
 register_services primary
 
+
+echo "----------------------------"
+echo "----------------------------"
 gen_envoy_bootstrap api-gateway 20000 primary true
+echo "----------------------------"
+echo "----------------------------"
 gen_envoy_bootstrap s1 19000
 gen_envoy_bootstrap s2 19001

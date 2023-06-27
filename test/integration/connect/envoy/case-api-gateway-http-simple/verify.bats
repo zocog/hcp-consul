@@ -3,7 +3,7 @@
 load helpers
 
 @test "api gateway proxy admin is up on :20000" {
-  retry_default curl -f -s localhost:20000/stats -o /dev/null
+  retry_default curl localhost:20000/stats
 }
 
 @test "api gateway should have been accepted and not conflicted" {

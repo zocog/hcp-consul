@@ -45,7 +45,7 @@ readonly WORKDIR_SNIPPET="-v envoy_workdir:C:/workdir"
 
 function network_snippet {
     local DC="$1"
-    echo "--net=envoy-tests"
+echo "--net container:envoy_consul-${DC}_1"
 }
 
 function aws_snippet {
@@ -337,7 +337,7 @@ function start_services {
   return 0
 }
 
-function verify {
+function verify_old {
   local CLUSTER="$1"
   if test -z "$CLUSTER"; then
     CLUSTER="primary"
@@ -367,6 +367,41 @@ function verify {
 
   return $res
 }
+
+function verify {
+  local CLUSTER="$1"
+  if test -z "$CLUSTER"; then
+    CLUSTER="primary"
+  fi
+
+  # Execute tests
+  res=0
+
+  # Nuke any previous case's verify container.
+  docker_kill_rm verify-${CLUSTER}
+
+  echo "Running ${CLUSTER} verification step for ${CASE_DIR}..."
+    if docker run -i --entrypoint=bash.exe --name envoy_verify-${CLUSTER}_1 \
+    --pid=host \
+    -e TINI_SUBREAPER=1 \
+    -e ENVOY_VERSION \
+    $WORKDIR_SNIPPET \
+    $(network_snippet $CLUSTER) \
+    -e XDS_TARGET=${XDS_TARGET} \
+    windows/consul:local /c/bats/bin/bats \
+        --formatter tap /c/workdir/${CLUSTER}/bats ; then
+    echo "✓ PASS"
+  else
+    echo "⨯ FAIL"
+    res=1
+  fi
+
+  # need to tell the PID 1 inside of the container that it won't be actual PID
+  # 1 because we're using --pid=host so we use TINI_SUBREAPER
+
+  return $res
+}
+
 
 function capture_logs {
   local LOG_DIR="workdir/logs/${CASE_DIR}/${ENVOY_VERSION}"
@@ -614,25 +649,6 @@ function run_containers {
  done
 }
 
-function common_run_container_gateway {
-  local name="$1"
-  local DC="$2"
-
-  # Hot restart breaks since both envoys seem to interact with each other
-  # despite separate containers that don't share IPC namespace. Not quite
-  # sure how this happens but may be due to unix socket being in some shared
-  # location?
-  docker run -d --name $(container_name_prev) \
-    $WORKDIR_SNIPPET \
-    $(network_snippet $DC) \
-    $(aws_snippet) \
-    "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
-    envoy \
-    -c /workdir/${DC}/envoy/${name}-bootstrap.json \
-    -l trace \
-    --disable-hot-restart \
-    --drain-time-s 1 >/dev/null
-}
 
 function run_container_api-gateway-primary {
   common_run_container_gateway api-gateway primary
@@ -650,12 +666,18 @@ function common_run_container_service {
   local grpcPort="$4"
   local CONTAINER_NAME="$SINGLE_CONTAINER_BASE_NAME"-"$CLUSTER"_1
 
-  docker.exe exec -d $CONTAINER_NAME bash \
-    -c "FORTIO_NAME=${service} \
-    fortio.exe server \
-    -http-port ":$httpPort" \
+  local CONTAINER_NAME_PREV="envoy"_"$service"_"1"
+
+
+  docker run -d --name $CONTAINER_NAME_PREV \
+    -e "FORTIO_NAME=${service}" \
+     $(network_snippet $CLUSTER) \
+    "windows-2019/fortio:latest" \
+     server \
+     -http-port ":$httpPort" \
     -grpc-port ":$grpcPort" \
-    -redirect-port disabled >/dev/null"
+     -redirect-port disabled >/dev/null
+
 }
 
 function run_container_s1 {
@@ -811,6 +833,10 @@ function run_container_s3-sidecar-proxy-alpha {
   common_run_container_sidecar_proxy s3 alpha
 }
 
+function container_name_prev {
+  echo "envoy_${FUNCNAME[2]/#run_container_/}_1"
+}
+
 function common_run_container_gateway {
   local name="$1"
   local DC="$2"
@@ -820,12 +846,16 @@ function common_run_container_gateway {
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
-  docker.exe exec -d $CONTAINER_NAME bash \
-    -c "envoy.exe \
+  docker run -d --name $(container_name_prev) \
+    $WORKDIR_SNIPPET \
+    $(network_snippet $DC) \
+    $(aws_snippet) \
+    "envoyproxy/envoy-windows:v${ENVOY_VERSION}" \
+    envoy \
     -c /c/workdir/${DC}/envoy/${name}-bootstrap.json \
     -l trace \
     --disable-hot-restart \
-    --drain-time-s 1 >/dev/null"
+    --drain-time-s 1 >/dev/null
 }
 
 function run_container_gateway-primary {
