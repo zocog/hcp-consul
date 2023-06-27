@@ -24,18 +24,21 @@ jobs:
   # - get all amd64, arm64, and i386 working on debian and rpm.
   # - consolidate dockerfiles to have just an RPM versiona and debian version.
   # DEBIAN / amd64
-  verify-debian-amd64-ubuntu:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      - name: docker build with version
-        run: |
-          docker build \
-          --build-arg PACKAGE=${{ inputs.packageName }} \
-          --build-arg VERSION=${{ inputs.version }} \
-          --build-arg TARGETARCH=amd64 \
-          -f ./build-support/docker/Verify-Release-Ubuntu-amd64.dockerfile .
 
+  # verify-debian-ubuntu:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+  #     - name: configure docker multi arch support
+  #       run: docker buildx create --use
+  #     - name: docker build with version
+  #       run: |
+  #         docker buildx build \
+  #         --build-arg PACKAGE=${{ inputs.packageName }} \
+  #         --build-arg VERSION=${{ inputs.version }} \
+  #         --build-arg TARGETARCH=amd64 \
+  #         -f ./build-support/docker/Verify-Release-Ubuntu-amd64.dockerfile .
+  #         --platform linux/arm64,linux/amd64,linux/386
   verify-debian-amd64-debian:
     runs-on: ubuntu-latest
     steps:
@@ -58,7 +61,6 @@ jobs:
           docker build \
           --build-arg PACKAGE=${{ inputs.packageName }} \
           --build-arg VERSION=${{ inputs.version }} \
-          --build-arg TARGETARCH=i386 \
           -f ./build-support/docker/Verify-Release-Ubuntu-i386.dockerfile .
   
   verify-debian-i386-debian:
