@@ -10,12 +10,14 @@
 package pbautoconf
 
 import (
-	pbconfig "github.com/hashicorp/consul/proto/private/pbconfig"
-	pbconnect "github.com/hashicorp/consul/proto/private/pbconnect"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+
+	pbconfig "github.com/hashicorp/consul/proto/private/pbconfig"
+	pbconnect "github.com/hashicorp/consul/proto/private/pbconnect"
 )
 
 const (

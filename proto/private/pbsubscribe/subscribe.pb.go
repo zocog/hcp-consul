@@ -19,14 +19,16 @@
 package pbsubscribe
 
 import (
+	reflect "reflect"
+	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+
 	_ "github.com/hashicorp/consul/proto-public/annotations/ratelimit"
 	pbcommon "github.com/hashicorp/consul/proto/private/pbcommon"
 	pbconfigentry "github.com/hashicorp/consul/proto/private/pbconfigentry"
 	pbservice "github.com/hashicorp/consul/proto/private/pbservice"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (

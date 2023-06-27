@@ -5,9 +5,8 @@ package cachetype
 import (
 	context "context"
 
-	grpc "google.golang.org/grpc"
-
 	mock "github.com/stretchr/testify/mock"
+	grpc "google.golang.org/grpc"
 
 	pbpeering "github.com/hashicorp/consul/proto/private/pbpeering"
 )

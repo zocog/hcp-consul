@@ -3,9 +3,9 @@
 package resource
 
 import (
-	internalresource "github.com/hashicorp/consul/internal/resource"
 	mock "github.com/stretchr/testify/mock"
 
+	internalresource "github.com/hashicorp/consul/internal/resource"
 	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
 )
 

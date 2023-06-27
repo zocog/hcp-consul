@@ -3,9 +3,9 @@
 package catalog
 
 import (
-	proxycfg "github.com/hashicorp/consul/agent/proxycfg"
 	mock "github.com/stretchr/testify/mock"
 
+	proxycfg "github.com/hashicorp/consul/agent/proxycfg"
 	structs "github.com/hashicorp/consul/agent/structs"
 )
 

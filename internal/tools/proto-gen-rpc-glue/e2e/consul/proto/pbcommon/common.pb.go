@@ -5,9 +5,10 @@ package pbcommon
 
 import (
 	fmt "fmt"
+	math "math"
+
 	proto "google.golang.org/protobuf/proto"
 	duration "google.golang.org/protobuf/types/known/durationpb"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

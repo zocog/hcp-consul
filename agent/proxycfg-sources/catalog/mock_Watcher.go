@@ -3,11 +3,10 @@
 package catalog
 
 import (
-	limiter "github.com/hashicorp/consul/agent/grpc-external/limiter"
 	mock "github.com/stretchr/testify/mock"
 
+	limiter "github.com/hashicorp/consul/agent/grpc-external/limiter"
 	proxycfg "github.com/hashicorp/consul/agent/proxycfg"
-
 	structs "github.com/hashicorp/consul/agent/structs"
 )
 

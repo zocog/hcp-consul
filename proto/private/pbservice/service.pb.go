@@ -10,12 +10,14 @@
 package pbservice
 
 import (
-	pbcommon "github.com/hashicorp/consul/proto/private/pbcommon"
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
-	reflect "reflect"
-	sync "sync"
+
+	pbcommon "github.com/hashicorp/consul/proto/private/pbcommon"
 )
 
 const (

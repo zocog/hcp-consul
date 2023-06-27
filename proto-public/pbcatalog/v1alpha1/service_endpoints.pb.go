@@ -10,11 +10,13 @@
 package catalogv1alpha1
 
 import (
-	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+
+	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 const (

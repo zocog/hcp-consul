@@ -10,11 +10,13 @@
 package meshv1alpha1
 
 import (
-	v1alpha1 "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+
+	v1alpha1 "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 )
 
 const (

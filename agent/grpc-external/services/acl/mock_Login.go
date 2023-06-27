@@ -3,9 +3,9 @@
 package acl
 
 import (
-	authmethod "github.com/hashicorp/consul/agent/consul/authmethod"
 	mock "github.com/stretchr/testify/mock"
 
+	authmethod "github.com/hashicorp/consul/agent/consul/authmethod"
 	structs "github.com/hashicorp/consul/agent/structs"
 )
 

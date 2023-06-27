@@ -4,10 +4,11 @@ package proxycfg
 
 import (
 	"context"
+	"time"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/types"
-	"time"
 )
 
 // DeepCopy generates a deep copy of *ConfigSnapshot

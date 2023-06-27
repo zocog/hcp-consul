@@ -3,9 +3,9 @@
 package resource
 
 import (
-	acl "github.com/hashicorp/consul/acl"
 	mock "github.com/stretchr/testify/mock"
 
+	acl "github.com/hashicorp/consul/acl"
 	resolver "github.com/hashicorp/consul/acl/resolver"
 )
 

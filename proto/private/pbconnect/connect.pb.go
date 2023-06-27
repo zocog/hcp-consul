@@ -10,12 +10,14 @@
 package pbconnect
 
 import (
-	pbcommon "github.com/hashicorp/consul/proto/private/pbcommon"
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
+
+	pbcommon "github.com/hashicorp/consul/proto/private/pbcommon"
 )
 
 const (

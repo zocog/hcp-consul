@@ -3,13 +3,12 @@
 package autopilotevents
 
 import (
-	acl "github.com/hashicorp/consul/acl"
-	memdb "github.com/hashicorp/go-memdb"
-
 	mock "github.com/stretchr/testify/mock"
 
-	structs "github.com/hashicorp/consul/agent/structs"
+	memdb "github.com/hashicorp/go-memdb"
 
+	acl "github.com/hashicorp/consul/acl"
+	structs "github.com/hashicorp/consul/agent/structs"
 	types "github.com/hashicorp/consul/types"
 )
 
