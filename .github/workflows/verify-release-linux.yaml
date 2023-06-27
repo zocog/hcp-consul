@@ -20,6 +20,9 @@ on:
         type: string
 
 jobs:
+  ## TODO:
+  # - get all amd64, arm64, and i386 working on debian and rpm.
+  # - consolidate dockerfiles to have just an RPM versiona and debian version.
   # DEBIAN / amd64
   verify-debian-amd64-ubuntu:
     runs-on: ubuntu-latest
