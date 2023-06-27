@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package xdscommon
 
 import "strings"
@@ -9,10 +12,10 @@ import "strings"
 //
 // see: https://www.consul.io/docs/connect/proxies/envoy#supported-versions
 var EnvoyVersions = []string{
-	"1.25.1",
-	"1.24.2",
-	"1.23.4",
-	"1.22.5",
+	"1.26.2",
+	"1.25.7",
+	"1.24.8",
+	"1.23.10",
 }
 
 // UnsupportedEnvoyVersions lists any unsupported Envoy versions (mainly minor versions) that fall

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cluster
 
 import (
@@ -118,7 +121,7 @@ func NewBuildContext(t *testing.T, opts BuildOptions) *BuildContext {
 	}
 
 	if ctx.consulImageName == "" {
-		ctx.consulImageName = utils.TargetImageName
+		ctx.consulImageName = utils.GetTargetImageName()
 	}
 	if ctx.consulVersion == "" {
 		ctx.consulVersion = utils.TargetVersion
@@ -183,6 +186,7 @@ func NewConfigBuilder(ctx *BuildContext) *Builder {
 	b.conf.Set("connect.enabled", true)
 	b.conf.Set("log_level", "debug")
 	b.conf.Set("server", true)
+	b.conf.Set("ui_config.enabled", true)
 
 	// These are the default ports, disabling plaintext transport
 	b.conf.Set("ports.dns", 8600)
@@ -269,6 +273,11 @@ func (b *Builder) Peering(enable bool) *Builder {
 	return b
 }
 
+func (b *Builder) NodeID(nodeID string) *Builder {
+	b.conf.Set("node_id", nodeID)
+	return b
+}
+
 func (b *Builder) Partition(name string) *Builder {
 	b.conf.Set("partition", name)
 	return b
@@ -302,11 +311,15 @@ func (b *Builder) ToAgentConfig(t *testing.T) *Config {
 	confCopy, err := b.conf.Clone()
 	require.NoError(t, err)
 
+	cmd := []string{"agent"}
+	if utils.Debug {
+		cmd = []string{"/root/go/bin/dlv", "exec", "/bin/consul", "--listen=:4000", "--headless=true", "", "--accept-multiclient", "--continue", "--api-version=2", "--", "agent", "--config-file=/consul/config/config.json"}
+	}
 	return &Config{
 		JSON:          string(out),
 		ConfigBuilder: confCopy,
 
-		Cmd: []string{"agent"},
+		Cmd: cmd,
 
 		Image:   b.context.consulImageName,
 		Version: b.context.consulVersion,

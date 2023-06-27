@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 import (
@@ -180,6 +183,7 @@ type Config struct {
 	EncryptKey                       *string             `mapstructure:"encrypt" json:"encrypt,omitempty"`
 	EncryptVerifyIncoming            *bool               `mapstructure:"encrypt_verify_incoming" json:"encrypt_verify_incoming,omitempty"`
 	EncryptVerifyOutgoing            *bool               `mapstructure:"encrypt_verify_outgoing" json:"encrypt_verify_outgoing,omitempty"`
+	Experiments                      []string            `mapstructure:"experiments" json:"experiments,omitempty"`
 	GossipLAN                        GossipLANConfig     `mapstructure:"gossip_lan" json:"-"`
 	GossipWAN                        GossipWANConfig     `mapstructure:"gossip_wan" json:"-"`
 	HTTPConfig                       HTTPConfig          `mapstructure:"http_config" json:"-"`
@@ -225,6 +229,7 @@ type Config struct {
 	SerfBindAddrWAN                  *string             `mapstructure:"serf_wan" json:"serf_wan,omitempty"`
 	ServerMode                       *bool               `mapstructure:"server" json:"server,omitempty"`
 	ServerName                       *string             `mapstructure:"server_name" json:"server_name,omitempty"`
+	ServerRejoinAgeMax               *string             `mapstructure:"server_rejoin_age_max" json:"server_rejoin_age_max,omitempty"`
 	Service                          *ServiceDefinition  `mapstructure:"service" json:"-"`
 	Services                         []ServiceDefinition `mapstructure:"services" json:"-"`
 	SessionTTLMin                    *string             `mapstructure:"session_ttl_min" json:"session_ttl_min,omitempty"`
@@ -292,6 +297,9 @@ type Config struct {
 	LicensePollMaxTime    *string `mapstructure:"license_poll_max_time" json:"-"`
 	LicenseUpdateBaseTime *string `mapstructure:"license_update_base_time" json:"-"`
 	LicenseUpdateMaxTime  *string `mapstructure:"license_update_max_time" json:"-"`
+
+	// license reporting
+	Reporting Reporting `mapstructure:"reporting" json:"-"`
 }
 
 type GossipLANConfig struct {
@@ -684,6 +692,7 @@ type Telemetry struct {
 	CirconusSubmissionInterval         *string  `mapstructure:"circonus_submission_interval" json:"circonus_submission_interval,omitempty"`
 	CirconusSubmissionURL              *string  `mapstructure:"circonus_submission_url" json:"circonus_submission_url,omitempty"`
 	DisableHostname                    *bool    `mapstructure:"disable_hostname" json:"disable_hostname,omitempty"`
+	EnableHostMetrics                  *bool    `mapstructure:"enable_host_metrics" json:"enable_host_metrics,omitempty"`
 	DogstatsdAddr                      *string  `mapstructure:"dogstatsd_addr" json:"dogstatsd_addr,omitempty"`
 	DogstatsdTags                      []string `mapstructure:"dogstatsd_tags" json:"dogstatsd_tags,omitempty"`
 	RetryFailedConfiguration           *bool    `mapstructure:"retry_failed_connection" json:"retry_failed_connection,omitempty"`
@@ -799,8 +808,9 @@ type ConfigEntries struct {
 
 // Audit allows us to enable and define destinations for auditing
 type Audit struct {
-	Enabled *bool                `mapstructure:"enabled"`
-	Sinks   map[string]AuditSink `mapstructure:"sink"`
+	Enabled    *bool                `mapstructure:"enabled"`
+	Sinks      map[string]AuditSink `mapstructure:"sink"`
+	RPCEnabled *bool                `mapstructure:"rpc_enabled"`
 }
 
 // AuditSink can be provided multiple times to define pipelines for auditing
@@ -952,4 +962,12 @@ type RaftBoltDBConfigRaw struct {
 
 type RaftWALConfigRaw struct {
 	SegmentSizeMB *int `mapstructure:"segment_size_mb" json:"segment_size_mb,omitempty"`
+}
+
+type License struct {
+	Enabled *bool `mapstructure:"enabled"`
+}
+
+type Reporting struct {
+	License License `mapstructure:"license"`
 }

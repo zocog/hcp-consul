@@ -1,13 +1,19 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package prototest
 
 import (
-	"testing"
-
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
-func AssertDeepEqual(t testing.TB, x, y interface{}, opts ...cmp.Option) {
+type TestingT interface {
+	Helper()
+	Fatalf(string, ...any)
+}
+
+func AssertDeepEqual(t TestingT, x, y interface{}, opts ...cmp.Option) {
 	t.Helper()
 
 	opts = append(opts, protocmp.Transform())
@@ -24,15 +30,26 @@ func AssertDeepEqual(t testing.TB, x, y interface{}, opts ...cmp.Option) {
 //
 // prototest.AssertElementsMatch(t, [1, 3, 2, 3], [1, 3, 3, 2])
 func AssertElementsMatch[V any](
-	t testing.TB, listX, listY []V, opts ...cmp.Option,
+	t TestingT, listX, listY []V, opts ...cmp.Option,
 ) {
-	t.Helper()
+	diff := diffElements(listX, listY, opts...)
+	if diff != "" {
+		t.Fatalf("assertion failed: slices do not have matching elements\n--- expected\n+++ actual\n%v", diff)
+	}
+}
 
+func diffElements[V any](
+	listX, listY []V, opts ...cmp.Option,
+) string {
 	if len(listX) == 0 && len(listY) == 0 {
-		return
+		return ""
 	}
 
 	opts = append(opts, protocmp.Transform())
+
+	if len(listX) != len(listY) {
+		return cmp.Diff(listX, listY, opts...)
+	}
 
 	// dump into a map keyed by sliceID
 	mapX := make(map[int]V)
@@ -57,8 +74,8 @@ func AssertElementsMatch[V any](
 		}
 	}
 
-	if len(outX) == len(outY) && len(listX) == len(listY) {
-		return // matches
+	if len(outX) == len(listX) && len(outY) == len(listY) {
+		return "" // matches
 	}
 
 	// dump remainder into the slice so we can generate a useful error
@@ -69,7 +86,19 @@ func AssertElementsMatch[V any](
 		outY = append(outY, itemY)
 	}
 
-	if diff := cmp.Diff(outX, outY, opts...); diff != "" {
-		t.Fatalf("assertion failed: slices do not have matching elements\n--- expected\n+++ actual\n%v", diff)
+	return cmp.Diff(outX, outY, opts...)
+}
+
+func AssertContainsElement[V any](t TestingT, list []V, element V, opts ...cmp.Option) {
+	t.Helper()
+
+	opts = append(opts, protocmp.Transform())
+
+	for _, e := range list {
+		if cmp.Equal(e, element, opts...) {
+			return
+		}
 	}
+
+	t.Fatalf("assertion failed: list does not contain element\n--- list\n%+v\n--- element: %+v", list, element)
 }

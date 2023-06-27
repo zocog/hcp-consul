@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package xds
 
 import (
@@ -31,7 +34,6 @@ import (
 
 const (
 	meshGatewayExportedClusterNamePrefix = "exported~"
-	failoverClusterNamePrefix            = "failover-target~"
 )
 
 // clustersFromSnapshot returns the xDS API representation of the "clusters" in the snapshot.
@@ -62,13 +64,7 @@ func (s *ResourceGenerator) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsho
 		}
 		return res, nil
 	case structs.ServiceKindAPIGateway:
-		// TODO Find a cleaner solution, can't currently pass unexported property types
-		var err error
-		cfgSnap.IngressGateway, err = cfgSnap.APIGateway.ToIngress(cfgSnap.Datacenter)
-		if err != nil {
-			return nil, err
-		}
-		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap)
+		res, err := s.clustersFromSnapshotAPIGateway(cfgSnap)
 		if err != nil {
 			return nil, err
 		}
@@ -813,6 +809,44 @@ func (s *ResourceGenerator) clustersFromSnapshotIngressGateway(cfgSnap *proxycfg
 	return clusters, nil
 }
 
+func (s *ResourceGenerator) clustersFromSnapshotAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+	var clusters []proto.Message
+	createdClusters := make(map[proxycfg.UpstreamID]bool)
+	readyListeners := getReadyListeners(cfgSnap)
+
+	for _, readyListener := range readyListeners {
+		for _, upstream := range readyListener.upstreams {
+			uid := proxycfg.NewUpstreamID(&upstream)
+
+			// If we've already created a cluster for this upstream, skip it. Multiple listeners may
+			// reference the same upstream, so we don't need to create duplicate clusters in that case.
+			if createdClusters[uid] {
+				continue
+			}
+
+			// Grab the discovery chain compiled in handlerAPIGateway.recompileDiscoveryChains
+			chain, ok := cfgSnap.APIGateway.DiscoveryChain[uid]
+			if !ok {
+				// this should not happen
+				return nil, fmt.Errorf("no discovery chain for upstream %q", uid)
+			}
+
+			// Generate the list of upstream clusters for the discovery chain
+			upstreamClusters, err := s.makeUpstreamClustersForDiscoveryChain(uid, &upstream, chain, cfgSnap, false)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, cluster := range upstreamClusters {
+				clusters = append(clusters, cluster)
+			}
+
+			createdClusters[uid] = true
+		}
+	}
+	return clusters, nil
+}
+
 func (s *ResourceGenerator) configIngressUpstreamCluster(c *envoy_cluster_v3.Cluster, cfgSnap *proxycfg.ConfigSnapshot, listenerKey proxycfg.IngressListenerKey, u *structs.Upstream) {
 	var threshold *envoy_cluster_v3.CircuitBreakers_Thresholds
 	setThresholdLimit := func(limitType string, limit int) {
@@ -1265,9 +1299,14 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			return nil, err
 		}
 
+		targetGroups, err := mappedTargets.groupedTargets()
+		if err != nil {
+			return nil, err
+		}
+
 		var failoverClusterNames []string
 		if mappedTargets.failover {
-			for _, targetGroup := range mappedTargets.groupedTargets() {
+			for _, targetGroup := range targetGroups {
 				failoverClusterNames = append(failoverClusterNames, targetGroup.ClusterName)
 			}
 
@@ -1295,7 +1334,7 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 		}
 
 		// Construct the target clusters.
-		for _, groupedTarget := range mappedTargets.groupedTargets() {
+		for _, groupedTarget := range targetGroups {
 			s.Logger.Debug("generating cluster for", "cluster", groupedTarget.ClusterName)
 			c := &envoy_cluster_v3.Cluster{
 				Name:                 groupedTarget.ClusterName,
@@ -1419,6 +1458,10 @@ func (s *ResourceGenerator) makeExportedUpstreamClustersForMeshGateway(cfgSnap *
 
 // injectSANMatcher updates a TLS context so that it verifies the upstream SAN.
 func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ...string) error {
+	if tlsContext == nil {
+		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext not to be nil")
+	}
+
 	validationCtx, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
 	if !ok {
 		return fmt.Errorf("invalid type: expected CommonTlsContext_ValidationContext, got %T",
@@ -1871,136 +1914,10 @@ func (s *ResourceGenerator) getTargetClusterName(upstreamsSnapshot *proxycfg.Con
 	}
 	clusterName = CustomizeClusterName(clusterName, chain)
 	if failover {
-		clusterName = failoverClusterNamePrefix + clusterName
+		clusterName = xdscommon.FailoverClusterNamePrefix + clusterName
 	}
 	if forMeshGateway {
 		clusterName = meshGatewayExportedClusterNamePrefix + clusterName
 	}
 	return clusterName
-}
-
-type discoChainTargets struct {
-	baseClusterName string
-	targets         []targetInfo
-	failover        bool
-}
-
-type targetInfo struct {
-	TargetID   string
-	TLSContext *envoy_tls_v3.UpstreamTlsContext
-}
-
-type discoChainTargetGroup struct {
-	Targets     []targetInfo
-	ClusterName string
-}
-
-func (ft discoChainTargets) groupedTargets() []discoChainTargetGroup {
-	var targetGroups []discoChainTargetGroup
-
-	if !ft.failover {
-		targetGroups = append(targetGroups, discoChainTargetGroup{
-			ClusterName: ft.baseClusterName,
-			Targets:     ft.targets,
-		})
-		return targetGroups
-	}
-
-	for i, t := range ft.targets {
-		targetGroups = append(targetGroups, discoChainTargetGroup{
-			ClusterName: fmt.Sprintf("%s%d~%s", failoverClusterNamePrefix, i, ft.baseClusterName),
-			Targets:     []targetInfo{t},
-		})
-	}
-
-	return targetGroups
-}
-
-func (s *ResourceGenerator) mapDiscoChainTargets(cfgSnap *proxycfg.ConfigSnapshot, chain *structs.CompiledDiscoveryChain, node *structs.DiscoveryGraphNode, upstreamConfig structs.UpstreamConfig, forMeshGateway bool) (discoChainTargets, error) {
-	failoverTargets := discoChainTargets{}
-
-	if node.Resolver == nil {
-		return discoChainTargets{}, fmt.Errorf("impossible to process a non-resolver node")
-	}
-
-	primaryTargetID := node.Resolver.Target
-	upstreamsSnapshot, err := cfgSnap.ToConfigSnapshotUpstreams()
-	if err != nil && !forMeshGateway {
-		return discoChainTargets{}, err
-	}
-
-	failoverTargets.baseClusterName = s.getTargetClusterName(upstreamsSnapshot, chain, primaryTargetID, forMeshGateway, false)
-
-	tids := []string{primaryTargetID}
-	failover := node.Resolver.Failover
-	if failover != nil && !forMeshGateway {
-		tids = append(tids, failover.Targets...)
-		failoverTargets.failover = true
-	}
-
-	for _, tid := range tids {
-		target := chain.Targets[tid]
-		var sni, rootPEMs string
-		var spiffeIDs []string
-		targetUID := proxycfg.NewUpstreamIDFromTargetID(tid)
-		ti := targetInfo{TargetID: tid}
-
-		configureTLS := true
-		if forMeshGateway {
-			// We only initiate TLS if we're doing an L7 proxy.
-			configureTLS = structs.IsProtocolHTTPLike(upstreamConfig.Protocol)
-		}
-
-		if !configureTLS {
-			failoverTargets.targets = append(failoverTargets.targets, ti)
-			continue
-		}
-
-		if targetUID.Peer != "" {
-			// targetID has the partition stripped, so targetUID will not have a partition either. However,
-			// when a failover target is in a cluster peer, the partition should be set to the local partition (i.e
-			// chain.Partition), since the peered failover target is imported into the local partition.
-			targetUID.OverridePartition(chain.Partition)
-
-			tbs, _ := upstreamsSnapshot.UpstreamPeerTrustBundles.Get(targetUID.Peer)
-			rootPEMs = tbs.ConcatenatedRootPEMs()
-
-			peerMeta, found := upstreamsSnapshot.UpstreamPeerMeta(targetUID)
-			if !found {
-				s.Logger.Warn("failed to fetch upstream peering metadata", "target", targetUID)
-				continue
-			}
-			sni = peerMeta.PrimarySNI()
-			spiffeIDs = peerMeta.SpiffeID
-		} else {
-			sni = target.SNI
-			rootPEMs = cfgSnap.RootPEMs()
-			spiffeIDs = []string{connect.SpiffeIDService{
-				Host:       cfgSnap.Roots.TrustDomain,
-				Namespace:  target.Namespace,
-				Partition:  target.Partition,
-				Datacenter: target.Datacenter,
-				Service:    target.Service,
-			}.URI().String()}
-		}
-		commonTLSContext := makeCommonTLSContext(
-			cfgSnap.Leaf(),
-			rootPEMs,
-			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
-		)
-
-		err := injectSANMatcher(commonTLSContext, spiffeIDs...)
-		if err != nil {
-			return failoverTargets, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
-		}
-
-		tlsContext := &envoy_tls_v3.UpstreamTlsContext{
-			CommonTlsContext: commonTLSContext,
-			Sni:              sni,
-		}
-		ti.TLSContext = tlsContext
-		failoverTargets.targets = append(failoverTargets.targets, ti)
-	}
-
-	return failoverTargets, nil
 }

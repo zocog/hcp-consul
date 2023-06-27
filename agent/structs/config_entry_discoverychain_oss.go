@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build !consulent
 // +build !consulent
 
@@ -114,4 +117,12 @@ func (f *ServiceResolverFailoverPolicy) ValidateEnterprise() error {
 // RelatedSamenessGroups doesn't return anything on open source.
 func (e *ServiceResolverConfigEntry) RelatedSamenessGroups() []string {
 	return nil
+}
+
+func (pbl *ServiceResolverPrioritizeByLocality) validate() error {
+	var zero ServiceResolverPrioritizeByLocality
+	if pbl == nil || *pbl == zero {
+		return nil
+	}
+	return fmt.Errorf("Prioritize-by-locality requires Consul Enterprise ")
 }

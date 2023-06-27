@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfg
 
 import (
@@ -20,7 +23,7 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 	roots, leaf := TestCerts(t)
 
 	// no entries implies we'll get a default chain
-	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 	assert.True(t, dbChain.Default)
 
 	var (
@@ -45,7 +48,7 @@ func TestConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService), extraUp
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result:        structs.Intentions{}, // no intentions defined
+			Result:        structs.SimplifiedIntentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + webSN,
@@ -126,7 +129,7 @@ func TestConfigSnapshotDiscoveryChain(
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result:        structs.Intentions{}, // no intentions defined
+			Result:        structs.SimplifiedIntentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: meshConfigEntryID,
@@ -145,7 +148,7 @@ func TestConfigSnapshotDiscoveryChain(
 			},
 		},
 	}, setupTestVariationConfigEntriesAndSnapshot(
-		t, variation, upstreams, additionalEntries...,
+		t, variation, enterprise, upstreams, additionalEntries...,
 	))
 
 	return testConfigSnapshotFixture(t, &structs.NodeService{
@@ -185,7 +188,7 @@ func TestConfigSnapshotExposeConfig(t testing.T, nsFn func(ns *structs.NodeServi
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result:        structs.Intentions{}, // no intentions defined
+			Result:        structs.SimplifiedIntentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + webSN,
@@ -290,7 +293,7 @@ func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 		},
 		{
 			CorrelationID: intentionsWatchID,
-			Result:        structs.Intentions{}, // no intentions defined
+			Result:        structs.SimplifiedIntentions{}, // no intentions defined
 		},
 		{
 			CorrelationID: svcChecksWatchIDPrefix + structs.ServiceIDString("grpc", nil),
@@ -299,19 +302,19 @@ func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 	})
 }
 
-// TestConfigSnapshotDiscoveryChain returns a fully populated snapshot using a discovery chain
-func TestConfigSnapshotHCPMetrics(t testing.T) *ConfigSnapshot {
+// TestConfigSnapshotTelemetryCollector returns a fully populated snapshot using a discovery chain
+func TestConfigSnapshotTelemetryCollector(t testing.T) *ConfigSnapshot {
 	// DiscoveryChain without an UpstreamConfig should yield a
 	// filter chain when in transparent proxy mode
 	var (
-		collector      = structs.NewServiceName(api.HCPMetricsCollectorName, nil)
+		collector      = structs.NewServiceName(api.TelemetryCollectorName, nil)
 		collectorUID   = NewUpstreamIDFromServiceName(collector)
-		collectorChain = discoverychain.TestCompileConfigEntries(t, api.HCPMetricsCollectorName, "default", "default", "dc1", connect.TestClusterID+".consul", nil)
+		collectorChain = discoverychain.TestCompileConfigEntries(t, api.TelemetryCollectorName, "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
 	)
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Config = map[string]interface{}{
-			"envoy_hcp_metrics_bind_socket_dir": "/tmp/consul/hcp-metrics",
+			"envoy_telemetry_collector_bind_socket_dir": "/tmp/consul/telemetry-collector",
 		}
 	}, []UpdateEvent{
 		{
@@ -327,7 +330,7 @@ func TestConfigSnapshotHCPMetrics(t testing.T) *ConfigSnapshot {
 			},
 		},
 		{
-			CorrelationID: fmt.Sprintf("upstream-target:%s.default.default.dc1:", api.HCPMetricsCollectorName) + collectorUID.String(),
+			CorrelationID: fmt.Sprintf("upstream-target:%s.default.default.dc1:", api.TelemetryCollectorName) + collectorUID.String(),
 			Result: &structs.IndexedCheckServiceNodes{
 				Nodes: []structs.CheckServiceNode{
 					{
@@ -336,7 +339,7 @@ func TestConfigSnapshotHCPMetrics(t testing.T) *ConfigSnapshot {
 							Datacenter: "dc1",
 						},
 						Service: &structs.NodeService{
-							Service: api.HCPMetricsCollectorName,
+							Service: api.TelemetryCollectorName,
 							Address: "9.9.9.9",
 							Port:    9090,
 						},

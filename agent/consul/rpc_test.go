@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package consul
 
 import (
@@ -499,7 +502,7 @@ func TestRPC_ReadyForConsistentReads(t *testing.T) {
 	}
 
 	s.resetConsistentReadReady()
-	err := s.consistentRead()
+	err := s.ConsistentRead()
 	if err.Error() != "Not ready to serve consistent reads" {
 		t.Fatal("Server should NOT be ready for consistent reads")
 	}
@@ -510,7 +513,7 @@ func TestRPC_ReadyForConsistentReads(t *testing.T) {
 	}()
 
 	retry.Run(t, func(r *retry.R) {
-		if err := s.consistentRead(); err != nil {
+		if err := s.ConsistentRead(); err != nil {
 			r.Fatalf("Expected server to be ready for consistent reads, got error %v", err)
 		}
 	})

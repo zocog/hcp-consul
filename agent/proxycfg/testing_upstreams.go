@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfg
 
 import (
@@ -6,6 +9,7 @@ import (
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
@@ -15,6 +19,7 @@ import (
 func setupTestVariationConfigEntriesAndSnapshot(
 	t testing.T,
 	variation string,
+	enterprise bool,
 	upstreams structs.Upstreams,
 	additionalEntries ...structs.ConfigEntry,
 ) []UpdateEvent {
@@ -24,7 +29,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		dbUID = NewUpstreamID(&dbUpstream)
 	)
 
-	dbChain := setupTestVariationDiscoveryChain(t, variation, dbUID.EnterpriseMeta, additionalEntries...)
+	dbChain := setupTestVariationDiscoveryChain(t, variation, enterprise, dbUID.EnterpriseMeta, additionalEntries...)
 
 	nodes := TestUpstreamNodes(t, "db")
 	if variation == "register-to-terminating-gateway" {
@@ -55,7 +60,8 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	}
 	dbChainID := structs.ChainID(dbOpts)
 	makeChainID := func(opts structs.DiscoveryTargetOpts) string {
-		return structs.ChainID(structs.MergeDiscoveryTargetOpts(dbOpts, opts))
+		finalOpts := structs.MergeDiscoveryTargetOpts(dbOpts, opts)
+		return structs.ChainID(finalOpts)
 	}
 
 	switch variation {
@@ -94,6 +100,11 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 		})
 	case "failover-to-cluster-peer":
+		uid := UpstreamID{
+			Name:           "db",
+			Peer:           "cluster-01",
+			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), ""),
+		}
 		events = append(events, UpdateEvent{
 			CorrelationID: "peer-trust-bundle:cluster-01",
 			Result: &pbpeering.TrustBundleReadResponse{
@@ -105,15 +116,13 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				},
 			},
 		})
-		uid := UpstreamID{
-			Name:           "db",
-			Peer:           "cluster-01",
-			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), ""),
+		if enterprise {
+			uid.EnterpriseMeta = acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), "ns9")
 		}
 		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-peer:" + uid.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc1", "cluster-01", "10.40.1.1", false)},
+				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc2", "cluster-01", "10.40.1.1", false, uid.EnterpriseMeta)},
 			},
 		})
 	case "redirect-to-cluster-peer":
@@ -129,14 +138,16 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			},
 		})
 		uid := UpstreamID{
-			Name:           "db",
-			Peer:           "cluster-01",
-			EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), ""),
+			Name: "db",
+			Peer: "cluster-01",
+		}
+		if enterprise {
+			uid.EnterpriseMeta = acl.NewEnterpriseMetaWithPartition(dbUID.PartitionOrDefault(), "ns9")
 		}
 		events = append(events, UpdateEvent{
 			CorrelationID: "upstream-peer:" + uid.String(),
 			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc2", "cluster-01", "10.40.1.1", false)},
+				Nodes: structs.CheckServiceNodes{structs.TestCheckNodeServiceWithNameInPeer(t, "db", "dc2", "cluster-01", "10.40.1.1", false, uid.EnterpriseMeta)},
 			},
 		})
 	case "failover-through-double-remote-gateway-triggered":
@@ -246,8 +257,8 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "lb-resolver":
 	case "register-to-terminating-gateway":
 	default:
-		t.Fatalf("unexpected variation: %q", variation)
-		return nil
+		extraEvents := extraUpdateEvents(t, variation, dbUID)
+		events = append(events, extraEvents...)
 	}
 
 	return events
@@ -256,11 +267,13 @@ func setupTestVariationConfigEntriesAndSnapshot(
 func setupTestVariationDiscoveryChain(
 	t testing.T,
 	variation string,
+	enterprise bool,
 	entMeta acl.EnterpriseMeta,
 	additionalEntries ...structs.ConfigEntry,
 ) *structs.CompiledDiscoveryChain {
 	// Compile a chain.
 	var (
+		peers        []*pbpeering.Peering
 		entries      []structs.ConfigEntry
 		compileSetup func(req *discoverychain.CompileRequest)
 	)
@@ -343,6 +356,14 @@ func setupTestVariationDiscoveryChain(
 			},
 		)
 	case "failover-to-cluster-peer":
+		target := structs.ServiceResolverFailoverTarget{
+			Peer: "cluster-01",
+		}
+
+		if enterprise {
+			target.Namespace = "ns9"
+		}
+
 		entries = append(entries,
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
@@ -352,14 +373,19 @@ func setupTestVariationDiscoveryChain(
 				RequestTimeout: 33 * time.Second,
 				Failover: map[string]structs.ServiceResolverFailover{
 					"*": {
-						Targets: []structs.ServiceResolverFailoverTarget{
-							{Peer: "cluster-01"},
-						},
+						Targets: []structs.ServiceResolverFailoverTarget{target},
 					},
 				},
 			},
 		)
 	case "redirect-to-cluster-peer":
+		redirect := &structs.ServiceResolverRedirect{
+			Peer: "cluster-01",
+		}
+		if enterprise {
+			redirect.Namespace = "ns9"
+		}
+
 		entries = append(entries,
 			&structs.ServiceResolverConfigEntry{
 				Kind:           structs.ServiceResolver,
@@ -367,9 +393,7 @@ func setupTestVariationDiscoveryChain(
 				EnterpriseMeta: entMeta,
 				ConnectTimeout: 33 * time.Second,
 				RequestTimeout: 33 * time.Second,
-				Redirect: &structs.ServiceResolverRedirect{
-					Peer: "cluster-01",
-				},
+				Redirect:       redirect,
 			},
 		)
 	case "failover-through-double-remote-gateway-triggered":
@@ -902,15 +926,22 @@ func setupTestVariationDiscoveryChain(
 			},
 		)
 	default:
-		t.Fatalf("unexpected variation: %q", variation)
-		return nil
+		e, p := extraDiscoChainConfig(t, variation, entMeta)
+
+		entries = append(entries, e...)
+		peers = append(peers, p...)
 	}
 
 	if len(additionalEntries) > 0 {
 		entries = append(entries, additionalEntries...)
 	}
 
-	return discoverychain.TestCompileConfigEntries(t, "db", entMeta.NamespaceOrDefault(), entMeta.PartitionOrDefault(), "dc1", connect.TestClusterID+".consul", compileSetup, entries...)
+	set := configentry.NewDiscoveryChainSet()
+
+	set.AddEntries(entries...)
+	set.AddPeers(peers...)
+
+	return discoverychain.TestCompileConfigEntries(t, "db", entMeta.NamespaceOrDefault(), entMeta.PartitionOrDefault(), "dc1", connect.TestClusterID+".consul", compileSetup, set)
 }
 
 func httpMatch(http *structs.ServiceRouteHTTPMatch) *structs.ServiceRouteMatch {

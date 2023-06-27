@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package ca
 
 import (
@@ -98,7 +101,7 @@ func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
 // Configure sets up the provider using the given configuration.
 // Configure supports being called multiple times to re-configure the provider.
 func (v *VaultProvider) Configure(cfg ProviderConfig) error {
-	config, err := ParseVaultCAConfig(cfg.RawConfig)
+	config, err := ParseVaultCAConfig(cfg.RawConfig, v.isPrimary)
 	if err != nil {
 		return err
 	}
@@ -189,11 +192,11 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 }
 
 func (v *VaultProvider) ValidateConfigUpdate(prevRaw, nextRaw map[string]interface{}) error {
-	prev, err := ParseVaultCAConfig(prevRaw)
+	prev, err := ParseVaultCAConfig(prevRaw, v.isPrimary)
 	if err != nil {
 		return fmt.Errorf("failed to parse existing CA config: %w", err)
 	}
-	next, err := ParseVaultCAConfig(nextRaw)
+	next, err := ParseVaultCAConfig(nextRaw, v.isPrimary)
 	if err != nil {
 		return fmt.Errorf("failed to parse new CA config: %w", err)
 	}
@@ -276,10 +279,10 @@ func (v *VaultProvider) State() (map[string]string, error) {
 	return nil, nil
 }
 
-// GenerateRoot mounts and initializes a new root PKI backend if needed.
-func (v *VaultProvider) GenerateRoot() (RootResult, error) {
+// GenerateCAChain mounts and initializes a new root PKI backend if needed.
+func (v *VaultProvider) GenerateCAChain() (CAChainResult, error) {
 	if !v.isPrimary {
-		return RootResult{}, fmt.Errorf("provider is not the root certificate authority")
+		return CAChainResult{}, fmt.Errorf("provider is not the root certificate authority")
 	}
 
 	// Set up the root PKI backend if necessary.
@@ -299,7 +302,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 			},
 		})
 		if err != nil {
-			return RootResult{}, fmt.Errorf("failed to mount root CA backend: %w", err)
+			return CAChainResult{}, fmt.Errorf("failed to mount root CA backend: %w", err)
 		}
 
 		// We want to initialize afterwards
@@ -307,7 +310,7 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 	case ErrBackendNotInitialized:
 		uid, err := connect.CompactUID()
 		if err != nil {
-			return RootResult{}, err
+			return CAChainResult{}, err
 		}
 		resp, err := v.writeNamespaced(v.config.RootPKINamespace, v.config.RootPKIPath+"root/generate/internal", map[string]interface{}{
 			"common_name": connect.CACN("vault", uid, v.clusterID, v.isPrimary),
@@ -316,23 +319,23 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 			"key_bits":    v.config.PrivateKeyBits,
 		})
 		if err != nil {
-			return RootResult{}, fmt.Errorf("failed to initialize root CA: %w", err)
+			return CAChainResult{}, fmt.Errorf("failed to initialize root CA: %w", err)
 		}
 		var ok bool
 		rootPEM, ok = resp.Data["certificate"].(string)
 		if !ok {
-			return RootResult{}, fmt.Errorf("unexpected response from Vault: %v", resp.Data["certificate"])
+			return CAChainResult{}, fmt.Errorf("unexpected response from Vault: %v", resp.Data["certificate"])
 		}
 
 	default:
 		if err != nil {
-			return RootResult{}, fmt.Errorf("unexpected error while setting root PKI backend: %w", err)
+			return CAChainResult{}, fmt.Errorf("unexpected error while setting root PKI backend: %w", err)
 		}
 	}
 
 	rootChain, err := v.getCAChain(v.config.RootPKINamespace, v.config.RootPKIPath)
 	if err != nil {
-		return RootResult{}, err
+		return CAChainResult{}, err
 	}
 
 	// Workaround for a bug in the Vault PKI API.
@@ -341,7 +344,18 @@ func (v *VaultProvider) GenerateRoot() (RootResult, error) {
 		rootChain = rootPEM
 	}
 
-	return RootResult{PEM: rootChain}, nil
+	intermediate, err := v.ActiveLeafSigningCert()
+	if err != nil {
+		return CAChainResult{}, fmt.Errorf("error fetching active intermediate: %w", err)
+	}
+	if intermediate == "" {
+		intermediate, err = v.GenerateLeafSigningCert()
+		if err != nil {
+			return CAChainResult{}, fmt.Errorf("error generating intermediate: %w", err)
+		}
+	}
+
+	return CAChainResult{PEM: rootChain, IntermediatePEM: intermediate}, nil
 }
 
 // GenerateIntermediateCSR creates a private key and generates a CSR
@@ -424,6 +438,9 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 		"require_cn":       false,
 	})
 
+	// enable auto-tidy with tidy_expired_issuers
+	v.autotidyIssuers(v.config.IntermediatePKIPath)
+
 	return err
 }
 
@@ -495,7 +512,7 @@ func (v *VaultProvider) SetIntermediate(intermediatePEM, rootPEM, keyId string) 
 }
 
 // ActiveIntermediate returns the current intermediate certificate.
-func (v *VaultProvider) ActiveIntermediate() (string, error) {
+func (v *VaultProvider) ActiveLeafSigningCert() (string, error) {
 	cert, err := v.getCA(v.config.IntermediatePKINamespace, v.config.IntermediatePKIPath)
 
 	// This error is expected when calling initializeSecondaryCA for the
@@ -568,7 +585,7 @@ func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
 // GenerateIntermediate mounts the configured intermediate PKI backend if
 // necessary, then generates and signs a new CA CSR using the root PKI backend
 // and updates the intermediate backend to use that new certificate.
-func (v *VaultProvider) GenerateIntermediate() (string, error) {
+func (v *VaultProvider) GenerateLeafSigningCert() (string, error) {
 	csr, keyId, err := v.generateIntermediateCSR()
 	if err != nil {
 		return "", err
@@ -604,7 +621,7 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 		}
 	}
 
-	return v.ActiveIntermediate()
+	return v.ActiveLeafSigningCert()
 }
 
 // setDefaultIntermediateIssuer updates the default issuer for
@@ -783,7 +800,7 @@ func (v *VaultProvider) Cleanup(providerTypeChange bool, otherConfig map[string]
 	v.Stop()
 
 	if !providerTypeChange {
-		newConfig, err := ParseVaultCAConfig(otherConfig)
+		newConfig, err := ParseVaultCAConfig(otherConfig, v.isPrimary)
 		if err != nil {
 			return err
 		}
@@ -810,8 +827,6 @@ func (v *VaultProvider) Cleanup(providerTypeChange bool, otherConfig map[string]
 func (v *VaultProvider) Stop() {
 	v.stopWatcher()
 }
-
-func (v *VaultProvider) PrimaryUsesIntermediate() {}
 
 // We use raw path here
 func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vaultapi.MountInput) error {
@@ -852,7 +867,40 @@ func (v *VaultProvider) setNamespace(namespace string) func() {
 	}
 }
 
-func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
+// autotidyIssuers sets Vault's auto-tidy to remove expired issuers
+// Returns a boolean on success for testing (as there is no post-facto way of
+// checking if it is set). Logs at info level on failure to set and why,
+// returning the log message for test purposes as well.
+func (v *VaultProvider) autotidyIssuers(path string) (bool, string) {
+	s, err := v.client.Logical().Write(path+"/config/auto-tidy",
+		map[string]interface{}{
+			"enabled":              true,
+			"tidy_expired_issuers": true,
+		})
+	var errStr string
+	if err != nil {
+		errStr = err.Error()
+		switch {
+		case strings.Contains(errStr, "404"):
+			errStr = "vault versions < 1.12 don't support auto-tidy"
+		case strings.Contains(errStr, "400"):
+			errStr = "vault versions < 1.13 don't support the tidy_expired_issuers field"
+		case strings.Contains(errStr, "403"):
+			errStr = "permission denied on auto-tidy path in vault"
+		}
+		v.logger.Info("Unable to enable Vault's auto-tidy feature for expired issuers", "reason", errStr, "path", path)
+	}
+	// return values for tests
+	tidySet := false
+	if s != nil {
+		if tei, ok := s.Data["tidy_expired_issuers"]; ok {
+			tidySet, _ = tei.(bool)
+		}
+	}
+	return tidySet, errStr
+}
+
+func ParseVaultCAConfig(raw map[string]interface{}, isPrimary bool) (*structs.VaultCAProviderConfig, error) {
 	config := structs.VaultCAProviderConfig{
 		CommonCAProviderConfig: defaultCommonConfig(),
 	}
@@ -883,10 +931,10 @@ func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderCon
 		return nil, fmt.Errorf("only one of Vault token or Vault auth method can be provided, but not both")
 	}
 
-	if config.RootPKIPath == "" {
+	if isPrimary && config.RootPKIPath == "" {
 		return nil, fmt.Errorf("must provide a valid path to a root PKI backend")
 	}
-	if !strings.HasSuffix(config.RootPKIPath, "/") {
+	if config.RootPKIPath != "" && !strings.HasSuffix(config.RootPKIPath, "/") {
 		config.RootPKIPath += "/"
 	}
 

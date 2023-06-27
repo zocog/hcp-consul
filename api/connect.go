@@ -1,7 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
-// HCPMetricsCollectorName is the service name for the HCP Metrics Collector
-const HCPMetricsCollectorName string = "hcp-metrics-collector"
+// TelemetryCollectorName is the service name for the Consul Telemetry Collector
+const TelemetryCollectorName string = "consul-telemetry-collector"
 
 // Connect can be used to work with endpoints related to Connect, the
 // feature for securely connecting services within Consul.

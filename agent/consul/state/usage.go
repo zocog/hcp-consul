@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package state
 
 import (
@@ -22,6 +25,7 @@ var allConnectKind = []string{
 	string(structs.ServiceKindIngressGateway),
 	string(structs.ServiceKindMeshGateway),
 	string(structs.ServiceKindTerminatingGateway),
+	string(structs.ServiceKindAPIGateway),
 	connectNativeInstancesTable,
 }
 

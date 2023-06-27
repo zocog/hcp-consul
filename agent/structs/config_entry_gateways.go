@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -755,6 +758,7 @@ func (e *APIGatewayConfigEntry) Normalize() error {
 			if cert.Kind == "" {
 				cert.Kind = InlineCertificate
 			}
+			cert.EnterpriseMeta.Merge(e.GetEnterpriseMeta())
 			cert.EnterpriseMeta.Normalize()
 
 			listener.TLS.Certificates[i] = cert
@@ -908,6 +912,11 @@ type APIGatewayTLSConfiguration struct {
 	CipherSuites []types.TLSCipherSuite
 }
 
+// IsEmpty returns true if all values in the struct are nil or empty.
+func (a *APIGatewayTLSConfiguration) IsEmpty() bool {
+	return len(a.Certificates) == 0 && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
+}
+
 // BoundAPIGatewayConfigEntry manages the configuration for a bound API
 // gateway with the given name. This type is never written from the client.
 // It is only written by the controller in order to represent an API gateway
@@ -985,11 +994,13 @@ func (e *BoundAPIGatewayConfigEntry) GetMeta() map[string]string { return e.Meta
 func (e *BoundAPIGatewayConfigEntry) Normalize() error {
 	for i, listener := range e.Listeners {
 		for j, route := range listener.Routes {
+			route.EnterpriseMeta.Merge(&e.EnterpriseMeta)
 			route.EnterpriseMeta.Normalize()
 
 			listener.Routes[j] = route
 		}
 		for j, cert := range listener.Certificates {
+			cert.EnterpriseMeta.Merge(&e.EnterpriseMeta)
 			cert.EnterpriseMeta.Normalize()
 
 			listener.Certificates[j] = cert

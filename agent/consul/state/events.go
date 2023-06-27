@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package state
 
 import (
@@ -42,8 +45,8 @@ func PBToStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta acl.E
 			}
 		case EventTopicMeshConfig, EventTopicServiceResolver, EventTopicIngressGateway,
 			EventTopicServiceIntentions, EventTopicServiceDefaults, EventTopicAPIGateway,
-			EventTopicTCPRoute, EventTopicHTTPRoute, EventTopicInlineCertificate,
-			EventTopicBoundAPIGateway:
+			EventTopicTCPRoute, EventTopicHTTPRoute, EventTopicJWTProvider, EventTopicInlineCertificate,
+			EventTopicBoundAPIGateway, EventTopicSamenessGroup:
 			subject = EventSubjectConfigEntry{
 				Name:           named.Key,
 				EnterpriseMeta: &entMeta,

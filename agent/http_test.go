@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package agent
 
 import (
@@ -872,6 +875,15 @@ func TestParseSource(t *testing.T) {
 	// We should follow whatever dc parameter was given so that the node is
 	// looked up correctly on the receiving end.
 	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?near=bob&dc=foo", nil)
+	source = structs.QuerySource{}
+	a.srv.parseSource(req, &source)
+	if source.Datacenter != "foo" || source.Node != "bob" {
+		t.Fatalf("bad: %v", source)
+	}
+
+	// We should follow whatever datacenter parameter was given so that the node is
+	// looked up correctly on the receiving end.
+	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?near=bob&datacenter=foo", nil)
 	source = structs.QuerySource{}
 	a.srv.parseSource(req, &source)
 	if source.Datacenter != "foo" || source.Node != "bob" {

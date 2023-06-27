@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package validate
 
 import (
@@ -332,7 +335,7 @@ func TestMakeValidate(t *testing.T) {
 	for n, tc := range cases {
 		t.Run(n, func(t *testing.T) {
 
-			extensionName := builtinValidateExtension
+			extensionName := api.BuiltinValidateExtension
 			if tc.extensionName != "" {
 				extensionName = tc.extensionName
 			}
@@ -346,7 +349,7 @@ func TestMakeValidate(t *testing.T) {
 				},
 				Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 					svc: {
-						SNI: tc.snis,
+						SNIs: tc.snis,
 					},
 				},
 			}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package structs
 
 import (
@@ -54,6 +57,10 @@ type CompiledDiscoveryChain struct {
 
 	// Targets is a list of all targets used in this chain.
 	Targets map[string]*DiscoveryTarget `json:",omitempty"`
+
+	// VirtualIPs is a list of virtual IPs associated with the service.
+	AutoVirtualIPs   []string
+	ManualVirtualIPs []string
 }
 
 // ID returns an ID that encodes the service, namespace, partition, and datacenter.
@@ -180,6 +187,21 @@ type DiscoverySplit struct {
 type DiscoveryFailover struct {
 	Targets []string                       `json:",omitempty"`
 	Policy  *ServiceResolverFailoverPolicy `json:",omitempty"`
+	Regions []string                       `json:",omitempty"`
+}
+
+// compiled form of ServiceResolverPrioritizeByLocality
+type DiscoveryPrioritizeByLocality struct {
+	Mode string `json:",omitempty"`
+}
+
+func (pbl *ServiceResolverPrioritizeByLocality) ToDiscovery() *DiscoveryPrioritizeByLocality {
+	if pbl == nil {
+		return nil
+	}
+	return &DiscoveryPrioritizeByLocality{
+		Mode: pbl.Mode,
+	}
 }
 
 // DiscoveryTarget represents all of the inputs necessary to use a resolver
@@ -215,6 +237,8 @@ type DiscoveryTarget struct {
 	// balancer objects.  This has a structure similar to SNI, but will not be
 	// affected by SNI customizations.
 	Name string `json:",omitempty"`
+
+	PrioritizeByLocality *DiscoveryPrioritizeByLocality `json:",omitempty"`
 }
 
 func (t *DiscoveryTarget) MarshalJSON() ([]byte, error) {
@@ -254,40 +278,46 @@ func (t *DiscoveryTarget) UnmarshalJSON(data []byte) error {
 }
 
 type DiscoveryTargetOpts struct {
-	Service       string
-	ServiceSubset string
-	Namespace     string
-	Partition     string
-	Datacenter    string
-	Peer          string
+	Service              string
+	ServiceSubset        string
+	Namespace            string
+	Partition            string
+	Datacenter           string
+	Peer                 string
+	PrioritizeByLocality *DiscoveryPrioritizeByLocality
 }
 
-func MergeDiscoveryTargetOpts(o1 DiscoveryTargetOpts, o2 DiscoveryTargetOpts) DiscoveryTargetOpts {
-	if o2.Service != "" {
-		o1.Service = o2.Service
+func MergeDiscoveryTargetOpts(opts ...DiscoveryTargetOpts) DiscoveryTargetOpts {
+	var final DiscoveryTargetOpts
+	for _, o := range opts {
+		if o.Service != "" {
+			final.Service = o.Service
+		}
+
+		if o.ServiceSubset != "" {
+			final.ServiceSubset = o.ServiceSubset
+		}
+
+		// default should override the existing value
+		if o.Namespace != "" {
+			final.Namespace = o.Namespace
+		}
+
+		// default should override the existing value
+		if o.Partition != "" {
+			final.Partition = o.Partition
+		}
+
+		if o.Datacenter != "" {
+			final.Datacenter = o.Datacenter
+		}
+
+		if o.Peer != "" {
+			final.Peer = o.Peer
+		}
 	}
 
-	if o2.ServiceSubset != "" {
-		o1.ServiceSubset = o2.ServiceSubset
-	}
-
-	if o2.Namespace != "" {
-		o1.Namespace = o2.Namespace
-	}
-
-	if o2.Partition != "" {
-		o1.Partition = o2.Partition
-	}
-
-	if o2.Datacenter != "" {
-		o1.Datacenter = o2.Datacenter
-	}
-
-	if o2.Peer != "" {
-		o1.Peer = o2.Peer
-	}
-
-	return o1
+	return final
 }
 
 func NewDiscoveryTarget(opts DiscoveryTargetOpts) *DiscoveryTarget {
@@ -317,7 +347,7 @@ func (t *DiscoveryTarget) ToDiscoveryTargetOpts() DiscoveryTargetOpts {
 func ChainID(opts DiscoveryTargetOpts) string {
 	// NOTE: this format is similar to the SNI syntax for simplicity
 	if opts.Peer != "" {
-		return fmt.Sprintf("%s.%s.default.external.%s", opts.Service, opts.Namespace, opts.Peer)
+		return fmt.Sprintf("%s.%s.%s.external.%s", opts.Service, opts.Namespace, opts.Partition, opts.Peer)
 	}
 	if opts.ServiceSubset == "" {
 		return fmt.Sprintf("%s.%s.%s.%s", opts.Service, opts.Namespace, opts.Partition, opts.Datacenter)

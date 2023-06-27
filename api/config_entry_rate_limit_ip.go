@@ -1,6 +1,9 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
-type readWriteRatesConfig struct {
+type ReadWriteRatesConfig struct {
 	ReadRate  float64
 	WriteRate float64
 }
@@ -17,19 +20,29 @@ type RateLimitIPConfigEntry struct {
 	WriteRate float64
 
 	//limits specific to a type of call
-	ACL            *readWriteRatesConfig `json:",omitempty"`
-	Catalog        *readWriteRatesConfig `json:",omitempty"`
-	ConfigEntry    *readWriteRatesConfig `json:",omitempty"`
-	ConnectCA      *readWriteRatesConfig `json:",omitempty"`
-	Coordinate     *readWriteRatesConfig `json:",omitempty"`
-	DiscoveryChain *readWriteRatesConfig `json:",omitempty"`
-	Health         *readWriteRatesConfig `json:",omitempty"`
-	Intention      *readWriteRatesConfig `json:",omitempty"`
-	KV             *readWriteRatesConfig `json:",omitempty"`
-	Tenancy        *readWriteRatesConfig `json:",omitempty"`
-	PreparedQuery  *readWriteRatesConfig `json:",omitempty"`
-	Session        *readWriteRatesConfig `json:",omitempty"`
-	Txn            *readWriteRatesConfig `json:",omitempty"`
+	ACL             *ReadWriteRatesConfig `json:",omitempty"` //	OperationCategoryACL             OperationCategory = "ACL"
+	Catalog         *ReadWriteRatesConfig `json:",omitempty"` //   OperationCategoryCatalog         OperationCategory = "Catalog"
+	ConfigEntry     *ReadWriteRatesConfig `json:",omitempty"` //   OperationCategoryConfigEntry     OperationCategory = "ConfigEntry"
+	ConnectCA       *ReadWriteRatesConfig `json:",omitempty"` //   OperationCategoryConnectCA       OperationCategory = "ConnectCA"
+	Coordinate      *ReadWriteRatesConfig `json:",omitempty"` //   OperationCategoryCoordinate      OperationCategory = "Coordinate"
+	DiscoveryChain  *ReadWriteRatesConfig `json:",omitempty"` //   OperationCategoryDiscoveryChain  OperationCategory = "DiscoveryChain"
+	ServerDiscovery *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryServerDiscovery OperationCategory = "ServerDiscovery"
+	Health          *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryHealth          OperationCategory = "Health"
+	Intention       *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryIntention       OperationCategory = "Intention"
+	KV              *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryKV              OperationCategory = "KV"
+	Tenancy         *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryPartition        OperationCategory = "Tenancy"
+	PreparedQuery   *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryPreparedQuery   OperationCategory = "PreparedQuery"
+	Session         *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategorySession         OperationCategory = "Session"
+	Txn             *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryTxn             OperationCategory = "Txn"
+	AutoConfig      *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryAutoConfig      OperationCategory = "AutoConfig"
+	FederationState *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryFederationState OperationCategory = "FederationState"
+	Internal        *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryInternal        OperationCategory = "Internal"
+	PeerStream      *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryPeerStream      OperationCategory = "PeerStream"
+	Peering         *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryPeering         OperationCategory = "Peering"
+	DataPlane       *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryDataPlane       OperationCategory = "DataPlane"
+	DNS             *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryDNS             OperationCategory = "DNS"
+	Subscribe       *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategorySubscribe       OperationCategory = "Subscribe"
+	Resource        *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryResource        OperationCategory = "Resource"
 
 	// Partition is the partition the config entry is associated with.
 	// Partitioning is a Consul Enterprise feature.

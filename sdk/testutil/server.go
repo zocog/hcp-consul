@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package testutil
 
 // TestServer is a test helper. It uses a fork/exec model to create
@@ -72,6 +75,11 @@ type TestNetworkSegment struct {
 	Advertise string `json:"advertise"`
 }
 
+// TestAudigConfig contains the configuration for Audit
+type TestAuditConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
+}
+
 // Locality is used as the TestServerConfig's Locality.
 type Locality struct {
 	Region string `json:"region"`
@@ -121,6 +129,7 @@ type TestServerConfig struct {
 	Stderr              io.Writer              `json:"-"`
 	Args                []string               `json:"-"`
 	ReturnPorts         func()                 `json:"-"`
+	Audit               *TestAuditConfig       `json:"audit,omitempty"`
 }
 
 type TestACLs struct {
@@ -354,7 +363,13 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 // Stop stops the test Consul server, and removes the Consul data
 // directory once we are done.
 func (s *TestServer) Stop() error {
-	defer os.RemoveAll(s.tmpdir)
+	defer func() {
+		if noCleanup {
+			fmt.Println("skipping cleanup because TEST_NOCLEANUP was enabled")
+		} else {
+			os.RemoveAll(s.tmpdir)
+		}
+	}()
 
 	// There was no process
 	if s.cmd == nil {

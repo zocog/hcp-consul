@@ -1,10 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfg
 
 import (
 	"context"
 	"fmt"
 
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
@@ -219,7 +222,7 @@ func (s *handlerIngressGateway) watchIngressLeafCert(ctx context.Context, snap *
 		snap.IngressGateway.LeafCertWatchCancel()
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	err := s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
+	err := s.dataSources.LeafCertificate.Notify(ctx, &leafcert.ConnectCALeafRequest{
 		Datacenter:     s.source.Datacenter,
 		Token:          s.token,
 		Service:        s.service,

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -47,6 +50,22 @@ func makeACLClient(t *testing.T) (*Client, *testutil.TestServer) {
 		serverConfig.ACL.Tokens.Agent = "root"
 		serverConfig.ACL.Enabled = true
 		serverConfig.ACL.DefaultPolicy = "deny"
+	})
+}
+
+// Makes a client with Audit enabled, it requires ACLs
+func makeAuditClient(t *testing.T) (*Client, *testutil.TestServer) {
+	return makeClientWithConfig(t, func(clientConfig *Config) {
+		clientConfig.Token = "root"
+	}, func(serverConfig *testutil.TestServerConfig) {
+		serverConfig.PrimaryDatacenter = "dc1"
+		serverConfig.ACL.Tokens.InitialManagement = "root"
+		serverConfig.ACL.Tokens.Agent = "root"
+		serverConfig.ACL.Enabled = true
+		serverConfig.ACL.DefaultPolicy = "deny"
+		serverConfig.Audit = &testutil.TestAuditConfig{
+			Enabled: true,
+		}
 	})
 }
 

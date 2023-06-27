@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package proxycfg
 
 import (
@@ -313,8 +316,19 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 			watchedChainEndpoints = true
 		}
 
-		opts := targetWatchOpts{upstreamID: uid}
-		opts.fromChainTarget(chain, target)
+		opts := targetWatchOpts{
+			upstreamID: uid,
+			chainID:    target.ID,
+			service:    target.Service,
+			filter:     target.Subset.Filter,
+			datacenter: target.Datacenter,
+			peer:       target.Peer,
+			entMeta:    target.GetEnterpriseMetadata(),
+		}
+		// Peering targets do not set the datacenter field, so we should default it here.
+		if opts.datacenter == "" {
+			opts.datacenter = s.source.Datacenter
+		}
 
 		err := s.watchUpstreamTarget(ctx, snap, opts)
 		if err != nil {
@@ -432,32 +446,6 @@ type targetWatchOpts struct {
 	entMeta    *acl.EnterpriseMeta
 }
 
-func (o *targetWatchOpts) fromChainTarget(c *structs.CompiledDiscoveryChain, t *structs.DiscoveryTarget) {
-	o.chainID = t.ID
-	o.service = t.Service
-	o.filter = t.Subset.Filter
-	o.datacenter = t.Datacenter
-	o.peer = t.Peer
-	o.entMeta = t.GetEnterpriseMetadata()
-
-	// The peer-targets in a discovery chain intentionally clear out
-	// the partition field, since we don't know the remote service's partition.
-	// Therefore, we must query with the chain's local partition / DC, or else
-	// the services will not be found.
-	//
-	// Note that the namespace is not swapped out, because it should
-	// always match the value in the remote datacenter (and shouldn't
-	// have been changed anywhere).
-	if o.peer != "" {
-		o.datacenter = ""
-		// Clone the enterprise meta so it's not modified when we swap the partition.
-		var em acl.EnterpriseMeta
-		em.Merge(o.entMeta)
-		em.OverridePartition(c.Partition)
-		o.entMeta = &em
-	}
-}
-
 func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *ConfigSnapshotUpstreams, opts targetWatchOpts) error {
 	s.logger.Trace("initializing watch of target",
 		"upstream", opts.upstreamID,
@@ -470,9 +458,6 @@ func (s *handlerUpstreams) watchUpstreamTarget(ctx context.Context, snap *Config
 
 	if opts.peer != "" {
 		uid = NewUpstreamIDFromTargetID(opts.chainID)
-		// chainID has the partition stripped. However, when a target is in a cluster peer, the partition should be set
-		// to the local partition (i.e chain.Partition), since the peered target is imported into the local partition.
-		uid.OverridePartition(opts.entMeta.PartitionOrDefault())
 		correlationID = upstreamPeerWatchIDPrefix + uid.String()
 	}
 

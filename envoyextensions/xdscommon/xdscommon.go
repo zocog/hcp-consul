@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package xdscommon
 
 import (
@@ -49,6 +52,8 @@ const (
 
 	// SecretType is the TypeURL for Secret discovery responses.
 	SecretType = apiTypePrefix + "envoy.extensions.transport_sockets.tls.v3.Secret"
+
+	FailoverClusterNamePrefix = "failover-target~"
 )
 
 type IndexedResources struct {

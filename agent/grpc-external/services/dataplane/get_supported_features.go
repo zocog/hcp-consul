@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package dataplane
 
 import (
@@ -8,6 +11,7 @@ import (
 
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
+	"github.com/hashicorp/consul/version"
 )
 
 func (s *Server) GetSupportedDataplaneFeatures(ctx context.Context, req *pbdataplane.GetSupportedDataplaneFeaturesRequest) (*pbdataplane.GetSupportedDataplaneFeaturesResponse, error) {
@@ -36,6 +40,10 @@ func (s *Server) GetSupportedDataplaneFeatures(ctx context.Context, req *pbdatap
 		{
 			FeatureName: pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_ENVOY_BOOTSTRAP_CONFIGURATION,
 			Supported:   true,
+		},
+		{
+			FeatureName: pbdataplane.DataplaneFeatures_DATAPLANE_FEATURES_FIPS,
+			Supported:   version.IsFIPS(),
 		},
 	}
 

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package state
 
 import (
@@ -14,7 +17,9 @@ const (
 	indexLink                 = "link"
 	indexIntentionLegacyID    = "intention-legacy-id"
 	indexSource               = "intention-source"
-	indexSamenessGroupDefault = "sameness-group-default"
+	indexSourceSamenessGroup  = "intention-source-sameness-group"
+	indexSamenessGroupMember  = "sameness-group-member"
+	indexSamenessGroupDefault = "sameness-group-default-for-failover"
 )
 
 // configTableSchema returns a new table schema used to store global
@@ -51,6 +56,18 @@ func configTableSchema() *memdb.TableSchema {
 				Unique:       false,
 				Indexer:      &ServiceIntentionSourceIndex{},
 			},
+			indexSourceSamenessGroup: {
+				Name:         indexSourceSamenessGroup,
+				AllowMissing: true,
+				Unique:       false,
+				Indexer:      &ServiceIntentionSourceSamenessGroupIndex{},
+			},
+			indexSamenessGroupMember: {
+				Name:         indexSamenessGroupMember,
+				AllowMissing: true,
+				Unique:       false,
+				Indexer:      &SamenessGroupMemberIndex{},
+			},
 			indexSamenessGroupDefault: {
 				Name:         indexSamenessGroupDefault,
 				AllowMissing: true,
@@ -84,6 +101,7 @@ var _ configEntryIndexable = (*structs.ServiceResolverConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.ServiceRouterConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.ServiceSplitterConfigEntry)(nil)
 var _ configEntryIndexable = (*structs.TerminatingGatewayConfigEntry)(nil)
+var _ configEntryIndexable = (*structs.JWTProviderConfigEntry)(nil)
 
 func indexFromConfigEntry(c structs.ConfigEntry) ([]byte, error) {
 	if c.GetName() == "" || c.GetKind() == "" {
