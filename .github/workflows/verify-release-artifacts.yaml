@@ -4,6 +4,7 @@
 name: Verify Release Artifacts
 
 on:
+  push:
   workflow_dispatch:
     inputs:
       version:
@@ -12,8 +13,9 @@ on:
         type: string
       include-fips:
         description: Indicates whether we should check for FIPS binaries and docker images. Versions below 1.16.0 should be false.
-        required: true
-        type: string
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   verify-oss-docker-images:
