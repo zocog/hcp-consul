@@ -31,11 +31,8 @@ jobs:
         run: docker pull hashicorp/consul-enterprise:${{ inputs.version }}-ent
       - name: docker pull ENT - ECR
         run: docker pull public.ecr.aws/hashicorp/consul-enterprise:${{ inputs.version }}-ent
-  verify-fips-docker-images:
+  verify-ent-fips-docker-images:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write # NOTE: this permission is explicitly required for Vault auth.
-      contents: read
     steps:
       - name: docker pull ENT FIPS - docker hub
         run: docker pull hashicorp/consul-enterprise-fips:${{ inputs.version }}-ent.fips1402
