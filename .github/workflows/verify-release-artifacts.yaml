@@ -31,6 +31,8 @@ jobs:
         name: Setup outputs
         run: ./.github/scripts/get_runner_classes.sh
   verify-docker-images-oss:
+    needs:
+      - setup
     runs-on: ${{ needs.setup.outputs.compute-small }}
     steps:
       - name: docker pull OSS - docker hub
@@ -38,6 +40,8 @@ jobs:
       - name: docker pull OSS - ECR
         run: docker pull public.ecr.aws/hashicorp/consul:${{ inputs.version }}
   verify-docker-images-ent:
+    needs:
+      - setup
     runs-on: ${{ needs.setup.outputs.compute-small }}
     steps:
       - name: docker pull ENT - docker hub
@@ -45,6 +49,8 @@ jobs:
       - name: docker pull ENT - ECR
         run: docker pull public.ecr.aws/hashicorp/consul-enterprise:${{ inputs.version }}-ent
   verify-docker-images-ent-fips:
+    needs:
+      - setup
     runs-on: ${{ needs.setup.outputs.compute-small }}
     if: ${{ inputs.include-fips }}
     steps:
