@@ -27,11 +27,11 @@ jobs:
       fail-fast: false
       matrix:
         image: [
-          { name: "ubuntu", package-manager: "apt", dockerfile: "./build-support/docker/Verify-Release-Ubuntu.dockerfile", arch: "amd64" },
-          { name: "debian", package-manager: "apt", dockerfile: "./build-support/docker/Verify-Release-Debian.dockerfile", arch: "amd64" },
-          { name: "fedora", package-manager: "rpm", dockerfile: "./build-support/docker/Verify-Release-Fedora.dockerfile", arch: "amd64" },
-          { name: "centos", package-manager: "rpm", dockerfile: "./build-support/docker/Verify-Release-CentOS.dockerfile", arch: "amd64" },
-          { name: "amazon", package-manager: "rpm", dockerfile: "./build-support/docker/Verify-Release-Amazon.dockerfile", arch: "amd64" },
+          { name: "ubuntu", arch: "amd64", package-manager: "apt", dockerfile: "./build-support/docker/Verify-Release-Ubuntu.dockerfile" },
+          { name: "debian", arch: "amd64", package-manager: "apt", dockerfile: "./build-support/docker/Verify-Release-Debian.dockerfile" },
+          { name: "fedora", arch: "amd64", package-manager: "rpm", dockerfile: "./build-support/docker/Verify-Release-Fedora.dockerfile" },
+          { name: "centos", arch: "amd64", package-manager: "rpm", dockerfile: "./build-support/docker/Verify-Release-CentOS.dockerfile" },
+          { name: "amazon", arch: "amd64", package-manager: "rpm", dockerfile: "./build-support/docker/Verify-Release-Amazon.dockerfile" },
         ]
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
