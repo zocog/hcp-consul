@@ -17,22 +17,35 @@ on:
         default: true
 
 jobs:
-  verify-docker-images-oss:
+  setup:
+    name: Setup
     runs-on: ubuntu-latest
+    outputs:
+      compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
+      compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
+      compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
+      compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - id: setup-outputs
+        name: Setup outputs
+        run: ./.github/scripts/get_runner_classes.sh
+  verify-docker-images-oss:
+    runs-on: ${{ needs.setup.outputs.compute-small }}
     steps:
       - name: docker pull OSS - docker hub
         run: docker pull hashicorp/consul:${{ inputs.version }}
       - name: docker pull OSS - ECR
         run: docker pull public.ecr.aws/hashicorp/consul:${{ inputs.version }}
   verify-docker-images-ent:
-    runs-on: ubuntu-latest
+    runs-on: ${{ needs.setup.outputs.compute-small }}
     steps:
       - name: docker pull ENT - docker hub
         run: docker pull hashicorp/consul-enterprise:${{ inputs.version }}-ent
       - name: docker pull ENT - ECR
         run: docker pull public.ecr.aws/hashicorp/consul-enterprise:${{ inputs.version }}-ent
   verify-docker-images-ent-fips:
-    runs-on: ubuntu-latest
+    runs-on: ${{ needs.setup.outputs.compute-small }}
     if: ${{ inputs.include-fips }}
     steps:
       - name: docker pull ENT FIPS - docker hub
