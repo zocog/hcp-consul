@@ -1,0 +1,43 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+name: Verify Release - Zip Files
+
+on:
+  workflow_call:
+    inputs:
+      package-name:
+        description: 'Name of consul release package (consul vs consul-enterprise)'
+        required: true
+        default: 'consul'
+        type: string
+      version:
+        description: The x.y.z version (also need to specify applicable suffixes like +ent and -dev)'
+        required: true
+        type: string
+      runs-on:
+        description: An expression indicating which kind of runners to use.
+        required: true
+        type: string
+      zip-files:
+        description: An array of zip file definitions to expect for release.
+        required: true
+        type: string
+
+jobs:
+  verify-zip-artifacts-oss:
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
+    steps:
+      - name: docker build ${{ matrix.image.arch }} ${{ matrix.image.name }}
+        run: |
+          occurences=$(curl https://releases.hashicorp.com/consul/1.11.1/ \
+          | grep -E "consul_1.11.1_darwin_amd64.zip|consul_1.11.1_darwin_arm64.zip" \ # find occurences
+          | wc -l \ # get count
+          | awk '$1=$1') # strip leading spaces
+          
+          if [[ ${occurences} != "11" ]]; then
+            echo "ERROR: incorrect number of zip files found"
+            exit 1
+          fi
+          
+          

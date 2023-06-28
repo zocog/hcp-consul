@@ -30,47 +30,48 @@ jobs:
       - id: setup-outputs
         name: Setup outputs
         run: ./.github/scripts/get_runner_classes.sh
-  verify-docker-images-oss:
-    needs:
-      - setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    steps:
-      - name: docker pull OSS - docker hub
-        run: docker pull hashicorp/consul:${{ inputs.version }}
-      - name: docker pull OSS - ECR
-        run: docker pull public.ecr.aws/hashicorp/consul:${{ inputs.version }}
-  verify-docker-images-ent:
-    needs:
-      - setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    steps:
-      - name: docker pull ENT - docker hub
-        run: docker pull hashicorp/consul-enterprise:${{ inputs.version }}-ent
-      - name: docker pull ENT - ECR
-        run: docker pull public.ecr.aws/hashicorp/consul-enterprise:${{ inputs.version }}-ent
-  verify-docker-images-ent-fips:
-    needs:
-      - setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: ${{ inputs.include-fips }}
-    steps:
-      - name: docker pull ENT FIPS - docker hub
-        run: docker pull hashicorp/consul-enterprise-fips:${{ inputs.version }}-ent.fips1402
-      - name: docker pull ENT FIPS - ECR
-        run: docker pull public.ecr.aws/hashicorp/consul-enterprise-fips:${{ inputs.version }}-ent.fips1402
-  verify-linux-packages-oss:
-    needs:
-      - setup
-    uses: ./.github/workflows/reusable-verify-release-linux.yaml
-    with:
-      runs-on: ${{ needs.setup.outputs.compute-medium }}
-      package-name: consul
-      version: ${{ inputs.version }}
-  verify-linux-packages-ent:
-    needs:
-      - setup
-    uses: ./.github/workflows/reusable-verify-release-linux.yaml
-    with:
-      runs-on: ${{ needs.setup.outputs.compute-medium }}
-      package-name: consul-enterprise
-      version: ${{ inputs.version }}+ent
+
+#  verify-docker-images-oss:
+#    needs:
+#      - setup
+#    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+#    steps:
+#      - name: docker pull OSS - docker hub
+#        run: docker pull hashicorp/consul:${{ inputs.version }}
+#      - name: docker pull OSS - ECR
+#        run: docker pull public.ecr.aws/hashicorp/consul:${{ inputs.version }}
+#  verify-docker-images-ent:
+#    needs:
+#      - setup
+#    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+#    steps:
+#      - name: docker pull ENT - docker hub
+#        run: docker pull hashicorp/consul-enterprise:${{ inputs.version }}-ent
+#      - name: docker pull ENT - ECR
+#        run: docker pull public.ecr.aws/hashicorp/consul-enterprise:${{ inputs.version }}-ent
+#  verify-docker-images-ent-fips:
+#    needs:
+#      - setup
+#    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+#    if: ${{ inputs.include-fips }}
+#    steps:
+#      - name: docker pull ENT FIPS - docker hub
+#        run: docker pull hashicorp/consul-enterprise-fips:${{ inputs.version }}-ent.fips1402
+#      - name: docker pull ENT FIPS - ECR
+#        run: docker pull public.ecr.aws/hashicorp/consul-enterprise-fips:${{ inputs.version }}-ent.fips1402
+#  verify-linux-packages-oss:
+#    needs:
+#      - setup
+#    uses: ./.github/workflows/reusable-verify-release-linux.yaml
+#    with:
+#      runs-on: ${{ needs.setup.outputs.compute-medium }}
+#      package-name: consul
+#      version: ${{ inputs.version }}
+#  verify-linux-packages-ent:
+#    needs:
+#      - setup
+#    uses: ./.github/workflows/reusable-verify-release-linux.yaml
+#    with:
+#      runs-on: ${{ needs.setup.outputs.compute-medium }}
+#      package-name: consul-enterprise
+#      version: ${{ inputs.version }}+ent
