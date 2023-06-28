@@ -23,7 +23,8 @@ on:
         description: An array of zip file definitions to expect for release.
         required: true
         type: string
-
+env:
+  ZIPS_STRING: "consul_1.16.0_linux_386.zip|consul_1.16.0_linux_amd64.zip|consul_1.16.0_linux_arm.zip|consul_1.16.0_linux_arm64.zip|consul_1.16.0_freebsd_386.zip|consul_1.16.0_freebsd_amd64.zip|consul_1.16.0_windows_386.zip|consul_1.16.0_windows_amd64.zip|consul_1.16.0_solaris_amd64.zip"
 jobs:
   verify-zips:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
@@ -31,7 +32,7 @@ jobs:
       - name: verify zips
         run: |
           occurences=$(curl https://releases.hashicorp.com/consul/1.11.1/ \
-          | grep -E "consul_1.11.1_darwin_amd64.zip|consul_1.11.1_darwin_arm64.zip" \
+          | grep -E "${{ ZIPS_STRING }}" \
           | wc -l \
           | awk '$1=$1')
           
