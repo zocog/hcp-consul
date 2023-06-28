@@ -19,10 +19,11 @@ on:
         description: An expression indicating which kind of runners to use.
         required: true
         type: string
-      zip-files:
-        description: An array of zip file definitions to expect for release.
-        required: true
-        type: string
+      include-fips:
+        description: Indicates whether we should check for FIPS binaries and docker images. Versions below 1.16.0 should be false.
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   verify-zips:
