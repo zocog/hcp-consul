@@ -42,7 +42,7 @@ jobs:
   verify-docker-images-ent:
     needs:
       - setup
-    runs-on: ${{ needs.setup.outputs.compute-small }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
       - name: docker pull ENT - docker hub
         run: docker pull hashicorp/consul-enterprise:${{ inputs.version }}-ent
@@ -51,7 +51,7 @@ jobs:
   verify-docker-images-ent-fips:
     needs:
       - setup
-    runs-on: ${{ needs.setup.outputs.compute-small }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ inputs.include-fips }}
     steps:
       - name: docker pull ENT FIPS - docker hub
