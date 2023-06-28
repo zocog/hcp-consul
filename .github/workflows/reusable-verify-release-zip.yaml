@@ -27,12 +27,32 @@ on:
 jobs:
   verify-zips:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
+    strategy:
+      matrix:
+        release: [ {
+          product: consul,
+          targets: [
+            { os: "darwin", arch: "amd64" },
+            { os: "darwin", arch: "arm64" },
+            { os: "freebsd", arch: "386" },
+            { os: "freebsd", arch: "amd64" },
+            { os: "linux", arch: "386" },
+            { os: "linux", arch: "amd64" },
+            { os: "linux", arch: "arm" },
+            { os: "linux", arch: "arm64" },
+            { os: "solaris", arch: "amd64" },
+            { os: "windows", arch: "386" },
+            { os: "windows", arch: "amd64" }
+          ]
+        }
+        ]
+      fail-fast: false
     steps:
       - name: verify zips
         run: |
-          zips=$(jq -r 'map(${{ inputs.package-name}} + "_" + ${{ inputs.version }} + "_" + .os + "_" + .arch + ".zip" )| join("|")' ) <<< "${{ fromJSON(inputs.zip-files) }}"
-          expected=$(${{ fromJSON(inputs.zip-files) }} | jq '.results | length')
-          found=$(curl https://releases.hashicorp.com/consul/1.16.0/ \
+          zips=$(${{ toJSON(matrix.targets) }} | jq -r 'map(${{ inputs.package-name}} + "_" + ${{ inputs.version }} + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
+          expected=$(${{ toJSON(matrix.targets) }} | jq '.results | length')
+          found=$(curl https://releases.hashicorp.com/${{ matrix.product }}/${{ inputs.version }}/ \
           | grep -E "${zips}" \
           | wc -l \
           | awk '$1=$1')

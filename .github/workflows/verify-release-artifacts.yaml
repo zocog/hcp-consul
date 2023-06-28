@@ -35,34 +35,14 @@ jobs:
     needs:
       - setup
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    strategy:
-      matrix:
-        release: [{
-          product: consul,
-          targets: [
-            {os: "darwin", arch: "amd64"},
-            {os: "darwin", arch: "arm64"},
-            {os: "freebsd", arch: "386"},
-            {os: "freebsd", arch: "amd64"},
-            {os: "linux", arch: "386"},
-            {os: "linux", arch: "amd64"},
-            {os: "linux", arch: "arm"},
-            {os: "linux", arch: "arm64"},
-            {os: "solaris", arch: "amd64"},
-            {os: "windows", arch: "386"},
-            {os: "windows", arch: "amd64"}
-          ]
-        }
-        ]
-      fail-fast: false
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - uses: ./.github/workflows/reusable-verify-release-zip.yaml
         with:
           runs-on: ${{ needs.setup.outputs.compute-medium }}
           package-name: consul-enterprise
-          version: ${{ inputs.version }}+ent
-          zip-files: ${{ toJSON( matrix.targets ) }}
+          version: ${{ inputs.version }}
+          include-fips: ${{ inputs.include-fips }}
 #  verify-docker-images-oss:
 #    needs:
 #      - setup
