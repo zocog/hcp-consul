@@ -51,10 +51,10 @@ jobs:
     steps:
       - name: verify zips
         run: |
-          zips=$(${{ matrix.release.targets }} | jq -r 'map(${{ inputs.package-name}} + "_" + ${{ inputs.version }} + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
-          expected=$(${{ matrix.release.targets }} | jq '.results | length')
+#          zips=$(${{ toJSON(matrix.release.targets) }} | jq -r 'map(${{ inputs.package-name}} + "_" + ${{ inputs.version }} + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
+          expected=$(${{ toJSON(matrix.release.targets) }} | jq '.results | length')
           found=$(curl https://releases.hashicorp.com/${{ matrix.product }}/${{ inputs.version }}/ \
-          | grep -E "${zips}" \
+          | grep -E "blah" \
           | wc -l \
           | awk '$1=$1')
           
