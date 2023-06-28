@@ -37,7 +37,7 @@ jobs:
           | wc -l \
           | awk '$1=$1')
           
-          if [[ ${occurences} != "2" ]]; then
+          if [[ ${occurences} != "11" ]]; then
             echo "ERROR: incorrect number of zip files found"
             exit 1
           fi
