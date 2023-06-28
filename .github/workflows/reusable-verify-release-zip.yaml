@@ -40,7 +40,8 @@ jobs:
             { os: "solaris", arch: "amd64" },
             { os: "windows", arch: "386" },
             { os: "windows", arch: "amd64" }
-          ]
+          ],
+          verify: true
         },
         {
           product: consul,
@@ -57,7 +58,8 @@ jobs:
             { os: "solaris", arch: "amd64" },
             { os: "windows", arch: "386" },
             { os: "windows", arch: "amd64" }
-          ]
+          ],
+          verify: true
         },
         {
           product: consul,
@@ -68,12 +70,14 @@ jobs:
             { os: "linux", arch: "arm64" },
             { os: "windows", arch: "amd64" },
             { os: "windows", arch: "arm64" }
-          ]
+          ],
+          verify: ${{ inputs.include-fips }}
         }
         ]
       fail-fast: false
     steps:
       - name: verify zips
+        if: ${{ matrix.release.verify }}
         run: |
           zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("${{ matrix.release.product }}" + "${{ matrix.release.suffix }}" + "_" + "${{ inputs.version }}" + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
           expected=$(echo '${{ toJSON(matrix.release.targets) }}' | jq length)
