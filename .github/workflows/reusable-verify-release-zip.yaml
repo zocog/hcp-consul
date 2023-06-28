@@ -41,7 +41,7 @@ jobs:
             { os: "windows", arch: "386" },
             { os: "windows", arch: "amd64" }
           ],
-          verify: true
+          fips: false
         },
         {
           name: enterprise,
@@ -59,7 +59,7 @@ jobs:
             { os: "windows", arch: "386" },
             { os: "windows", arch: "amd64" }
           ],
-          verify: true
+          fips: false
         },
         {
           name: ent-fips,
@@ -71,13 +71,13 @@ jobs:
             { os: "windows", arch: "amd64" },
             { os: "windows", arch: "arm64" }
           ],
-          verify: false
+          fips: true
         }
         ]
       fail-fast: false
     steps:
       - name: verify zips
-        if: ${{ matrix.release.verify }}
+        if: ${{ !(inputs.include-fips && matrix.release.fips) }}
         run: |
           zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("consul" + "${{ matrix.release.suffix }}" + "_" + "${{ inputs.version }}" + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
           expected=$(echo '${{ toJSON(matrix.release.targets) }}' | jq length)
