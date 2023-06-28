@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: The x.y.z version (also need to specify applicable suffixes like +ent and -dev)'
+        description: The x.y.z version (also need to specify applicable suffixes -dev, but not +ent or -ent)'
         required: true
         type: string
       include-fips:
@@ -17,21 +17,21 @@ on:
         default: true
 
 jobs:
-  verify-oss-docker-images:
+  verify-docker-images-oss:
     runs-on: ubuntu-latest
     steps:
       - name: docker pull OSS - docker hub
         run: docker pull hashicorp/consul:${{ inputs.version }}
       - name: docker pull OSS - ECR
         run: docker pull public.ecr.aws/hashicorp/consul:${{ inputs.version }}
-  verify-ent-docker-images:
+  verify-docker-images-ent:
     runs-on: ubuntu-latest
     steps:
       - name: docker pull ENT - docker hub
         run: docker pull hashicorp/consul-enterprise:${{ inputs.version }}-ent
       - name: docker pull ENT - ECR
         run: docker pull public.ecr.aws/hashicorp/consul-enterprise:${{ inputs.version }}-ent
-  verify-ent-fips-docker-images:
+  verify-docker-images-ent-fips:
     runs-on: ubuntu-latest
     if: ${{ inputs.include-fips }}
     steps:
@@ -39,4 +39,19 @@ jobs:
         run: docker pull hashicorp/consul-enterprise-fips:${{ inputs.version }}-ent.fips1402
       - name: docker pull ENT FIPS - ECR
         run: docker pull public.ecr.aws/hashicorp/consul-enterprise-fips:${{ inputs.version }}-ent.fips1402
-
+  verify-linux-packages-oss:
+    needs:
+      - setup
+    uses: ./.github/workflows/reusable-verify-release-linux.yaml
+    with:
+      runs-on: ${{ needs.setup.outputs.compute-small }}
+      package-name: consul
+      version: ${{ inputs.version }}
+  verify-linux-packages-ent:
+    needs:
+      - setup
+    uses: ./.github/workflows/reusable-verify-release-linux.yaml
+    with:
+      runs-on: ${{ needs.setup.outputs.compute-small }}
+      package-name: consul-enterprise
+      version: ${{ inputs.version }}+ent

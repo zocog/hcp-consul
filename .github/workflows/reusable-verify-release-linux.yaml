@@ -1,0 +1,59 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+name: Verify Release - Linux
+
+on:
+  workflow_call:
+    inputs:
+      package-name:
+        description: 'Name of consul release package (consul vs consul-enterprise)'
+        required: true
+        default: 'consul'
+        type: string
+      version:
+        description: The x.y.z version (also need to specify applicable suffixes like +ent and -dev)'
+        required: true
+        type: string
+      runs-on:
+        description: An expression indicating which kind of runners to use.
+        required: true
+        type: string
+
+jobs:
+  verify-linux-packages:
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: docker build amd64 ubuntu
+        run: |
+          docker build \
+          --build-arg PACKAGE=${{ inputs.package-name }} \
+          --build-arg VERSION=${{ inputs.version }} \
+          --build-arg TARGETARCH=amd64 \
+          -f ./build-support/docker/Verify-Release-Ubuntu.dockerfile .
+      - name: docker build amd64 debian
+        run: |
+          docker build \
+          --build-arg PACKAGE=${{ inputs.package-name }} \
+          --build-arg VERSION=${{ inputs.version }} \
+          --build-arg TARGETARCH=amd64 \
+          -f ./build-support/docker/Verify-Release-Debian.dockerfile .
+      - name: docker build amd64 fedora
+        run: |
+          docker build \
+          --build-arg PACKAGE=${{ inputs.package-name }} \
+          --build-arg VERSION=${{ inputs.version }} \
+          -f ./build-support/docker/Verify-Release-Fedora.dockerfile .
+      - name: docker build amd64 centos
+        run: |
+          docker build \
+          --build-arg PACKAGE=${{ inputs.package-name }} \
+          --build-arg VERSION=${{ inputs.version }} \
+          -f ./build-support/docker/Verify-Release-CentOS.dockerfile .
+      - name: docker build amd64 amazon linux
+        run: |
+          docker build \
+          --build-arg PACKAGE=${{ inputs.package-name }} \
+          --build-arg VERSION=${{ inputs.version }} \
+          -f ./build-support/docker/Verify-Release-Amazon.dockerfile .
