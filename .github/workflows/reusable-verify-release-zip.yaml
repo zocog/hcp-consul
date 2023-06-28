@@ -30,15 +30,15 @@ jobs:
     steps:
       - name: verify zips
         run: |
-          ZIPS_STRING="consul_1.16.0_linux_386.zip|consul_1.16.0_linux_amd64.zip|consul_1.16.0_linux_arm.zip|consul_1.16.0_linux_arm64.zip|consul_1.16.0_freebsd_386.zip|consul_1.16.0_freebsd_amd64.zip|consul_1.16.0_windows_386.zip|consul_1.16.0_windows_amd64.zip|consul_1.16.0_solaris_amd64.zip"
-
-          occurences=$(curl https://releases.hashicorp.com/consul/1.11.1/ \
-          | grep -E "${ZIPS_STRING}" \
+          zips="consul_1.16.0_linux_386.zip|consul_1.16.0_linux_amd64.zip|consul_1.16.0_linux_arm.zip|consul_1.16.0_linux_arm64.zip|consul_1.16.0_freebsd_386.zip|consul_1.16.0_freebsd_amd64.zip|consul_1.16.0_windows_386.zip|consul_1.16.0_windows_amd64.zip|consul_1.16.0_solaris_amd64.zip"
+          expected=11
+          found=$(curl https://releases.hashicorp.com/consul/1.11.1/ \
+          | grep -E "${zips}" \
           | wc -l \
           | awk '$1=$1')
           
-          if [[ ${occurences} != "11" ]]; then
-            echo "ERROR: incorrect number of zip files found"
+          if [[ ${found} != expected ]]; then
+            echo "ERROR: incorrect number of zip files found. Expected: ${expected}. Found: ${found}"
             exit 1
           fi
           
