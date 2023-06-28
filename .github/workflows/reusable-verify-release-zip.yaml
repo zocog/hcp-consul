@@ -6,11 +6,6 @@ name: Verify Release - Zip Files
 on:
   workflow_call:
     inputs:
-      package-name:
-        description: 'Name of consul release package (consul vs consul-enterprise)'
-        required: true
-        default: 'consul'
-        type: string
       version:
         description: The x.y.z version (also need to specify applicable suffixes like +ent and -dev)'
         required: true
@@ -51,9 +46,9 @@ jobs:
     steps:
       - name: verify zips
         run: |
-          zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("${{ inputs.package-name}}" + "_" + "${{ inputs.version }}" + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
+          zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("${{ matrix.release.product }}" + "_" + "${{ inputs.version }}" + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
           expected=$(echo '${{ toJSON(matrix.release.targets) }}' | jq length)
-          found=$(curl https://releases.hashicorp.com/${{ matrix.product }}/${{ inputs.version }}/ \
+          found=$(curl https://releases.hashicorp.com/${{ matrix.release.product }}/${{ inputs.version }}/ \
           | grep -E "${zips}" \
           | wc -l \
           | awk '$1=$1')
