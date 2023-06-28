@@ -82,6 +82,7 @@ jobs:
           zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("consul" + "_" + "${{ inputs.version }}" + "${{ matrix.release.suffix }}" + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
           echo "zips: ${zips}"
           expected=$(echo '${{ toJSON(matrix.release.targets) }}' | jq length)
+          curl https://releases.hashicorp.com/consul/${{ inputs.version }}${{ matrix.release.suffix }}
           found=$(curl https://releases.hashicorp.com/consul/${{ inputs.version }}${{ matrix.release.suffix }}/ \
           | grep -E "${zips}" \
           | wc -l \
