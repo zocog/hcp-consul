@@ -33,7 +33,7 @@ jobs:
   verify-docker-images-oss:
     needs:
       - setup
-    runs-on: ${{ needs.setup.outputs.compute-small }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
       - name: docker pull OSS - docker hub
         run: docker pull hashicorp/consul:${{ inputs.version }}
