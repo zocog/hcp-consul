@@ -80,7 +80,7 @@ jobs:
       - name: verify zips - ${{ matrix.release.name }}
         if: ${{ !matrix.release.fips || (inputs.include-fips && matrix.release.fips) }}
         run: |
-          export zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("consul_${{ inputs.version }}${{ matrix.release.suffixForMatch }}_" + .os + "_" + .arch + "\.zip" )| join("|")')
+          export zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("consul_${{ inputs.version }}${{ matrix.release.suffixForMatch }}_" + .os + "_" + .arch + "\\.zip" )| join("|")')
           expected=$(echo '${{ toJSON(matrix.release.targets) }}' | jq length)
           found=$(curl https://releases.hashicorp.com/consul/${{ inputs.version }}${{ matrix.release.suffix }}/ \
           | grep -E "${zips}" \
