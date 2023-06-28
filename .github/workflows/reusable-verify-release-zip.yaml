@@ -45,8 +45,7 @@ jobs:
         },
         {
           name: enterprise,
-          suffix: "+ent.fips1402",
-          suffixForMatch: "\\+ent\\.fips1402",
+          suffix: "+ent",
           targets: [
             { os: "darwin", arch: "amd64" },
             { os: "darwin", arch: "arm64" },
@@ -64,8 +63,7 @@ jobs:
         },
         {
           name: ent-fips,
-          suffix: "+ent.fips1402",
-          suffixForMatch: "\\+ent\\.fips1402",
+          suffix: "\+ent\.fips1402",
           targets: [
             { os: "linux", arch: "amd64" },
             { os: "linux", arch: "arm64" },
@@ -80,8 +78,10 @@ jobs:
       - name: verify zips - ${{ matrix.release.name }}
         if: ${{ !matrix.release.fips || (inputs.include-fips && matrix.release.fips) }}
         run: |
-          export zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("consul_${{ inputs.version }}${{ matrix.release.suffixForMatch }}_" + .os + "_" + .arch + "\\.zip" )| join("|")')
+          export zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r "map('consul' + '_' + '${{ inputs.version }}' + '${{ matrix.release.suffix }}' + '_' + .os + '_' + .arch + '.zip' ) | join('|')")
+          echo "zips: ${zips}"
           expected=$(echo '${{ toJSON(matrix.release.targets) }}' | jq length)
+          curl https://releases.hashicorp.com/consul/${{ inputs.version }}${{ matrix.release.suffix }}
           found=$(curl https://releases.hashicorp.com/consul/${{ inputs.version }}${{ matrix.release.suffix }}/ \
           | grep -E "${zips}" \
           | wc -l \
