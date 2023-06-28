@@ -31,9 +31,9 @@ jobs:
       - name: verify zips
         run: |
           occurences=$(curl https://releases.hashicorp.com/consul/1.11.1/ \
-          | grep -E "consul_1.11.1_darwin_amd64.zip|consul_1.11.1_darwin_arm64.zip" \ # find occurences
-          | wc -l \ # get count
-          | awk '$1=$1') # strip leading spaces
+          | grep -E "consul_1.11.1_darwin_amd64.zip|consul_1.11.1_darwin_arm64.zip" \
+          | wc -l \
+          | awk '$1=$1')
           
           if [[ ${occurences} != "11" ]]; then
             echo "ERROR: incorrect number of zip files found"
