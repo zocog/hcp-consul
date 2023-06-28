@@ -33,6 +33,7 @@ jobs:
         run: docker pull public.ecr.aws/hashicorp/consul-enterprise:${{ inputs.version }}-ent
   verify-ent-fips-docker-images:
     runs-on: ubuntu-latest
+    if: ${{ inputs.include-fips }}
     steps:
       - name: docker pull ENT FIPS - docker hub
         run: docker pull hashicorp/consul-enterprise-fips:${{ inputs.version }}-ent.fips1402
