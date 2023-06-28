@@ -83,7 +83,9 @@ jobs:
           expected=$(echo '${{ toJSON(matrix.release.targets) }}' | jq length)
           curl https://releases.hashicorp.com/consul/${{ inputs.version }}${{ matrix.release.suffix }}
           found=$(curl https://releases.hashicorp.com/consul/${{ inputs.version }}${{ matrix.release.suffix }}/ \
-          | grep -c -E '${zips}')
+          | grep -E '${zips}' \
+          | wc -l \
+          | awk '$1=$1')
           
           echo "Expected: ${expected}. Found: ${found}"
           if [[ ${found} != ${expected} ]]; then
