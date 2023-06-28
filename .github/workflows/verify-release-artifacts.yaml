@@ -34,15 +34,12 @@ jobs:
   verify-zip-artifacts-oss:
     needs:
       - setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      - uses: ./.github/workflows/reusable-verify-release-zip.yaml
-        with:
-          runs-on: ${{ needs.setup.outputs.compute-medium }}
-          package-name: consul-enterprise
-          version: ${{ inputs.version }}
-          include-fips: ${{ inputs.include-fips }}
+    uses: ./.github/workflows/reusable-verify-release-zip.yaml
+    with:
+      runs-on: ${{ needs.setup.outputs.compute-medium }}
+      package-name: consul-enterprise
+      version: ${{ inputs.version }}
+      include-fips: ${{ inputs.include-fips }}
 #  verify-docker-images-oss:
 #    needs:
 #      - setup
