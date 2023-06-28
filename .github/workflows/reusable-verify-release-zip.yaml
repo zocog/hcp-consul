@@ -79,9 +79,9 @@ jobs:
       - name: verify zips
         if: ${{ !(inputs.include-fips && matrix.release.fips) }}
         run: |
-          zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("consul" + "${{ matrix.release.suffix }}" + "_" + "${{ inputs.version }}" + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
+          zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("consul" + "_" + "${{ inputs.version }}" + "${{ matrix.release.suffix }}" + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
           expected=$(echo '${{ toJSON(matrix.release.targets) }}' | jq length)
-          found=$(curl https://releases.hashicorp.com/consul${{ matrix.release.suffix }}/${{ inputs.version }}/ \
+          found=$(curl https://releases.hashicorp.com/consul/${{ inputs.version }}${{ matrix.release.suffix }}/ \
           | grep -E "${zips}" \
           | wc -l \
           | awk '$1=$1')
