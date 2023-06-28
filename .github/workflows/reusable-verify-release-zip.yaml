@@ -52,7 +52,7 @@ jobs:
       - name: verify zips
         run: |
           zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("${{ inputs.package-name}}" + "_" + "${{ inputs.version }}" + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
-          expected=$(echo '${{ toJSON(matrix.release.targets) }}' | jq '.results | length')
+          expected=$(echo '${{ toJSON(matrix.release.targets) }}' | jq length)
           found=$(curl https://releases.hashicorp.com/${{ matrix.product }}/${{ inputs.version }}/ \
           | grep -E "${zips}" \
           | wc -l \
