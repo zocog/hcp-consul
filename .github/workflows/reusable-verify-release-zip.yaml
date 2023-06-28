@@ -23,12 +23,12 @@ on:
         description: An array of zip file definitions to expect for release.
         required: true
         type: string
-env:
-  ZIPS_STRING: 'consul_1.16.0_linux_386.zip|consul_1.16.0_linux_amd64.zip|consul_1.16.0_linux_arm.zip|consul_1.16.0_linux_arm64.zip|consul_1.16.0_freebsd_386.zip|consul_1.16.0_freebsd_amd64.zip|consul_1.16.0_windows_386.zip|consul_1.16.0_windows_amd64.zip|consul_1.16.0_solaris_amd64.zip'
 
 jobs:
   verify-zips:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
+    env:
+      ZIPS_STRING: "consul_1.16.0_linux_386.zip|consul_1.16.0_linux_amd64.zip|consul_1.16.0_linux_arm.zip|consul_1.16.0_linux_arm64.zip|consul_1.16.0_freebsd_386.zip|consul_1.16.0_freebsd_amd64.zip|consul_1.16.0_windows_386.zip|consul_1.16.0_windows_amd64.zip|consul_1.16.0_solaris_amd64.zip"
     steps:
       - name: verify zips
         run: |
