@@ -77,7 +77,7 @@ jobs:
         run: |
           zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("${{ matrix.release.product }}" + "${{ matrix.release.suffix }}" + "_" + "${{ inputs.version }}" + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
           expected=$(echo '${{ toJSON(matrix.release.targets) }}' | jq length)
-          found=$(curl https://releases.hashicorp.com/${{ matrix.release.product }}/${{ inputs.version }}/ \
+          found=$(curl https://releases.hashicorp.com/${{ matrix.release.product }}${{ matrix.release.suffix }}/${{ inputs.version }}/ \
           | grep -E "${zips}" \
           | wc -l \
           | awk '$1=$1')
