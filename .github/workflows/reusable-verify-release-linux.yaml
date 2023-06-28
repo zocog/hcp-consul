@@ -28,6 +28,10 @@ jobs:
       matrix:
         image: [
           { name: "ubuntu", package-manager: "apt", dockerfile: "./build-support/docker/Verify-Release-Ubuntu.dockerfile", arch: "amd64" },
+          { name: "debian", package-manager: "apt", dockerfile: "./build-support/docker/Verify-Release-Debian.dockerfile", arch: "amd64" },
+          { name: "fedora", package-manager: "rpm", dockerfile: "./build-support/docker/Verify-Release-Fedora.dockerfile", arch: "amd64" },
+          { name: "centos", package-manager: "rpm", dockerfile: "./build-support/docker/Verify-Release-CentOS.dockerfile", arch: "amd64" },
+          { name: "amazon", package-manager: "rpm", dockerfile: "./build-support/docker/Verify-Release-Amazon.dockerfile", arch: "amd64" },
         ]
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -38,28 +42,3 @@ jobs:
           --build-arg VERSION=${{ inputs.version }} \
           --build-arg TARGETARCH=${{ matrix.image.arch }} \
           -f ${{ matrix.image.dockerfile }} .
-#      - name: docker build amd64 debian
-#        run: |
-#          docker build \
-#          --build-arg PACKAGE=${{ inputs.package-name }} \
-#          --build-arg VERSION=${{ inputs.version }} \
-#          --build-arg TARGETARCH=amd64 \
-#          -f ./build-support/docker/Verify-Release-Debian.dockerfile .
-#      - name: docker build amd64 fedora
-#        run: |
-#          docker build \
-#          --build-arg PACKAGE=${{ inputs.package-name }} \
-#          --build-arg VERSION=${{ inputs.version }} \
-#          -f ./build-support/docker/Verify-Release-Fedora.dockerfile .
-#      - name: docker build amd64 centos
-#        run: |
-#          docker build \
-#          --build-arg PACKAGE=${{ inputs.package-name }} \
-#          --build-arg VERSION=${{ inputs.version }} \
-#          -f ./build-support/docker/Verify-Release-CentOS.dockerfile .
-#      - name: docker build amd64 amazon linux
-#        run: |
-#          docker build \
-#          --build-arg PACKAGE=${{ inputs.package-name }} \
-#          --build-arg VERSION=${{ inputs.version }} \
-#          -f ./build-support/docker/Verify-Release-Amazon.dockerfile .

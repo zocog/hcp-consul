@@ -63,7 +63,7 @@ jobs:
       - setup
     uses: ./.github/workflows/reusable-verify-release-linux.yaml
     with:
-      runs-on: ${{ needs.setup.outputs.compute-small }}
+      runs-on: ${{ needs.setup.outputs.compute-medium }}
       package-name: consul
       version: ${{ inputs.version }}
   verify-linux-packages-ent:
@@ -71,6 +71,6 @@ jobs:
       - setup
     uses: ./.github/workflows/reusable-verify-release-linux.yaml
     with:
-      runs-on: ${{ needs.setup.outputs.compute-small }}
+      runs-on: ${{ needs.setup.outputs.compute-medium }}
       package-name: consul-enterprise
       version: ${{ inputs.version }}+ent
