@@ -27,6 +27,7 @@ jobs:
       matrix:
         release: [ {
           product: consul,
+          suffix: "",
           targets: [
             { os: "darwin", arch: "amd64" },
             { os: "darwin", arch: "arm64" },
@@ -46,7 +47,7 @@ jobs:
     steps:
       - name: verify zips
         run: |
-          zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("${{ matrix.release.product }}" + "_" + "${{ inputs.version }}" + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
+          zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("${{ matrix.release.product }}" + "${{ matrix.release.suffix }}" + "_" + "${{ inputs.version }}" + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
           expected=$(echo '${{ toJSON(matrix.release.targets) }}' | jq length)
           found=$(curl https://releases.hashicorp.com/${{ matrix.release.product }}/${{ inputs.version }}/ \
           | grep -E "${zips}" \

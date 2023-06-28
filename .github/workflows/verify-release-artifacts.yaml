@@ -31,13 +31,12 @@ jobs:
         name: Setup outputs
         run: ./.github/scripts/get_runner_classes.sh
 
-  verify-zip-artifacts-oss:
+  verify-zip-artifacts:
     needs:
       - setup
     uses: ./.github/workflows/reusable-verify-release-zip.yaml
     with:
       runs-on: ${{ needs.setup.outputs.compute-medium }}
-      package-name: consul-enterprise
       version: ${{ inputs.version }}
       include-fips: ${{ inputs.include-fips }}
 #  verify-docker-images-oss:
