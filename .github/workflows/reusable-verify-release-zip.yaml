@@ -41,6 +41,34 @@ jobs:
             { os: "windows", arch: "386" },
             { os: "windows", arch: "amd64" }
           ]
+        },
+        {
+          product: consul,
+          suffix: "+ent",
+          targets: [
+            { os: "darwin", arch: "amd64" },
+            { os: "darwin", arch: "arm64" },
+            { os: "freebsd", arch: "386" },
+            { os: "freebsd", arch: "amd64" },
+            { os: "linux", arch: "386" },
+            { os: "linux", arch: "amd64" },
+            { os: "linux", arch: "arm" },
+            { os: "linux", arch: "arm64" },
+            { os: "solaris", arch: "amd64" },
+            { os: "windows", arch: "386" },
+            { os: "windows", arch: "amd64" }
+          ]
+        },
+        {
+          product: consul,
+          suffix: "+ent.fips1402",
+          targets: [
+            { os: "linux", arch: "386" },
+            { os: "linux", arch: "amd64" },
+            { os: "linux", arch: "arm64" },
+            { os: "windows", arch: "amd64" },
+            { os: "windows", arch: "arm64" }
+          ]
         }
         ]
       fail-fast: false
@@ -54,8 +82,9 @@ jobs:
           | wc -l \
           | awk '$1=$1')
           
+          echo "Expected: ${expected}. Found: ${found}"
           if [[ ${found} != ${expected} ]]; then
-            echo "ERROR: incorrect number of zip files found. Expected: ${expected}. Found: ${found}"
+            echo "ERROR: incorrect number of zip files found."
             exit 1
           fi
           
