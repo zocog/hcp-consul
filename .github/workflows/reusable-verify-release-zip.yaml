@@ -26,7 +26,7 @@ jobs:
     strategy:
       matrix:
         release: [ {
-          product: consul,
+          name: oss,
           suffix: "",
           targets: [
             { os: "darwin", arch: "amd64" },
@@ -44,7 +44,7 @@ jobs:
           verify: true
         },
         {
-          product: consul,
+          name: enterprise,
           suffix: "+ent",
           targets: [
             { os: "darwin", arch: "amd64" },
@@ -62,7 +62,7 @@ jobs:
           verify: true
         },
         {
-          product: consul,
+          name: ent-fips,
           suffix: "+ent.fips1402",
           targets: [
             { os: "linux", arch: "386" },
@@ -79,9 +79,9 @@ jobs:
       - name: verify zips
         if: ${{ matrix.release.verify }}
         run: |
-          zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("${{ matrix.release.product }}" + "${{ matrix.release.suffix }}" + "_" + "${{ inputs.version }}" + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
+          zips=$(echo '${{ toJSON(matrix.release.targets) }}' | jq -r 'map("consul" + "${{ matrix.release.suffix }}" + "_" + "${{ inputs.version }}" + "_" + .os + "_" + .arch + ".zip" )| join("|")' )
           expected=$(echo '${{ toJSON(matrix.release.targets) }}' | jq length)
-          found=$(curl https://releases.hashicorp.com/${{ matrix.release.product }}${{ matrix.release.suffix }}/${{ inputs.version }}/ \
+          found=$(curl https://releases.hashicorp.com/consul${{ matrix.release.suffix }}/${{ inputs.version }}/ \
           | grep -E "${zips}" \
           | wc -l \
           | awk '$1=$1')
