@@ -17,8 +17,38 @@ on:
         default: true
 
 jobs:
-  verify-oss-docker-images:
+  setup:
+    name: Setup
     runs-on: ubuntu-latest
+    outputs:
+      compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
+      compute-medium: ${{ steps.setup-outputs.outputs.compute-medium }}
+      compute-large: ${{ steps.setup-outputs.outputs.compute-large }}
+      compute-xl: ${{ steps.setup-outputs.outputs.compute-xl }}
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - id: setup-outputs
+        name: Setup outputs
+        run: ./.github/scripts/get_runner_classes.sh
+  verify-oss-docker-images:
+    needs: setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    steps:
+      - name: docker pull OSS - docker hub
+        run: docker pull hashicorp/consul:${{ inputs.version }}
+      - name: docker pull OSS - ECR
+        run: docker pull public.ecr.aws/hashicorp/consul:${{ inputs.version }}
+  verify-ent-docker-images:
+    needs: setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    steps:
+      - name: docker pull ENT - docker hub
+        run: docker pull hashicorp/consul-enterprise:${{ inputs.version }}-ent
+      - name: docker pull ENT - ECR
+        run: docker pull public.ecr.aws/hashicorp/consul-enterprise:${{ inputs.version }}-ent
+  verify-fips-docker-images:
+    needs: setup
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -28,7 +58,6 @@ jobs:
         if: ${{ endsWith(github.repository, '-enterprise') }}
         id: vault-auth
         run: vault-auth
-
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Fetch Secrets
         if: ${{ endsWith(github.repository, '-enterprise') }}
@@ -41,7 +70,6 @@ jobs:
           secrets: |
             kv/data/github/${{ github.repository }}/dockerhub username | DOCKERHUB_USERNAME;
             kv/data/github/${{ github.repository }}/dockerhub token | DOCKERHUB_TOKEN;
-
       # NOTE: conditional specific logic as we store secrets in Vault in ENT and use GHA secrets in OSS.
       - name: Login to Docker Hub
         uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
@@ -49,20 +77,6 @@ jobs:
           username: ${{ endsWith(github.repository, '-enterprise') && steps.secrets.outputs.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}
           password: ${{ endsWith(github.repository, '-enterprise') && steps.secrets.outputs.DOCKERHUB_TOKEN || secrets.DOCKERHUB_TOKEN }}
 
-      - name: docker pull OSS - docker hub
-        run: docker pull hashicorp/consul:${{ inputs.version }}
-      - name: docker pull OSS - ECR
-        run: docker pull public.ecr.aws/hashicorp/consul:${{ inputs.version }}
-  verify-ent-docker-images:
-    runs-on: ubuntu-latest
-    steps:
-      - name: docker pull ENT - docker hub
-        run: docker pull hashicorp/consul-enterprise:${{ inputs.version }}-ent
-      - name: docker pull ENT - ECR
-        run: docker pull public.ecr.aws/hashicorp/consul-enterprise:${{ inputs.version }}-ent
-  verify-fips-docker-images:
-    runs-on: ubuntu-latest
-    steps:
       - name: docker pull ENT FIPS - docker hub
         run: docker pull hashicorp/consul-enterprise:${{ inputs.version }}-ent.fips1402
       - name: docker pull ENT FIPS - ECR
