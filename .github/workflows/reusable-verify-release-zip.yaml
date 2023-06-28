@@ -28,7 +28,7 @@ jobs:
   verify-zip-artifacts-oss:
     runs-on: ${{ fromJSON(inputs.runs-on) }}
     steps:
-      - name: docker build ${{ matrix.image.arch }} ${{ matrix.image.name }}
+      - name: verify zips
         run: |
           occurences=$(curl https://releases.hashicorp.com/consul/1.11.1/ \
           | grep -E "consul_1.11.1_darwin_amd64.zip|consul_1.11.1_darwin_arm64.zip" \ # find occurences

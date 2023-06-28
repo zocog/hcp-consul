@@ -30,7 +30,15 @@ jobs:
       - id: setup-outputs
         name: Setup outputs
         run: ./.github/scripts/get_runner_classes.sh
-
+  verify-zip-artifacts-oss:
+    needs:
+      - setup
+    uses: ./.github/workflows/reusable-verify-release-zip.yaml
+    with:
+      runs-on: ${{ needs.setup.outputs.compute-medium }}
+      package-name: consul-enterprise
+      version: ${{ inputs.version }}+ent
+      zip-files: replace-me
 #  verify-docker-images-oss:
 #    needs:
 #      - setup
