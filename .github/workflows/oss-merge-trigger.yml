@@ -18,12 +18,11 @@ jobs:
     steps:
       - name: Trigger Merge
         env:
-          GIT_REF: ${{ github.ref_name }}
-          GIT_SHA: ${{ github.sha }}
-          GH_PAT: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-          GIT_ACTOR: ${{ github.actor }}
+          GH_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
         run: |
-          curl -H "Authorization: token $GH_PAT" \
-            -H 'Accept: application/json' \
-            -d "{\"event_type\": \"oss-merge\", \"client_payload\": {\"git-ref\": \"${GIT_REF}\", \"git-sha\": \"${GIT_SHA}\", \"git-actor\": \"${GIT_ACTOR}\" }}" \
-            "https://api.github.com/repos/hashicorp/consul-enterprise/dispatches"
+          gh api --silent repos/hashicorp/consul-enterprise/dispatches \
+            -f 'event_type=oss-merge' \
+            -f 'client_payload[git-ref]=${{ github.ref_name }}' \
+            -f 'client_payload[git-sha]=${{ github.sha }}' \
+            -f 'client_payload[git-actor]=${{ github.actor }}' \
+            -f 'client_payload[pr-branch]=${{ github.event.pull_request.head.label || '' }}
