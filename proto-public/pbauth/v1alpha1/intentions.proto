@@ -1,0 +1,136 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.auth.v1alpha1;
+
+import "pbresource/resource.proto";
+
+message Intentions {
+  // destination is a reference to a specific WorkloadIdentity resource.
+  // This must point to a specific resource. To apply intentions to all identities
+  // within a namespace, use NamespacedIntentions, and to apply intentions rules to all identities within
+  // a partition, use PartitionedIntentions.
+  hashicorp.consul.resource.Reference destination = 1;
+
+  // Action can be either allow or deny for the entire object.
+  //
+  // If action is allow,
+  // we will allow the connection if and only if any rule in Rules matches, in other words, we will deny
+  // all requests except for the ones that match Rules. If Consul is in default allow mode, then allow
+  // actions have no effect without a deny permission as everything is allowed by default.
+  //
+  // If action is deny,
+  // we will allow the connection if and only if none of the rules in Rules match, in other words,
+  // we will allow all requests except for the ones that match Rules.
+  Action action = 2;
+
+  repeated Rules rules = 3;
+}
+
+enum Action {
+  ACTION_ALLOW = 0;
+  ACTION_DENY = 1;
+}
+
+message Rules {
+  repeated Source sources = 1;
+
+  repeated Permission permissions = 2;
+}
+
+// A source of intention can be either:
+//  * an identity within a namespace and partition
+//  * an identity within a namespace and peer
+//  * an identity within a namespace and sameness group
+//  * all identities within a namespace
+//  * all identities within a partition
+message Source {
+  oneof source_ref {
+    // IdentityRef should be used when the source has a specific identity associated with it.
+    IdentityRef identity = 1;
+    // NamespaceRef should be used to say that the source is all identities within a namespace.
+    NamespaceRef namespace = 2;
+    // PartitionRef should be used to say that the source is all identities within a partition.
+    PartitionRef partition = 3;
+
+    // NotRef is used to negate the source.
+    // NotRef cannot reference another NotRef and can only reference one of IdentityRef,
+    // NamespaceRef or PartitionRef.
+    NotRef not = 4;
+  }
+}
+
+// IdentityRef is reference to a specific identity belonging to a namespace and
+// a partition, or a peer, or a sameness group
+message IdentityRef {
+  string name = 1;
+  string namespace = 2;
+  oneof peer_or_partition_or_sg {
+    string peer = 3;
+    string partition = 4;
+    string sameness_group = 5;
+  }
+}
+
+// NamespaceRef is a reference to a namespace.
+message NamespaceRef {
+  string namespace = 1;
+  string partition = 2;
+}
+
+// PartitionRef is a reference to a partition.
+message PartitionRef {
+  string partition = 1;
+}
+
+message NotRef {
+  Source not_source = 1;
+}
+
+message Permission {
+  oneof perm {
+    PermissionRule perm_rule = 1;
+    NotPermissionRule not_perm_rule = 2;
+  }
+}
+
+message PermissionRule {
+  // http specifies L7 permission rules. If destination_ports have non-L7 protocols,
+  // this rule is not considered valid.
+  HTTPPermissionRules http = 1;
+
+  // destination_ports is a list of ports to apply this rule to. The list
+  // values are OR'ed together if multiple are provided. If no ports provided,
+  // this rule will apply to all ports.
+  repeated uint32 destination_ports = 2;
+}
+
+message HTTPPermissionRules {
+  string path_exact = 1;
+  string path_prefix = 2;
+  string path_regex = 3;
+
+  // methods is the list of HTTP methods. If no methods are specified,
+  // this rule will apply to all methods.
+  repeated string methods = 4;
+  PermissionHeader header = 5;
+}
+
+message NotPermissionRule {
+  PermissionRule not_permission = 1;
+}
+
+message PermissionHeader {
+  string name = 1;
+  bool present = 2;
+  string exact = 3;
+  string prefix = 4;
+  string suffix = 5;
+  string regex = 6;
+  bool invert = 7;
+}
+
+// todo: figure out jwt
+// todo: description?
