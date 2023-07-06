@@ -112,6 +112,17 @@ func TestRoleCreateCommand_Pretty(t *testing.T) {
 			"-description=test-role",
 			"-node-identity=foo:bar",
 		})
+		require.Len(t, role.NodeIdentities, 1)
+	})
+
+	// when no DC is provided use the agent's DC
+	t.Run("node-identity no dc", func(t *testing.T) {
+		role := run(t, []string{
+			"-token=root",
+			"-name=role-with-node-identity",
+			"-description=test-role",
+			"-node-identity=foo",
+		})
 
 		require.Len(t, role.NodeIdentities, 1)
 	})

@@ -54,7 +54,7 @@ func (c *cmd) init() {
 		"the SERVICENAME or SERVICENAME:DATACENTER1,DATACENTER2,...")
 	c.flags.Var((*flags.AppendSliceValue)(&c.nodeIdents), "node-identity", "Name of a "+
 		"node identity to use for this role. May be specified multiple times. Format is "+
-		"NODENAME:DATACENTER")
+		"NODENAME or NODENAME:DATACENTER")
 	c.flags.StringVar(
 		&c.format,
 		"format",

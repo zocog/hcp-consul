@@ -203,6 +203,10 @@ func ExtractNodeIdentities(nodeIdents []string) ([]*api.ACLNodeIdentity, error) 
 				NodeName:   parts[0],
 				Datacenter: parts[1],
 			})
+		case 1:
+			out = append(out, &api.ACLNodeIdentity{
+				NodeName: parts[0],
+			})
 		default:
 			return nil, fmt.Errorf("Malformed -node-identity argument: %q", nodeidRaw)
 		}

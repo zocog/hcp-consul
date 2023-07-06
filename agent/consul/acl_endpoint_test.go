@@ -1267,7 +1267,8 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		err := a.TokenSet(&req, &resp)
 		testutil.RequireErrorContains(t, err, "Node identity has an invalid name.")
 	})
-	t.Run("invalid node identity - no datacenter", func(t *testing.T) {
+	// token without data center should use the data center of the server and still be saved
+	t.Run("token without datacenter", func(t *testing.T) {
 		req := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
@@ -1283,7 +1284,17 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		resp := structs.ACLToken{}
 
 		err := a.TokenSet(&req, &resp)
-		testutil.RequireErrorContains(t, err, "Node identity is missing the datacenter field on this token")
+		require.NoError(t, err)
+
+		// Get the token directly to validate that it exists
+		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", resp.AccessorID)
+		require.NoError(t, err)
+		token := tokenResp.Token
+
+		require.NotNil(t, token)
+		require.NotNil(t, token.AccessorID)
+		require.Equal(t, token.AccessorID, resp.AccessorID)
+
 	})
 }
 

@@ -519,6 +519,12 @@ func (a *ACL) TokenSet(args *structs.ACLTokenSetRequest, reply *structs.ACLToken
 		return fmt.Errorf("Local tokens are disabled")
 	}
 
+	for _, aclNodeIdent := range args.ACLToken.NodeIdentities {
+		if aclNodeIdent.Datacenter == "" {
+			aclNodeIdent.Datacenter = a.srv.config.Datacenter
+		}
+	}
+
 	if done, err := a.srv.ForwardRPC("ACL.TokenSet", args, reply); done {
 		return err
 	}
@@ -1341,6 +1347,11 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 	}
 	role.ServiceIdentities = role.ServiceIdentities.Deduplicate()
 
+	for _, aclNodeIdent := range role.NodeIdentities {
+		if aclNodeIdent.Datacenter == "" {
+			aclNodeIdent.Datacenter = a.srv.config.Datacenter
+		}
+	}
 	for _, nodeid := range role.NodeIdentities {
 		if nodeid.NodeName == "" {
 			return fmt.Errorf("Node identity is missing the node name field on this role")
