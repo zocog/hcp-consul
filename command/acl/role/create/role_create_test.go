@@ -119,9 +119,9 @@ func TestRoleCreateCommand_Pretty(t *testing.T) {
 	t.Run("node-identity no dc", func(t *testing.T) {
 		role := run(t, []string{
 			"-token=root",
-			"-name=role-with-node-identity",
+			"-name=role-with-node-identity2",
 			"-description=test-role",
-			"-node-identity=foo",
+			"-node-identity=fff",
 		})
 
 		require.Len(t, role.NodeIdentities, 1)
