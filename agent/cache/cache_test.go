@@ -19,6 +19,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/lib/ttlcache"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -1739,7 +1740,7 @@ func TestCache_RefreshLifeCycle(t *testing.T) {
 	typ.On("Fetch", mock.Anything, mock.Anything).Once().Return(FetchResult{}, acl.PermissionDenied("forced error")).WaitUntil(releaseSecondReq)
 
 	releaseThirdReq := make(chan time.Time)
-	typ.On("Fetch", mock.Anything, mock.Anything).Once().Return(FetchResult{}, acl.ErrNotFound).WaitUntil(releaseThirdReq)
+	typ.On("Fetch", mock.Anything, mock.Anything).Once().Return(FetchResult{}, cslerr.ACLNotFound).WaitUntil(releaseThirdReq)
 
 	c := New(Options{})
 	c.RegisterType("t", typ)

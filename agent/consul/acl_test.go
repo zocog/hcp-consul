@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
@@ -204,7 +205,7 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			},
 		}, nil
 	default:
-		return true, nil, acl.ErrNotFound
+		return true, nil, cslerr.ACLNotFound
 	}
 }
 
@@ -273,7 +274,7 @@ func testPolicyForID(policyID string) (bool, *structs.ACLPolicy, error) {
 		p.SetHash(false)
 		return true, p, nil
 	default:
-		return true, nil, acl.ErrNotFound
+		return true, nil, cslerr.ACLNotFound
 	}
 }
 
@@ -409,7 +410,7 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 			},
 		}, nil
 	default:
-		return true, nil, acl.ErrNotFound
+		return true, nil, cslerr.ACLNotFound
 	}
 }
 
@@ -530,7 +531,7 @@ func (d *ACLResolverTestDelegate) plainTokenReadFn(args *structs.ACLTokenGetRequ
 		token, ok := d.testTokens[args.TokenID]
 		if ok {
 			if token == nil {
-				return acl.ErrNotFound
+				return cslerr.ACLNotFound
 			}
 			reply.Token = token
 		}
@@ -630,7 +631,7 @@ func (d *ACLResolverTestDelegate) ResolveIdentityFromToken(token string) (bool, 
 				return true, token, nil
 			}
 		}
-		return true, nil, acl.ErrNotFound
+		return true, nil, cslerr.ACLNotFound
 	}
 	return testIdentityForToken(token)
 }
@@ -647,7 +648,7 @@ func (d *ACLResolverTestDelegate) ResolvePolicyFromID(policyID string) (bool, *s
 				return true, policy, nil
 			}
 		}
-		return true, nil, acl.ErrNotFound
+		return true, nil, cslerr.ACLNotFound
 	}
 	return testPolicyForID(policyID)
 }
@@ -664,7 +665,7 @@ func (d *ACLResolverTestDelegate) ResolveRoleFromID(roleID string) (bool, *struc
 				return true, role, nil
 			}
 		}
-		return true, nil, acl.ErrNotFound
+		return true, nil, cslerr.ACLNotFound
 	}
 	return testRoleForID(roleID)
 }
@@ -1074,7 +1075,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			localPolicies: false,
 			localRoles:    false,
 		}
-		// We don't need to return acl.ErrNotFound here but we could. The ACLResolver will search for any
+		// We don't need to return cslerr.ACLNotFound here but we could. The ACLResolver will search for any
 		// policies not in the response and emit an ACL not found for any not-found within the result set.
 		delegate.policyResolveFn = delegate.defaultPolicyResolveFn(nil)
 
@@ -1121,7 +1122,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			localPolicies: false,
 			localRoles:    false,
 		}
-		// We don't need to return acl.ErrNotFound here but we could. The ACLResolver will search for any
+		// We don't need to return cslerr.ACLNotFound here but we could. The ACLResolver will search for any
 		// policies not in the response and emit an ACL not found for any not-found within the result set.
 		delegate.policyResolveFn = delegate.defaultPolicyResolveFn(nil)
 		delegate.roleResolveFn = delegate.defaultRoleResolveFn(nil)
@@ -1234,7 +1235,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			localPolicies: true,
 			localRoles:    true,
 		}
-		delegate.tokenReadFn = delegate.defaultTokenReadFn(acl.ErrNotFound)
+		delegate.tokenReadFn = delegate.defaultTokenReadFn(cslerr.ACLNotFound)
 
 		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
 			config.Config.ACLDownPolicy = "async-cache"
@@ -1298,7 +1299,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 					policyResolved = true
 					return nil
 				}
-				return acl.ErrNotFound // test condition
+				return cslerr.ACLNotFound // test condition
 			},
 		}
 		r := newTestACLResolver(t, delegate, func(config *ACLResolverConfig) {
@@ -1459,7 +1460,7 @@ func TestACLResolver_Client(t *testing.T) {
 			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
 				atomic.AddInt32(&tokenReads, 1)
 				if deleted {
-					return acl.ErrNotFound
+					return cslerr.ACLNotFound
 				} else if modified {
 					_, token, _ := testIdentityForToken("racey-modified")
 					reply.Token = token.(*structs.ACLToken)
@@ -1472,7 +1473,7 @@ func TestACLResolver_Client(t *testing.T) {
 			policyResolveFn: func(args *structs.ACLPolicyBatchGetRequest, reply *structs.ACLPolicyBatchResponse) error {
 				atomic.AddInt32(&policyResolves, 1)
 				if deleted {
-					return acl.ErrNotFound
+					return cslerr.ACLNotFound
 				} else if !modified {
 					modified = true
 					return acl.ErrPermissionDenied
@@ -1526,7 +1527,7 @@ func TestACLResolver_Client(t *testing.T) {
 		// resolution will stop with the not found error (even though we still have the
 		// policies within the cache)
 		_, err = r.ResolveToken("a1a54629-5050-4d17-8a4e-560d2423f835")
-		require.EqualError(t, err, acl.ErrNotFound.Error())
+		require.EqualError(t, err, cslerr.ACLNotFound.Error())
 
 		require.True(t, modified)
 		require.True(t, deleted)
@@ -1555,7 +1556,7 @@ func TestACLResolver_Client(t *testing.T) {
 					_, token, _ := testIdentityForToken("concurrent-resolve")
 					reply.Token = token.(*structs.ACLToken)
 				default:
-					return acl.ErrNotFound
+					return cslerr.ACLNotFound
 				}
 
 				select {
@@ -2331,6 +2332,6 @@ func TestACLResolver_ResolveToken_UpdatesPurgeTheCache(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = srv.ACLResolver.ResolveToken(token)
-		require.True(t, acl.IsErrNotFound(err), "Error %v is not acl.ErrNotFound", err)
+		require.True(t, acl.IsErrNotFound(err), "Error %v is not cslerr.ACLNotFound", err)
 	})
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/proto-public/pbacl"
 )
 
@@ -62,7 +63,7 @@ func (s *Server) requireACLsEnabled(logger hclog.Logger) error {
 		return nil
 	}
 	logger.Warn("request blocked ACLs are disabled")
-	return status.Error(codes.FailedPrecondition, acl.ErrDisabled.Error())
+	return status.Error(codes.FailedPrecondition, cslerr.ACLDisabled.Error())
 }
 
 func (s *Server) requireLocalTokens(logger hclog.Logger) error {

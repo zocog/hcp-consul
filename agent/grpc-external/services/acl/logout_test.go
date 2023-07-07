@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/auth"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/proto-public/pbacl"
 )
 
@@ -92,7 +93,7 @@ func TestServer_Logout_LocalTokensDisabled(t *testing.T) {
 
 func TestServer_Logout_NoSuchToken(t *testing.T) {
 	tokenWriter := NewMockTokenWriter(t)
-	tokenWriter.On("Delete", mock.Anything, true).Return(acl.ErrNotFound)
+	tokenWriter.On("Delete", mock.Anything, true).Return(cslerr.ACLNotFound)
 
 	server := NewServer(Config{
 		ACLsEnabled:        true,

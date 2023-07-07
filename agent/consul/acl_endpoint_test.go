@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -242,7 +243,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 		err = aclEp.TokenRead(&req, &resp)
 		require.Nil(t, resp.Token)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 	})
 
 	t.Run("validates ID format", func(t *testing.T) {
@@ -1655,7 +1656,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		// Make sure the token is gone
 		tokenResp, err = retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", testToken.AccessorID)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 		require.Nil(t, tokenResp.Token)
 	})
 
@@ -1689,7 +1690,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		// Make sure the token is still gone (this time it's actually gone)
 		tokenResp, err = retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", expiringToken.AccessorID)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 		require.Nil(t, tokenResp.Token)
 	})
 
@@ -1708,7 +1709,7 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 		// Make sure the token is gone
 		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", existingToken.AccessorID)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 		require.Nil(t, tokenResp.Token)
 	})
 
@@ -1751,13 +1752,13 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		err = acl1.TokenDelete(&req, &resp)
 		require.Error(t, err)
-		require.ErrorIs(t, err, acl.ErrNotFound)
+		require.ErrorIs(t, err, cslerr.ACLNotFound)
 
 		// token should be nil
 		tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", existingToken.AccessorID)
 		require.Nil(t, tokenResp.Token)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 	})
 
 	t.Run("don't segfault when attempting to delete non existent token in secondary dc", func(t *testing.T) {
@@ -1774,13 +1775,13 @@ func TestACLEndpoint_TokenDelete(t *testing.T) {
 
 		err = acl2.TokenDelete(&req, &resp)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 
 		// token should be nil
 		tokenResp, err := retrieveTestToken(codec2, TestDefaultInitialManagementToken, "dc1", existingToken.AccessorID)
 		require.Nil(t, tokenResp.Token)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 	})
 }
 
@@ -3308,7 +3309,7 @@ func TestACLEndpoint_AuthMethodDelete(t *testing.T) {
 		var ignored bool
 		err = aclEp.AuthMethodDelete(&req, &ignored)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 	})
 }
 
@@ -3415,7 +3416,7 @@ func TestACLEndpoint_AuthMethodDelete_RuleAndTokenCascade(t *testing.T) {
 	for _, id := range []string{i1_t1.AccessorID, i1_t2.AccessorID} {
 		tokResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", id)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 		require.Nil(t, tokResp.Token)
 	}
 
@@ -3777,7 +3778,7 @@ func TestACLEndpoint_BindingRuleDelete(t *testing.T) {
 		var ignored bool
 		err = aclEp.BindingRuleDelete(&req, &ignored)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 	})
 }
 
@@ -4201,7 +4202,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		// absent in dc1
 		resp2, err = retrieveTestToken(codec1, TestDefaultInitialManagementToken, "dc1", remoteToken.AccessorID)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 		require.Nil(t, resp2.Token)
 	})
 
@@ -4261,7 +4262,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		// absent in dc2
 		resp2, err = retrieveTestToken(codec2, TestDefaultInitialManagementToken, "dc2", primaryToken.AccessorID)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 		require.Nil(t, resp2.Token)
 	})
 
@@ -4280,12 +4281,12 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		// absent in dc2
 		resp2, err := retrieveTestToken(codec2, TestDefaultInitialManagementToken, "dc2", remoteToken.AccessorID)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 		require.Nil(t, resp2.Token)
 		// absent in dc1
 		resp2, err = retrieveTestToken(codec1, TestDefaultInitialManagementToken, "dc1", remoteToken.AccessorID)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 		require.Nil(t, resp2.Token)
 	})
 
@@ -4307,7 +4308,7 @@ func TestACLEndpoint_SecureIntroEndpoints_OnlyCreateLocalData(t *testing.T) {
 		// absent in dc2
 		resp2, err = retrieveTestToken(codec2, TestDefaultInitialManagementToken, "dc2", primaryToken.AccessorID)
 		require.Error(t, err)
-		require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 		require.Nil(t, resp2.Token)
 	})
 

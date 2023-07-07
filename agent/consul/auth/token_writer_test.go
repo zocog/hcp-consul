@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/cslerr"
 )
 
 func TestTokenWriter_Create_Validation(t *testing.T) {
@@ -630,7 +631,7 @@ func TestTokenWriter_Delete(t *testing.T) {
 		})
 		err := writer.Delete(generateID(t), false)
 		require.Error(t, err)
-		require.True(t, errors.Is(err, acl.ErrNotFound))
+		require.True(t, errors.Is(err, cslerr.ACLNotFound))
 	})
 
 	t.Run("logout requires token to be created by login", func(t *testing.T) {

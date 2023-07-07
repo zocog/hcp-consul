@@ -13,11 +13,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/hashicorp/consul/acl"
 	resolver "github.com/hashicorp/consul/acl/resolver"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	structs "github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
 	"github.com/hashicorp/consul/version"
 )
@@ -82,7 +82,7 @@ func TestSupportedDataplaneFeatures_InvalidACLToken(t *testing.T) {
 	// Mock the ACL resolver to return ErrNotFound.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(resolver.Result{}, acl.ErrNotFound)
+		Return(resolver.Result{}, cslerr.ACLNotFound)
 
 	options := structs.QueryOptions{Token: testACLToken}
 	ctx, err := external.ContextWithQueryOptions(context.Background(), options)

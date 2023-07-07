@@ -14,11 +14,11 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
 	"github.com/hashicorp/consul/types"
 )
@@ -327,7 +327,7 @@ func TestGetEnvoyBootstrapParams_Unauthenticated(t *testing.T) {
 	// Mock the ACL resolver to return ErrNotFound.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(resolver.Result{}, acl.ErrNotFound)
+		Return(resolver.Result{}, cslerr.ACLNotFound)
 
 	options := structs.QueryOptions{Token: testToken}
 	ctx, err := external.ContextWithQueryOptions(context.Background(), options)

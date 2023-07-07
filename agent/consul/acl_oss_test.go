@@ -10,20 +10,20 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/cslerr"
 )
 
 func testIdentityForTokenEnterprise(string) (bool, structs.ACLIdentity, error) {
-	return true, nil, acl.ErrNotFound
+	return true, nil, cslerr.ACLNotFound
 }
 
 func testPolicyForIDEnterprise(string) (bool, *structs.ACLPolicy, error) {
-	return true, nil, acl.ErrNotFound
+	return true, nil, cslerr.ACLNotFound
 }
 
 func testRoleForIDEnterprise(string) (bool, *structs.ACLRole, error) {
-	return true, nil, acl.ErrNotFound
+	return true, nil, cslerr.ACLNotFound
 }
 
 // EnterpriseACLResolverTestDelegate stub

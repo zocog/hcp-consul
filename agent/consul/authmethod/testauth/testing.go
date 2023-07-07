@@ -11,9 +11,9 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/cslerr"
 )
 
 func init() {
@@ -134,7 +134,7 @@ func (v *Validator) Stop() {}
 func (v *Validator) ValidateLogin(ctx context.Context, loginToken string) (*authmethod.Identity, error) {
 	fields, valid := GetSessionToken(v.config.SessionID, loginToken)
 	if !valid {
-		return nil, acl.ErrNotFound
+		return nil, cslerr.ACLNotFound
 	}
 
 	id := v.NewIdentity()

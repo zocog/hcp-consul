@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -412,7 +413,7 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 	case JWTProvider:
 		return &JWTProviderConfigEntry{Kind: kind, Name: name}, nil
 	default:
-		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
+		return nil, cslerr.InvalidConfigEntryKind
 	}
 }
 

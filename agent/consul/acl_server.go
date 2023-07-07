@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/auth"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/cslerr"
 )
 
 var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -162,10 +163,10 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 		return true, &fallbackId, nil
 	}
 
-	defaultErr := acl.ErrNotFound
+	defaultErr := cslerr.ACLNotFound
 	canBootstrap, _, _ := s.fsm.State().CanBootstrapACLToken()
 	if canBootstrap {
-		defaultErr = fmt.Errorf("ACL system must be bootstrapped before making any requests that require authorization: %w", defaultErr)
+		defaultErr = defaultErr.Wrap(fmt.Errorf("ACL system must be bootstrapped before making any requests that require authorization"))
 	}
 	return s.InPrimaryDatacenter() || index > 0, nil, defaultErr
 }
@@ -181,7 +182,7 @@ func (s *serverACLResolverBackend) ResolvePolicyFromID(policyID string) (bool, *
 	// If the max index of the policies table is non-zero then we have acls, until then
 	// we may need to allow remote resolution. This is particularly useful to allow updating
 	// the replication token via the API in a non-primary dc.
-	return s.InPrimaryDatacenter() || index > 0, policy, acl.ErrNotFound
+	return s.InPrimaryDatacenter() || index > 0, policy, cslerr.ACLNotFound
 }
 
 func (s *serverACLResolverBackend) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
@@ -195,7 +196,7 @@ func (s *serverACLResolverBackend) ResolveRoleFromID(roleID string) (bool, *stru
 	// If the max index of the roles table is non-zero then we have acls, until then
 	// we may need to allow remote resolution. This is particularly useful to allow updating
 	// the replication token via the API in a non-primary dc.
-	return s.InPrimaryDatacenter() || index > 0, role, acl.ErrNotFound
+	return s.InPrimaryDatacenter() || index > 0, role, cslerr.ACLNotFound
 }
 
 func (s *Server) filterACL(token string, subj interface{}) error {
@@ -233,7 +234,7 @@ func (s *Server) loadAuthMethod(methodName string, entMeta *acl.EnterpriseMeta) 
 	if err != nil {
 		return nil, nil, err
 	} else if method == nil {
-		return nil, nil, fmt.Errorf("%w: auth method %q not found", acl.ErrNotFound, methodName)
+		return nil, nil, fmt.Errorf("%w: auth method %q not found", cslerr.ACLNotFound, methodName)
 	}
 
 	if err := s.enterpriseAuthMethodTypeValidation(method.Type); err != nil {

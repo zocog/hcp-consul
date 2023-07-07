@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/proto-public/pbacl"
 )
 
@@ -70,7 +71,7 @@ func TestServer_Login_LoadAuthMethodErrors(t *testing.T) {
 	}{
 		"auth method not found": {
 			// Note: we wrap the error here to make sure we correctly unwrap it in the handler.
-			error: fmt.Errorf("%w auth method not found", acl.ErrNotFound),
+			error: fmt.Errorf("%w auth method not found", cslerr.ACLNotFound),
 			code:  codes.InvalidArgument,
 		},
 		"unexpected error": {

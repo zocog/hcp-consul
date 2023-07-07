@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/auth"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/proto-public/pbacl"
 )
 
@@ -57,7 +58,7 @@ func (s *Server) Logout(ctx context.Context, req *pbacl.LogoutRequest) (*pbacl.L
 			return err
 		}, logger)
 		return rsp, err
-	case errors.Is(err, acl.ErrNotFound):
+	case errors.Is(err, cslerr.ACLNotFound):
 		// No token? Pretend the delete was successful (for idempotency).
 		return &pbacl.LogoutResponse{}, nil
 	case errors.Is(err, acl.ErrPermissionDenied):

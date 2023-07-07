@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/proto-public/pbconnectca"
 )
 
@@ -72,7 +73,7 @@ func TestSign_Validation(t *testing.T) {
 func TestSign_Unauthenticated(t *testing.T) {
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(resolver.Result{}, acl.ErrNotFound)
+		Return(resolver.Result{}, cslerr.ACLNotFound)
 
 	server := NewServer(Config{
 		Logger:         hclog.NewNullLogger(),

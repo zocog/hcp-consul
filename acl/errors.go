@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/hashicorp/consul/cslerr"
 )
 
 // These error constants define the standard ACL error types. The values
@@ -21,16 +23,6 @@ const (
 )
 
 var (
-	// ErrNotFound indicates there is no matching ACL.
-	ErrNotFound = errors.New(errNotFound)
-
-	// ErrRootDenied is returned when attempting to resolve a root ACL.
-	ErrRootDenied = errors.New(errRootDenied)
-
-	// ErrDisabled is returned when ACL changes are not permitted since
-	// they are disabled.
-	ErrDisabled = errors.New(errDisabled)
-
 	// ErrPermissionDenied is returned when an ACL based rejection
 	// happens.
 	ErrPermissionDenied = PermissionDeniedError{}
@@ -146,7 +138,7 @@ func extractAccessorID(authz interface{}) string {
 
 func ACLResourceNotExistError(resourceType string, entMeta EnterpriseMeta) error {
 	if ns := entMeta.NamespaceOrEmpty(); ns != "" {
-		return fmt.Errorf("Requested %s not found in namespace %s: %w", resourceType, ns, ErrNotFound)
+		return fmt.Errorf("Requested %s not found in namespace %s: %w", resourceType, ns, cslerr.ACLNotFound)
 	}
-	return fmt.Errorf("Requested %s does not exist: %w", resourceType, ErrNotFound)
+	return fmt.Errorf("Requested %s does not exist: %w", resourceType, cslerr.ACLNotFound)
 }

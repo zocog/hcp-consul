@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/logging"
 )
 
@@ -362,7 +363,7 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	if err == nil {
 		if resp.Token == nil {
 			r.cache.RemoveIdentityWithSecretToken(token)
-			return nil, acl.ErrNotFound
+			return nil, cslerr.ACLNotFound
 		} else if resp.Token.Local && r.config.Datacenter != resp.SourceDatacenter {
 			r.cache.RemoveIdentityWithSecretToken(token)
 			return nil, acl.PermissionDeniedError{Cause: fmt.Sprintf("This is a local token in datacenter %q", resp.SourceDatacenter)}
@@ -375,7 +376,7 @@ func (r *ACLResolver) fetchAndCacheIdentityFromToken(token string, cached *struc
 	if acl.IsErrNotFound(err) {
 		// Make sure to remove from the cache if it was deleted
 		r.cache.RemoveIdentityWithSecretToken(token)
-		return nil, acl.ErrNotFound
+		return nil, cslerr.ACLNotFound
 
 	}
 
@@ -555,7 +556,7 @@ func (r *ACLResolver) maybeHandleIdentityErrorDuringFetch(identity structs.ACLId
 		// Do not touch the cache. Getting a top level ACL not found error
 		// only indicates that the secret token used in the request
 		// no longer exists
-		return &policyOrRoleTokenError{acl.ErrNotFound, identity.SecretToken()}
+		return &policyOrRoleTokenError{cslerr.ACLNotFound, identity.SecretToken()}
 	}
 
 	if acl.IsErrPermissionDenied(err) {
@@ -900,9 +901,9 @@ func (r *ACLResolver) resolveTokenToIdentityAndPolicies(token string) (structs.A
 		if err != nil {
 			return nil, nil, err
 		} else if identity == nil {
-			return nil, nil, acl.ErrNotFound
+			return nil, nil, cslerr.ACLNotFound
 		} else if identity.IsExpired(time.Now()) {
-			return nil, nil, acl.ErrNotFound
+			return nil, nil, cslerr.ACLNotFound
 		}
 
 		lastIdentity = identity
@@ -916,7 +917,7 @@ func (r *ACLResolver) resolveTokenToIdentityAndPolicies(token string) (structs.A
 		if tokenErr, ok := err.(*policyOrRoleTokenError); ok {
 			if acl.IsErrNotFound(err) && tokenErr.token == identity.SecretToken() {
 				// token was deleted while resolving policies
-				return nil, nil, acl.ErrNotFound
+				return nil, nil, cslerr.ACLNotFound
 			}
 
 			// other types of policyOrRoleTokenErrors should cause retrying the whole token
@@ -939,9 +940,9 @@ func (r *ACLResolver) resolveTokenToIdentityAndRoles(token string) (structs.ACLI
 		if err != nil {
 			return nil, nil, err
 		} else if identity == nil {
-			return nil, nil, acl.ErrNotFound
+			return nil, nil, cslerr.ACLNotFound
 		} else if identity.IsExpired(time.Now()) {
-			return nil, nil, acl.ErrNotFound
+			return nil, nil, cslerr.ACLNotFound
 		}
 
 		lastIdentity = identity
@@ -955,7 +956,7 @@ func (r *ACLResolver) resolveTokenToIdentityAndRoles(token string) (structs.ACLI
 		if tokenErr, ok := err.(*policyOrRoleTokenError); ok {
 			if acl.IsErrNotFound(err) && tokenErr.token == identity.SecretToken() {
 				// token was deleted while resolving roles
-				return nil, nil, acl.ErrNotFound
+				return nil, nil, cslerr.ACLNotFound
 			}
 
 			// other types of policyOrRoleTokenErrors should cause retrying the whole token
@@ -1005,7 +1006,7 @@ func (r *ACLResolver) ResolveToken(tokenSecretID string) (resolver.Result, error
 	}
 
 	if acl.RootAuthorizer(tokenSecretID) != nil {
-		return resolver.Result{}, acl.ErrRootDenied
+		return resolver.Result{}, cslerr.ACLRootDenied
 	}
 
 	// handle the anonymous token

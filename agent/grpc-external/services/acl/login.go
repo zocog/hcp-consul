@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/auth"
 	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/proto-public/pbacl"
 )
 
@@ -53,7 +54,7 @@ func (s *Server) Login(ctx context.Context, req *pbacl.LoginRequest) (*pbacl.Log
 
 	authMethod, validator, err := s.LoadAuthMethod(req.AuthMethod, &entMeta)
 	switch {
-	case errors.Is(err, acl.ErrNotFound):
+	case errors.Is(err, cslerr.ACLNotFound):
 		return nil, status.Errorf(codes.InvalidArgument, "auth method %q not found", req.AuthMethod)
 	case err != nil:
 		logger.Error("failed to load auth method", "error", err.Error())

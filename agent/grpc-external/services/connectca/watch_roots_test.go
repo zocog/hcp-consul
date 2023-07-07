@@ -17,12 +17,12 @@ import (
 
 	"github.com/hashicorp/go-uuid"
 
-	"github.com/hashicorp/consul/acl"
 	resolver "github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/connect"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/proto-public/pbconnectca"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -107,7 +107,7 @@ func TestWatchRoots_InvalidACLToken(t *testing.T) {
 	// Mock the ACL resolver to return ErrNotFound.
 	aclResolver := &MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(resolver.Result{}, acl.ErrNotFound)
+		Return(resolver.Result{}, cslerr.ACLNotFound)
 
 	options := structs.QueryOptions{Token: testACLToken}
 	ctx, err := external.ContextWithQueryOptions(context.Background(), options)
@@ -189,7 +189,7 @@ func TestWatchRoots_ACLTokenInvalidated(t *testing.T) {
 
 	// Simulate deleting the ACL token.
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLToken, mock.Anything, mock.Anything).
-		Return(resolver.Result{}, acl.ErrNotFound)
+		Return(resolver.Result{}, cslerr.ACLNotFound)
 
 	// Update the ACL token to cause the subscription to be force-closed.
 	err = fsm.GetStore().ACLTokenSet(1, &structs.ACLToken{

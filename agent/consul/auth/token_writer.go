@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -223,7 +224,7 @@ func (w *TokenWriter) Delete(secretID string, fromLogout bool) error {
 	case err != nil:
 		return err
 	case token == nil:
-		return acl.ErrNotFound
+		return cslerr.ACLNotFound
 	case token.AuthMethod == "" && fromLogout:
 		return fmt.Errorf("%w: token wasn't created via login", acl.ErrPermissionDenied)
 	}
