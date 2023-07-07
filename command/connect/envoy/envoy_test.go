@@ -20,10 +20,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -1585,7 +1585,7 @@ func testMockTokenReadSelf(aclEnabled bool, flags []string) http.HandlerFunc {
 				}
 			}
 			w.WriteHeader(403)
-			w.Write([]byte(acl.ErrNotFound.Error()))
+			w.Write([]byte(cslerr.ACLNotFound.Error()))
 			return
 		}
 	}

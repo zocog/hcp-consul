@@ -18,9 +18,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/square/go-jose.v2/jwt"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
@@ -1890,7 +1890,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			_, err := a.srv.ACLTokenCRUD(resp, req)
 			require.Error(t, err)
-			require.ErrorContains(t, err, acl.ErrNotFound.Error())
+			require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 		})
 	})
 }
@@ -2055,7 +2055,7 @@ func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
 				// make the request
 				_, err = a.srv.ACLTokenCRUD(resp, req)
 				require.Error(t, err)
-				require.ErrorContains(t, err, acl.ErrNotFound.Error())
+				require.ErrorContains(t, err, cslerr.ACLNotFound.Error())
 			})
 		})
 	}
@@ -2502,7 +2502,7 @@ func TestACL_Authorize(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		raw, err := a1.srv.ACLAuthorize(recorder, req)
 		require.Error(t, err)
-		require.Equal(t, acl.ErrNotFound, err)
+		require.Equal(t, cslerr.ACLNotFound, err)
 		require.Nil(t, raw)
 	})
 
@@ -2538,7 +2538,7 @@ func TestACL_Authorize(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		raw, err := a1.srv.ACLAuthorize(recorder, req)
 		require.Error(t, err)
-		require.Equal(t, acl.ErrNotFound, err)
+		require.Equal(t, cslerr.ACLNotFound, err)
 		require.Nil(t, raw)
 	})
 }

@@ -413,7 +413,11 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 	case JWTProvider:
 		return &JWTProviderConfigEntry{Kind: kind, Name: name}, nil
 	default:
-		return nil, cslerr.InvalidConfigEntryKind
+		return nil, cslerr.New(
+			20,
+			fmt.Sprintf("Invalid config entry kind %s", kind),
+			"For a list of valid config entry kinds see the documentation at https://developer.hashicorp.com/consul/docs/connect/config-entries",
+		)
 	}
 }
 

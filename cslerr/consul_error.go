@@ -18,7 +18,7 @@ type ConsulError struct {
 	inner []error
 }
 
-func NewConsulError(code int, message string, remedy string) *ConsulError {
+func New(code int, message string, remedy string) *ConsulError {
 	e := &ConsulError{
 		Code:    code,
 		Message: message,

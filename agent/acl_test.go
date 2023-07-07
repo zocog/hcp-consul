@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
@@ -170,7 +171,7 @@ func TestACL_Version8EnabledByDefault(t *testing.T) {
 	called := false
 	resolveFn := func(string) (structs.ACLIdentity, acl.Authorizer, error) {
 		called = true
-		return nil, nil, acl.ErrNotFound
+		return nil, nil, cslerr.ACLNotFound
 	}
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), resolveFn, nil)
 
@@ -238,7 +239,7 @@ var (
 func catalogPolicy(testACL string) (structs.ACLIdentity, acl.Authorizer, error) {
 	tok, ok := testACLs[testACL]
 	if !ok {
-		return nil, nil, acl.ErrNotFound
+		return nil, nil, cslerr.ACLNotFound
 	}
 
 	policy, err := acl.NewPolicyFromSource(tok.rules, nil, nil)
@@ -253,7 +254,7 @@ func catalogPolicy(testACL string) (structs.ACLIdentity, acl.Authorizer, error) 
 func catalogIdent(testACL string) (structs.ACLIdentity, error) {
 	tok, ok := testACLs[testACL]
 	if !ok {
-		return nil, acl.ErrNotFound
+		return nil, cslerr.ACLNotFound
 	}
 
 	return &tok.token, nil

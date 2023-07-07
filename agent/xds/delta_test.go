@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/cslerr"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -1199,7 +1200,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedDuri
 
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		if token := validToken.Load(); token == nil || id != token.(string) {
-			return nil, acl.ErrNotFound
+			return nil, cslerr.ACLNotFound
 		}
 
 		return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)
@@ -1297,7 +1298,7 @@ func TestServer_DeltaAggregatedResources_v3_ACLTokenDeleted_StreamTerminatedInBa
 
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		if token := validToken.Load(); token == nil || id != token.(string) {
-			return nil, acl.ErrNotFound
+			return nil, cslerr.ACLNotFound
 		}
 
 		return acl.NewPolicyAuthorizerWithDefaults(acl.RootAuthorizer("deny"), []*acl.Policy{policy}, nil)

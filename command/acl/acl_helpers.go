@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/cslerr"
 )
 
 func GetTokenAccessorIDFromPartial(client *api.Client, partialAccessorID string) (string, error) {
@@ -166,7 +167,7 @@ func GetBindingRuleIDFromPartial(client *api.Client, partialID string) (string, 
 	}
 
 	if ruleID == "" {
-		return "", fmt.Errorf("no such rule ID with prefix: %s: %w", partialID, acl.ErrNotFound)
+		return "", fmt.Errorf("no such rule ID with prefix: %s: %w", partialID, cslerr.ACLNotFound)
 	}
 
 	return ruleID, nil
