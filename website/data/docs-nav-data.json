@@ -92,6 +92,10 @@
       {
         "title": "Kubernetes",
         "href": "/docs/k8s"
+      },
+      {
+        "title": "Common Error Messages",
+        "path": "common-errors"
       }
     ]
   },
