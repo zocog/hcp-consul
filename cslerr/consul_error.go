@@ -3,13 +3,13 @@ package cslerr
 import "fmt"
 
 var (
-	errorRegistry = make(map[int]*ConsulError)
+	ErrorRegistry = make(map[int]*ConsulError)
 )
 
 // ConsulError is a custom error type that is used to represent errors
 // originating in the Consul source code. It includes a code, message,
 // and remedy.
-// The code should be a fixed integer value that users can reference
+// The code should be a fixed integer value that users can reference.
 type ConsulError struct {
 	Code    int
 	Message string
@@ -27,10 +27,10 @@ func New(code int, message string, remedy string) *ConsulError {
 
 	// Register the error so that a collection of all Consul errors can be referenced later.
 	// This is useful for generating documentation and for ensuring that error codes are unique.
-	if _, ok := errorRegistry[code]; ok {
+	if _, ok := ErrorRegistry[code]; ok {
 		panic(fmt.Sprintf("Consul error code %d is already registered", code))
 	}
-	errorRegistry[code] = e
+	ErrorRegistry[code] = e
 
 	return e
 }
