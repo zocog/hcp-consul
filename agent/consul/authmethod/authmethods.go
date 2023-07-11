@@ -58,6 +58,10 @@ type Validator interface {
 	Stop()
 }
 
+type Store interface {
+	GetWithValidator(authMethod string, entMeta *acl.EnterpriseMeta) (*structs.ACLAuthMethod, Validator, error)
+}
+
 type Identity struct {
 	// SelectableFields is the format of this Identity suitable for selection
 	// with a binding rule.

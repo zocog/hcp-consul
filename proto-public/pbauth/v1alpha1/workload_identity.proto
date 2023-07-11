@@ -1,0 +1,21 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.auth.v1alpha1;
+
+import "pbresource/resource.proto";
+import "google/protobuf/any.proto";
+
+message WorkloadIdentity {
+  AuthMethodRef auth_method_ref = 1;
+  google.protobuf.Any for_identity = 2;
+}
+
+message AuthMethodRef {
+  string name = 1;
+  string namespace = 2;
+  string partition = 3;
+  string datacenter = 4;
+}

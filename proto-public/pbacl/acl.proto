@@ -6,6 +6,7 @@ syntax = "proto3";
 package hashicorp.consul.acl;
 
 import "annotations/ratelimit/ratelimit.proto";
+import "pbresource/resource.proto";
 
 service ACLService {
   // Login exchanges the presented bearer token for a Consul ACL token using a
@@ -51,6 +52,8 @@ message LoginRequest {
 
   // datacenter is the target datacenter in which the request will be processed.
   string datacenter = 6;
+
+  hashicorp.consul.resource.ID workload_identity = 7;
 }
 
 message LoginResponse {

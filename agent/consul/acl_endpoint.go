@@ -151,7 +151,7 @@ func (a *ACL) fileBootstrapResetIndex() uint64 {
 }
 
 func (a *ACL) removeBootstrapResetFile() {
-	if err := os.Remove(filepath.Join(a.srv.config.DataDir, aclBootstrapReset)); err != nil {
+	if err := os.RemoveAll(filepath.Join(a.srv.config.DataDir, aclBootstrapReset)); err != nil {
 		a.logger.Warn("failed to remove bootstrap file", "error", err)
 	}
 }
@@ -364,6 +364,11 @@ func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, tok
 		policy := identity.SyntheticPolicy(&token.EnterpriseMeta)
 		identityPolicies[policy.ID] = policy
 	}
+	if token.WorkloadIdentity != nil {
+		policy := token.WorkloadIdentity.SyntheticPolicy()
+		identityPolicies[policy.ID] = policy
+	}
+
 	for _, identity := range token.NodeIdentities {
 		policy := identity.SyntheticPolicy(&token.EnterpriseMeta)
 		identityPolicies[policy.ID] = policy
@@ -403,6 +408,11 @@ func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, tok
 		}
 		for _, identity := range role.NodeIdentities {
 			policy := identity.SyntheticPolicy(&role.EnterpriseMeta)
+			identityPolicies[policy.ID] = policy
+		}
+
+		if token.WorkloadIdentity != nil {
+			policy := token.WorkloadIdentity.SyntheticPolicy()
 			identityPolicies[policy.ID] = policy
 		}
 

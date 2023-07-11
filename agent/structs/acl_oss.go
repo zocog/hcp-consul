@@ -31,6 +31,14 @@ node_prefix "" {
 	policy = "read"
 }`
 
+	aclPolicyTemplateWorkloadIdentity = `
+service "%[1]s" {
+	policy = "write"
+}
+service_prefix "" {
+	policy = "read"
+}`
+
 	// A typical Consul node requires two permissions for itself.
 	// node:write
 	//    - register itself in the catalog
@@ -64,6 +72,10 @@ func (_ *ACLAuthMethodEnterpriseMeta) ToEnterpriseMeta() *acl.EnterpriseMeta {
 
 func aclServiceIdentityRules(svc string, _ *acl.EnterpriseMeta) string {
 	return fmt.Sprintf(aclPolicyTemplateServiceIdentity, svc)
+}
+
+func aclWorkloadIdentityRules(name string, _ *acl.EnterpriseMeta) string {
+	return fmt.Sprintf(aclPolicyTemplateServiceIdentity, name)
 }
 
 func aclNodeIdentityRules(node string, _ *acl.EnterpriseMeta) string {

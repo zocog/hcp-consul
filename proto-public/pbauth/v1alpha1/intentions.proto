@@ -17,16 +17,18 @@ message Intentions {
   // Action can be either allow or deny for the entire object.
   //
   // If action is allow,
-  // we will allow the connection if and only if any rule in Rules matches, in other words, we will deny
+  // we will allow the connection if one of the rules in Rules matches, in other words, we will deny
   // all requests except for the ones that match Rules. If Consul is in default allow mode, then allow
   // actions have no effect without a deny permission as everything is allowed by default.
   //
   // If action is deny,
-  // we will allow the connection if and only if none of the rules in Rules match, in other words,
+  // we will deny the connection if one of the rules in Rules match, in other words,
   // we will allow all requests except for the ones that match Rules.
   Action action = 2;
 
-  repeated Rules rules = 3;
+  // rules is a list of rules in this Intention. Rules are evaluated in order that they are provided
+  // and are applied using OR semantics.
+  repeated Rule rules = 3;
 }
 
 enum Action {
@@ -34,9 +36,15 @@ enum Action {
   ACTION_DENY = 1;
 }
 
-message Rules {
+message Rule {
+  // sources is a list of sources in this intention. Different sources will be OR'ed together
+  // and will be evaluated in order to find a match. For example, if a namespace reference source
+  // is provided before the specific identity from the same source namespace, the namespace reference will
+  // be matched first because it's provided before the the specific identity.
   repeated Source sources = 1;
 
+  // permissions is a list of permissions to apply for matching sources in this Rule. Permissions
+  // are applied using OR semantics.
   repeated Permission permissions = 2;
 }
 
@@ -46,24 +54,34 @@ message Rules {
 //  * an identity within a namespace and sameness group
 //  * all identities within a namespace
 //  * all identities within a partition
+//  * all identities within a peer
+//  * all identities within a sameness group
 message Source {
   oneof source_ref {
-    // IdentityRef should be used when the source has a specific identity associated with it.
-    IdentityRef identity = 1;
-    // NamespaceRef should be used to say that the source is all identities within a namespace.
-    NamespaceRef namespace = 2;
-    // PartitionRef should be used to say that the source is all identities within a partition.
-    PartitionRef partition = 3;
+    // identity_ref can be used when the source has a specific identity associated with it.
+    IdentityRef identity_ref = 1;
 
-    // NotRef is used to negate the source.
-    // NotRef cannot reference another NotRef and can only reference one of IdentityRef,
-    // NamespaceRef or PartitionRef.
-    NotRef not = 4;
+    // namespace_ref can be used to say that the source is all identities within a namespace.
+    NamespaceRef namespace_ref = 2;
+
+    // partition_ref can be used to say that the source is all identities within a partition.
+    string partition_ref = 3;
+
+    // peer_ref should can be used to say that the source is all identities within a peer.
+    string peer_ref = 4;
+
+    // sameness_group_ref can be used to say that the source is all identities within a sameness group.
+    string sameness_group_ref = 5;
+
+    // not can be used to negate the source. For example, to say that the source is not a certain identity.
+    // It cannot reference another NotRef and can only be one of the other reference types. This will be enforced
+    // by the validation hook of this resource.
+    Source not = 6;
   }
 }
 
 // IdentityRef is reference to a specific identity belonging to a namespace and
-// a partition, or a peer, or a sameness group
+// a partition, a peer, or a sameness group.
 message IdentityRef {
   string name = 1;
   string namespace = 2;
@@ -77,31 +95,47 @@ message IdentityRef {
 // NamespaceRef is a reference to a namespace.
 message NamespaceRef {
   string namespace = 1;
-  string partition = 2;
-}
-
-// PartitionRef is a reference to a partition.
-message PartitionRef {
-  string partition = 1;
+  oneof peer_or_partition_or_sg {
+    string peer = 3;
+    string partition = 4;
+    string sameness_group = 5;
+  }
 }
 
 message NotRef {
-  Source not_source = 1;
+  oneof not_ref {
+    // identity_ref can be used when the source has a specific identity associated with it.
+    IdentityRef identity_ref = 1;
+
+    // namespace_ref can be used to say that the source is all identities within a namespace.
+    NamespaceRef namespace_ref = 2;
+
+    // partition_ref can be used to say that the source is all identities within a partition.
+    string partition_ref = 3;
+
+    // peer_ref should can be used to say that the source is all identities within a peer.
+    string peer_ref = 4;
+
+    // sameness_group_ref can be used to say that the source is all identities within a sameness group.
+    string sameness_group_ref = 5;
+  }
 }
 
 message Permission {
   oneof perm {
-    PermissionRule perm_rule = 1;
-    NotPermissionRule not_perm_rule = 2;
+    PermissionRule rule = 1;
+    PermissionRule not_rule = 2;
   }
 }
 
 message PermissionRule {
   // http specifies L7 permission rules. If destination_ports have non-L7 protocols,
-  // this rule is not considered valid.
+  // this rule is not considered valid. These rules will be ignored for any ports with non-L7 protocols when action is ALLOW.
+  // If action is DENY,
   HTTPPermissionRules http = 1;
 
-  // destination_ports is a list of ports to apply this rule to. The list
+  // destination_ports is a list of ports to apply this rule to. The ports specified here
+  // must be the ports used in the connection. The list
   // values are OR'ed together if multiple are provided. If no ports provided,
   // this rule will apply to all ports.
   repeated uint32 destination_ports = 2;
@@ -115,6 +149,7 @@ message HTTPPermissionRules {
   // methods is the list of HTTP methods. If no methods are specified,
   // this rule will apply to all methods.
   repeated string methods = 4;
+
   PermissionHeader header = 5;
 }
 

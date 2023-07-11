@@ -6,6 +6,7 @@ package auth
 import (
 	"fmt"
 
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-memdb"
 
@@ -40,10 +41,11 @@ type BinderStateStore interface {
 // Bindings contains the ACL roles, service identities, node identities and
 // enterprise meta to be assigned to the created token.
 type Bindings struct {
-	Roles             []structs.ACLTokenRoleLink
-	ServiceIdentities []*structs.ACLServiceIdentity
-	NodeIdentities    []*structs.ACLNodeIdentity
-	EnterpriseMeta    acl.EnterpriseMeta
+	Roles              []structs.ACLTokenRoleLink
+	ServiceIdentities  []*structs.ACLServiceIdentity
+	NodeIdentities     []*structs.ACLNodeIdentity
+	WorkloadIdentities []*pbauth.WorkloadIdentity
+	EnterpriseMeta     acl.EnterpriseMeta
 }
 
 // None indicates that the resulting bindings would not give the created token
@@ -124,6 +126,24 @@ func (b *Binder) Bind(authMethod *structs.ACLAuthMethod, verifiedIdentity *authm
 	}
 
 	return &bindings, nil
+}
+
+// Bind collects the ACL roles, service identities, etc. to be assigned to the
+// created token.
+func (b *Binder) CanBindToWorkloadIdentity(authMethod *structs.ACLAuthMethod) (bool, error) {
+	// Load the auth method's binding rules.
+	_, rules, err := b.store.ACLBindingRuleList(nil, authMethod.Name, &authMethod.EnterpriseMeta)
+	if err != nil {
+		return false, err
+	}
+
+	// Find the rules with selectors that match the identity's fields.
+	for _, rule := range rules {
+		if rule.BindType == structs.BindingRuleBindTypeWorkloadIdentity {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // IsValidBindName returns whether the given BindName template produces valid

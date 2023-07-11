@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/lib/stringslice"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 
 	"golang.org/x/crypto/blake2b"
 
@@ -169,6 +171,27 @@ func (s *ACLServiceIdentity) SyntheticPolicy(entMeta *acl.EnterpriseMeta) *ACLPo
 	return policy
 }
 
+func (s *WorkloadIdentity) SyntheticPolicy() *ACLPolicy {
+	// Given that we validate this string name before persisting, we do not
+	// have to escape it before doing the following interpolation.
+	rules := aclWorkloadIdentityRules(s.IdentityResource.Id.Name, nil)
+
+	hasher := fnv.New128a()
+	hashID := fmt.Sprintf("%x", hasher.Sum([]byte(rules)))
+
+	policy := &ACLPolicy{}
+	policy.ID = hashID
+	policy.Name = fmt.Sprintf("synthetic-policy-%s", hashID)
+	// todo: this should have proper name/ns/partition
+	policy.Description = fmt.Sprintf("synthetic policy for workload identity %q", s.IdentityResource.Id.Name)
+	policy.Rules = rules
+	// todo: handle datacenters and ent meta
+	//policy.Datacenters = s.Datacenters
+	//policy.EnterpriseMeta.Merge(entMeta)
+	policy.SetHash(true)
+	return policy
+}
+
 type ACLServiceIdentities []*ACLServiceIdentity
 
 // Deduplicate returns a new list of service identities without duplicates.
@@ -242,6 +265,11 @@ func (s *ACLNodeIdentity) SyntheticPolicy(entMeta *acl.EnterpriseMeta) *ACLPolic
 
 type ACLNodeIdentities []*ACLNodeIdentity
 
+type WorkloadIdentity struct {
+	IdentityResource *pbresource.Resource
+	workloadIdentity *pbauth.WorkloadIdentity
+}
+
 // Deduplicate returns a new list of node identities without duplicates.
 func (ids ACLNodeIdentities) Deduplicate() ACLNodeIdentities {
 	type mapKey struct {
@@ -286,6 +314,8 @@ type ACLToken struct {
 
 	// The node identities that this token should be allowed to manage.
 	NodeIdentities ACLNodeIdentities `json:",omitempty"`
+
+	WorkloadIdentity *WorkloadIdentity `json:",omitempty"`
 
 	// Whether this token is DC local. This means that it will not be synced
 	// to the ACL datacenter and replicated to others.
@@ -1005,6 +1035,8 @@ const (
 	//   }
 	// }
 	BindingRuleBindTypeNode = "node"
+
+	BindingRuleBindTypeWorkloadIdentity = "workload-identity"
 )
 
 type ACLBindingRule struct {

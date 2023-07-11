@@ -6,6 +6,7 @@ package acl
 import (
 	"context"
 
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -28,11 +29,13 @@ type Config struct {
 	InPrimaryDatacenter       bool
 	PrimaryDatacenter         string
 	NewTokenWriter            func() TokenWriter
+	Client                    pbresource.ResourceServiceClient
 }
 
 //go:generate mockery --name Login --inpackage
 type Login interface {
 	TokenForVerifiedIdentity(identity *authmethod.Identity, authMethod *structs.ACLAuthMethod, description string) (*structs.ACLToken, error)
+	TokenForWorkloadIdentity(ctx context.Context, identityResource *pbresource.Resource, bearerToken string, meta map[string]string) (*structs.ACLToken, error)
 }
 
 //go:generate mockery --name Validator --inpackage

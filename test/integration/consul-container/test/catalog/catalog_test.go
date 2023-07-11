@@ -9,7 +9,7 @@ import (
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 
 	"github.com/hashicorp/consul/internal/catalog/catalogtest"
-	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestCatalog(t *testing.T) {
@@ -21,6 +21,7 @@ func TestCatalog(t *testing.T) {
 		Cmd:        `-hcl=experiments=["resource-apis"]`,
 	})
 
+	libtopology.CreateServices()
 	followers, err := cluster.Followers()
 	require.NoError(t, err)
 	client := pbresource.NewResourceServiceClient(followers[0].GetGRPCConn())

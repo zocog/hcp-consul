@@ -2,6 +2,7 @@ package endpoints
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
@@ -32,6 +33,7 @@ func TestWorkloadsToEndpoints(t *testing.T) {
 	service := &pbcatalog.Service{
 		Ports: []*pbcatalog.ServicePort{
 			{TargetPort: "http2", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+			{TargetPort: "grpc", Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
 		},
 	}
 
@@ -45,6 +47,7 @@ func TestWorkloadsToEndpoints(t *testing.T) {
 		Addresses: workloadAddresses,
 		Ports: map[string]*pbcatalog.WorkloadPort{
 			"http2": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+			"grpc":  {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
 		},
 	}
 
@@ -52,7 +55,7 @@ func TestWorkloadsToEndpoints(t *testing.T) {
 	workloadData2 := &pbcatalog.Workload{
 		Addresses: workloadAddresses,
 		Ports: map[string]*pbcatalog.WorkloadPort{
-			"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			"http2": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
 		},
 	}
 
@@ -76,6 +79,7 @@ func TestWorkloadsToEndpoints(t *testing.T) {
 
 	endpoints := workloadsToEndpoints(service, workloads)
 	require.Len(t, endpoints.Endpoints, 1)
+	fmt.Println(endpoints.Endpoints)
 	prototest.AssertDeepEqual(t, workloads[0].resource.Id, endpoints.Endpoints[0].TargetRef)
 }
 

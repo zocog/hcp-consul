@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -51,45 +52,71 @@ func (s *Server) Login(ctx context.Context, req *pbacl.LoginRequest) (*pbacl.Log
 		return nil, err
 	}
 
-	authMethod, validator, err := s.LoadAuthMethod(req.AuthMethod, &entMeta)
-	switch {
-	case errors.Is(err, acl.ErrNotFound):
-		return nil, status.Errorf(codes.InvalidArgument, "auth method %q not found", req.AuthMethod)
-	case err != nil:
-		logger.Error("failed to load auth method", "error", err.Error())
-		return nil, status.Error(codes.Internal, "failed to load auth method")
-	}
+	if req.WorkloadIdentity != nil {
+		// Look up workload identity.
+		resp, err := s.Client.Read(ctx, &pbresource.ReadRequest{Id: req.WorkloadIdentity})
+		switch {
+		case status.Code(err) == codes.NotFound:
+			return nil, status.Errorf(codes.PermissionDenied, "workload identity is not found")
+		case err != nil:
+			return nil, status.Errorf(codes.Internal, err.Error())
+		}
+		token, err := s.NewLogin().TokenForWorkloadIdentity(ctx, resp.Resource, req.BearerToken, req.Meta)
+		switch {
+		case acl.IsErrPermissionDenied(err):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		case err != nil:
+			logger.Error("failed to create token", "error", err.Error())
+			return nil, status.Error(codes.Internal, "failed to create token")
+		}
 
-	verifiedIdentity, err := validator.ValidateLogin(ctx, req.BearerToken)
-	if err != nil {
-		// TODO(agentless): errors returned from validators aren't standardized so
-		// it's hard to tell whether validation failed because of an invalid bearer
-		// token or something internal/transient. We currently return Unauthenticated
-		// for all errors because it's the most likely, but we should make validators
-		// return a typed or sentinel error instead.
-		logger.Error("failed to validate login", "error", err.Error())
-		return nil, status.Error(codes.Unauthenticated, err.Error())
-	}
+		return &pbacl.LoginResponse{
+			Token: &pbacl.LoginToken{
+				AccessorId: token.AccessorID,
+				SecretId:   token.SecretID,
+			},
+		}, nil
+	} else {
+		authMethod, validator, err := s.LoadAuthMethod(req.AuthMethod, &entMeta)
+		switch {
+		case errors.Is(err, acl.ErrNotFound):
+			return nil, status.Errorf(codes.InvalidArgument, "auth method %q not found", req.AuthMethod)
+		case err != nil:
+			logger.Error("failed to load auth method", "error", err.Error())
+			return nil, status.Error(codes.Internal, "failed to load auth method")
+		}
 
-	description, err := auth.BuildTokenDescription("token created via login", req.Meta)
-	if err != nil {
-		logger.Error("failed to build token description", "error", err.Error())
-		return nil, status.Error(codes.Internal, err.Error())
-	}
+		verifiedIdentity, err := validator.ValidateLogin(ctx, req.BearerToken)
+		if err != nil {
+			// TODO(agentless): errors returned from validators aren't standardized so
+			// it's hard to tell whether validation failed because of an invalid bearer
+			// token or something internal/transient. We currently return Unauthenticated
+			// for all errors because it's the most likely, but we should make validators
+			// return a typed or sentinel error instead.
+			logger.Error("failed to validate login", "error", err.Error())
+			return nil, status.Error(codes.Unauthenticated, err.Error())
+		}
 
-	token, err := s.NewLogin().TokenForVerifiedIdentity(verifiedIdentity, authMethod, description)
-	switch {
-	case acl.IsErrPermissionDenied(err):
-		return nil, status.Error(codes.PermissionDenied, err.Error())
-	case err != nil:
-		logger.Error("failed to create token", "error", err.Error())
-		return nil, status.Error(codes.Internal, "failed to create token")
-	}
+		description, err := auth.BuildTokenDescription("token created via login", req.Meta)
+		if err != nil {
+			logger.Error("failed to build token description", "error", err.Error())
+			return nil, status.Error(codes.Internal, err.Error())
+		}
 
-	return &pbacl.LoginResponse{
-		Token: &pbacl.LoginToken{
-			AccessorId: token.AccessorID,
-			SecretId:   token.SecretID,
-		},
-	}, nil
+		token, err := s.NewLogin().TokenForVerifiedIdentity(verifiedIdentity, authMethod, description)
+		switch {
+		case acl.IsErrPermissionDenied(err):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		case err != nil:
+			logger.Error("failed to create token", "error", err.Error())
+			return nil, status.Error(codes.Internal, "failed to create token")
+		}
+
+		return &pbacl.LoginResponse{
+			Token: &pbacl.LoginToken{
+				AccessorId: token.AccessorID,
+				SecretId:   token.SecretID,
+			},
+		}, nil
+	}
 }
