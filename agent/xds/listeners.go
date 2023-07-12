@@ -680,7 +680,8 @@ func makeFilterChainMatchFromAddrs(addrs map[string]struct{}) *envoy_listener_v3
 	})
 
 	return &envoy_listener_v3.FilterChainMatch{
-		PrefixRanges: ranges,
+		PrefixRanges:    ranges,
+		DestinationPort: makeUint32Value(80), // hard-code static-server service port
 	}
 }
 
@@ -1427,16 +1428,29 @@ func (s *ResourceGenerator) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot
 
 	if len(l.FilterChains) > 0 {
 		// The list of FilterChains has already been initialized
+		l.FilterChains[0].FilterChainMatch = &envoy_listener_v3.FilterChainMatch{
+			ApplicationProtocols: []string{"foo"},
+		}
 		l.FilterChains[0].Filters = append(l.FilterChains[0].Filters, filter)
 	} else {
 		l.FilterChains = []*envoy_listener_v3.FilterChain{
 			{
+				FilterChainMatch: &envoy_listener_v3.FilterChainMatch{
+					ApplicationProtocols: []string{"foo"},
+				},
 				Filters: []*envoy_listener_v3.Filter{
 					filter,
 				},
 			},
 		}
 	}
+
+	// Also allow the listener to look at TLS info such as ALPN protocols or SNI.
+	tlsInspector, err := makeTLSInspectorListenerFilter()
+	if err != nil {
+		return nil, err
+	}
+	l.ListenerFilters = []*envoy_listener_v3.ListenerFilter{tlsInspector}
 
 	err = s.finalizePublicListenerFromConfig(l, cfgSnap, useHTTPFilter)
 	if err != nil {

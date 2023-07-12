@@ -1550,6 +1550,8 @@ func (s *ResourceGenerator) makeUpstreamClustersForDiscoveryChain(
 			}
 
 			if targetInfo := groupedTarget.Targets[0]; targetInfo.TLSContext != nil {
+				// First set ALPN protocol for the outgoing connection
+				targetInfo.TLSContext.CommonTlsContext.AlpnProtocols = []string{"foo"}
 				transportSocket, err := makeUpstreamTLSTransportSocket(targetInfo.TLSContext)
 				if err != nil {
 					return nil, err
