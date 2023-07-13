@@ -370,7 +370,7 @@ type Agent struct {
 	// server to be pushed out to Envoy.
 	proxyConfig *proxycfg.Manager
 
-	catalogv2ProxyCfgSource *catalogv2proxycfg.ConfigSource
+	proxyTracker *catalogv2proxycfg.ProxyTracker
 
 	// serviceManager is the manager for combining local service registrations with
 	// the centrally configured proxy/service defaults.
@@ -677,12 +677,12 @@ func (a *Agent) Start(ctx context.Context) error {
 			incomingRPCLimiter,
 		)
 
-		catalogv2Cfg := catalogv2proxycfg.NewConfigSource()
+		proxyTracker := catalogv2proxycfg.NewProxyTracker()
 		go func() {
 			<-a.shutdownCh
-			catalogv2Cfg.Shutdown()
+			proxyTracker.Shutdown()
 		}()
-		a.catalogv2ProxyCfgSource = catalogv2Cfg
+		a.proxyTracker = proxyTracker
 
 		server, err := consul.NewServer(
 			consulCfg,
@@ -690,7 +690,7 @@ func (a *Agent) Start(ctx context.Context) error {
 			a.externalGRPCServer,
 			incomingRPCLimiter,
 			serverLogger,
-			catalogv2Cfg,
+			proxyTracker,
 			a.leafCertManager,
 		)
 		if err != nil {
@@ -923,7 +923,7 @@ func (a *Agent) listenAndServeGRPC() error {
 	// TODO(agentless): rather than asserting the concrete type of delegate, we
 	// should add a method to the Delegate interface to build a ConfigSource.
 	var cfg xds.ProxyConfigSource = localproxycfg.NewConfigSource(a.proxyConfig)
-	var cfgSrc *catalogv2proxycfg.ConfigSource
+	//var cfgSrc *catalogv2proxycfg.ConfigSource
 	if _, ok := a.delegate.(*consul.Server); ok {
 		//catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
 		//	NodeName:          a.config.NodeName,
@@ -934,18 +934,18 @@ func (a *Agent) listenAndServeGRPC() error {
 		//	Logger:            a.proxyConfig.Logger.Named("server-catalog"),
 		//	SessionLimiter:    a.baseDeps.XDSStreamLimiter,
 		//})
-		catalogv2Cfg := catalogv2proxycfg.NewConfigSource()
-		go func() {
-			<-a.shutdownCh
-			catalogv2Cfg.Shutdown()
-		}()
-		cfgSrc = catalogv2Cfg
+		//catalogv2Cfg := catalogv2proxycfg.NewConfigSource()
+		//go func() {
+		//	<-a.shutdownCh
+		//	catalogv2Cfg.Shutdown()
+		//}()
+		//cfgSrc = catalogv2Cfg
 	}
 	a.xdsServer = xds.NewServer(
 		a.config.NodeName,
 		a.logger.Named(logging.Envoy),
 		cfg,
-		cfgSrc,
+		a.proxyTracker,
 		func(id string) (acl.Authorizer, error) {
 			return a.delegate.ResolveTokenAndDefaultMeta(id, nil, nil)
 		},

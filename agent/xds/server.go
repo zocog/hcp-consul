@@ -103,7 +103,7 @@ type ProxyConfigSource interface {
 
 // ProxyConfigSource is the interface xds.Server requires to consume proxy
 // config updates.
-type ProxyConfigSourceV2 interface {
+type ProxyWatcher interface {
 	Watch(proxyID structs.ServiceID, nodeName string, token string) (<-chan *proxystate.FullProxyState, limiter.SessionTerminatedChan, func(), error)
 }
 
@@ -116,7 +116,7 @@ type Server struct {
 	NodeName     string
 	Logger       hclog.Logger
 	CfgSrc       ProxyConfigSource
-	CfgSrcV2     ProxyConfigSourceV2
+	ProxyWatcher ProxyWatcher
 	ResolveToken ACLResolverFunc
 	CfgFetcher   ConfigFetcher
 
@@ -168,7 +168,7 @@ func NewServer(
 	nodeName string,
 	logger hclog.Logger,
 	cfgMgr ProxyConfigSource,
-	cfgSrc ProxyConfigSourceV2,
+	proxyWatcher ProxyWatcher,
 	resolveTokenSecret ACLResolverFunc,
 	cfgFetcher ConfigFetcher,
 ) *Server {
@@ -176,7 +176,7 @@ func NewServer(
 		NodeName:           nodeName,
 		Logger:             logger,
 		CfgSrc:             cfgMgr,
-		CfgSrcV2:           cfgSrc,
+		ProxyWatcher:       proxyWatcher,
 		ResolveToken:       resolveTokenSecret,
 		CfgFetcher:         cfgFetcher,
 		AuthCheckFrequency: DefaultAuthCheckFrequency,

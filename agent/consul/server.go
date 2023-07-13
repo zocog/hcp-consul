@@ -50,7 +50,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
-	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	aclgrpc "github.com/hashicorp/consul/agent/grpc-external/services/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
@@ -458,8 +457,8 @@ type Server struct {
 
 // ProxyConfigSource is the interface xds.Server requires to consume proxy
 // config updates.
-type ProxyConfigSourceV2 interface {
-	Watch(proxyID structs.ServiceID, nodeName string, token string) (<-chan *proxystate.FullProxyState, limiter.SessionTerminatedChan, func(), error)
+type ProxyConfigUpdater interface {
+	PushChange(id *pbresource.ID, snapshot *proxystate.FullProxyState) error
 }
 
 func (s *Server) DecrementBlockingQueries() uint64 {
@@ -488,7 +487,7 @@ func NewServer(
 	externalGRPCServer *grpc.Server,
 	incomingRPCLimiter rpcRate.RequestLimitsHandler,
 	serverLogger hclog.InterceptLogger,
-	source ProxyConfigSourceV2,
+	updater ProxyConfigUpdater,
 	leafCertManager *leafcert.Manager,
 ) (*Server, error) {
 	logger := flat.Logger
@@ -826,7 +825,7 @@ func NewServer(
 		s.internalResourceServiceClient,
 		logger.Named(logging.ControllerRuntime),
 	)
-	s.registerResources(flat, source, leafCertManager)
+	s.registerResources(flat, updater, leafCertManager)
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	go s.trackLeaderChanges()
@@ -880,13 +879,13 @@ func NewServer(
 // failed attempt to make agent cache reasonable
 func (s *Server) registerResources(
 	srvDeps Deps,
-	cfgSource ProxyConfigSourceV2,
+	updater ProxyConfigUpdater,
 	leafCertManager *leafcert.Manager,
 ) {
 	if stringslice.Contains(srvDeps.Experiments, catalogResourceExperimentName) {
 		catalog.RegisterTypes(s.typeRegistry)
 		deps := catalog.DefaultControllerDependencies()
-		deps.CfgSource = cfgSource
+		deps.ProxyConfigUpdater = updater
 		deps.LeafCertManager = leafCertManager
 		deps.Datacenter = s.config.Datacenter
 		catalog.RegisterControllers(s.controllerManager, deps)

@@ -18,16 +18,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func Controller(source *catalogv2proxycfg.ConfigSource, leafCertManager *leafcert.Manager, datacenter string) controller.Controller {
+func Controller(updater catalogv2proxycfg.Updater, leafCertManager *leafcert.Manager, datacenter string) controller.Controller {
 	// Create event channel
-	ec := make(chan controller.Event)
+	leafCertEventChannel := make(chan controller.Event)
 
-	// this should eventually be ProxyState resource but we're using workload for now.
-	return controller.ForType(types.WorkloadType).
-		WithCustomWatch(&controller.Source{Source: ec}, MapLeafCertEvents).
+	return controller.ForType(types.ProxyStateType).
+		WithWatch(types.ServiceEndpointsType, serviceEndpointsMapper.MapEndpointsToProxyState).
+		WithCustomWatch(&controller.Source{Source: leafCertEventChannel}, MapLeafCertEvents).
+		WithCustomWatch(&controller.Source{Source: updater.EventChannel()}, MapProxyConnectEvents).
 		WithReconciler(&proxyStateReconciler{
-			cfgSource:       source,
-			leafCertChan:    ec,
+			updater:         tracker,
+			leafCertChan:    leafCertEventChannel,
 			leafCertManager: leafCertManager,
 			trackedCerts:    make(map[*pbresource.ID]context.CancelFunc),
 			datacenter:      datacenter,
@@ -72,7 +73,7 @@ func MapLeafCertEvents(ctx context.Context, rt controller.Runtime, event control
 }
 
 type proxyStateReconciler struct {
-	cfgSource       *catalogv2proxycfg.ConfigSource
+	updater         catalogv2proxycfg.Updater
 	leafCertChan    chan controller.Event
 	leafCertManager *leafcert.Manager
 	trackedCerts    map[*pbresource.ID]context.CancelFunc
@@ -143,6 +144,8 @@ func (r *proxyStateReconciler) Reconcile(ctx context.Context, rt controller.Runt
 
 	// todo: print the cert for this PoC
 	fmt.Println("==============received cert", cert)
+
+	r.updater.PushChange(nil, nil)
 
 	return nil
 }
