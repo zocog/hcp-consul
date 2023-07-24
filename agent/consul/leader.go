@@ -313,6 +313,7 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 	s.autopilot.EnableReconciliation()
 
 	s.startConfigReplication(ctx)
+	s.startResourceReplication(ctx)
 
 	s.startFederationStateReplication(ctx)
 
@@ -735,6 +736,15 @@ func (s *Server) startConfigReplication(ctx context.Context) {
 	}
 
 	s.leaderRoutineManager.Start(ctx, configReplicationRoutineName, s.configReplicator.Run)
+}
+
+func (s *Server) startResourceReplication(ctx context.Context) {
+	if s.config.PrimaryDatacenter == "" || s.config.PrimaryDatacenter == s.config.Datacenter {
+		// replication shouldn't run in the primary DC
+		return
+	}
+
+	s.leaderRoutineManager.Start(ctx, resourceReplicationRoutineName, s.resourceReplicator.Run)
 }
 
 func (s *Server) stopConfigReplication() {

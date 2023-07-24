@@ -15,6 +15,8 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
+	external "github.com/hashicorp/consul/agent/grpc-external"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -29,8 +31,10 @@ type Config struct {
 	Registry Registry
 
 	// Backend is the storage backend that will be used for resource persistence.
-	Backend     Backend
-	ACLResolver ACLResolver
+	Backend           Backend
+	ACLResolver       ACLResolver
+	ForwardRPC        func(structs.RPCInfo, func(*grpc.ClientConn) error) (bool, error)
+	PrimaryDatacenter string
 }
 
 //go:generate mockery --name Registry --inpackage
@@ -70,6 +74,67 @@ func tokenFromContext(ctx context.Context) string {
 		return acl.AnonymousTokenID
 	}
 	return vals[0]
+}
+
+type writeRequest struct {
+	structs.WriteRequest
+	structs.DCSpecificRequest
+}
+
+type readRequest struct {
+	structs.QueryOptions
+	structs.DCSpecificRequest
+}
+
+func writeRequestFromContext(ctx context.Context, primaryOnly bool, primaryDC string) *writeRequest {
+	dc := datacenterFromContext(ctx)
+	if primaryOnly && !bypassPrimaryForward(ctx) {
+		dc = primaryDC
+	}
+	return &writeRequest{
+		structs.WriteRequest{},
+		structs.DCSpecificRequest{Datacenter: dc},
+	}
+}
+
+func readRequestFromContext(ctx context.Context) (*readRequest, error) {
+	options, err := external.QueryOptionsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	dc := datacenterFromContext(ctx)
+	return &readRequest{
+		options,
+		structs.DCSpecificRequest{Datacenter: dc},
+	}, nil
+}
+
+func datacenterFromContext(ctx context.Context) string {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return ""
+	}
+
+	vals := md.Get("x-consul-datacenter")
+	if len(vals) == 0 {
+		return ""
+	}
+	return vals[0]
+}
+
+// TODO this is terrible.
+func bypassPrimaryForward(ctx context.Context) bool {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return false
+	}
+
+	vals := md.Get("x-consul-bypass-forward")
+	if len(vals) == 0 {
+		return false
+	}
+	return true
 }
 
 func (s *Server) resolveType(typ *pbresource.Type) (*resource.Registration, error) {

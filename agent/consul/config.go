@@ -281,6 +281,20 @@ type Config struct {
 	// user events. This function should not block.
 	UserEventHandler func(serf.UserEvent)
 
+	// ResourceReplicationRate is the max number of replication rounds that can
+	// be run per second. Note that either 1 or 2 RPCs are used during each replication
+	// round
+	ResourceReplicationRate int
+
+	// ResourceReplicationBurst is how many replication rounds can be bursted after a
+	// period of idleness
+	ResourceReplicationBurst int
+
+	// ResourceReplicationApply limit is the max number of replication-related
+	// apply operations that we allow during a one second period. This is
+	// used to limit the amount of Raft bandwidth used for replication.
+	ResourceReplicationApplyLimit int
+
 	// ConfigReplicationRate is the max number of replication rounds that can
 	// be run per second. Note that either 1 or 2 RPCs are used during each replication
 	// round

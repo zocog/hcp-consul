@@ -146,6 +146,7 @@ const (
 	caSigningMetricRoutineName            = "CA signing expiration metric"
 	configEntryControllersRoutineName     = "config entry controllers"
 	configReplicationRoutineName          = "config entry replication"
+	resourceReplicationRoutineName        = "resource replication"
 	federationStateReplicationRoutineName = "federation state replication"
 	federationStateAntiEntropyRoutineName = "federation state anti-entropy"
 	federationStatePruningRoutineName     = "federation state pruning"
@@ -212,6 +213,10 @@ type Server struct {
 	// configReplicator is used to manage the leaders replication routines for
 	// centralized config
 	configReplicator *Replicator
+
+	// resourceReplicator is used to manage the leaders replication routines for
+	// centralized resources
+	resourceReplicator *ReplicatorV2
 
 	// federationStateReplicator is used to manage the leaders replication routines for
 	// federation states
@@ -612,6 +617,23 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		Logger:   s.logger,
 	}
 	s.configReplicator, err = NewReplicator(&configReplicatorConfig)
+	if err != nil {
+		s.Shutdown()
+		return nil, err
+	}
+
+	resourceReplicatorConfig := ReplicatorConfigV2{
+		Name:   logging.ConfigEntry,
+		Rate:   s.config.ConfigReplicationRate,
+		Burst:  s.config.ConfigReplicationBurst,
+		Logger: s.logger,
+		Delegate: &FunctionReplicatorV2{
+			ReplicateFn: s.replicateResource,
+			Name:        "service",
+			Type:        catalog.ServiceV1Alpha1Type,
+		},
+	}
+	s.resourceReplicator, err = NewReplicatorV2(&resourceReplicatorConfig)
 	if err != nil {
 		s.Shutdown()
 		return nil, err
@@ -1343,20 +1365,28 @@ func (s *Server) setupExternalGRPC(config *Config, typeRegistry resource.Registr
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
 	s.resourceServiceServer = resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:    typeRegistry,
-		Backend:     s.raftStorageBackend,
-		ACLResolver: s.ACLResolver,
-		Logger:      logger.Named("grpc-api.resource"),
+		PrimaryDatacenter: s.config.PrimaryDatacenter,
+		Registry:          typeRegistry,
+		Backend:           s.raftStorageBackend,
+		ACLResolver:       s.ACLResolver,
+		Logger:            logger.Named("grpc-api.resource"),
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
 	})
 	s.resourceServiceServer.Register(s.externalGRPCServer)
 }
 
 func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger) error {
 	server := resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:    typeRegistry,
-		Backend:     s.raftStorageBackend,
-		ACLResolver: resolver.DANGER_NO_AUTH{},
-		Logger:      logger.Named("grpc-api.resource"),
+		PrimaryDatacenter: s.config.PrimaryDatacenter,
+		Registry:          typeRegistry,
+		Backend:           s.raftStorageBackend,
+		ACLResolver:       resolver.DANGER_NO_AUTH{},
+		Logger:            logger.Named("grpc-api.resource"),
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
 	})
 
 	conn, err := s.runInProcessGRPCServer(server.Register)

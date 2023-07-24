@@ -11,13 +11,30 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"google.golang.org/grpc"
 )
 
 func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbresource.ReadResponse, error) {
 	if err := validateReadRequest(req); err != nil {
 		return nil, err
+	}
+
+	rpcInfo, err := readRequestFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var resp *pbresource.ReadResponse
+	handled, err := s.ForwardRPC(rpcInfo, func(cc *grpc.ClientConn) error {
+		ctx := external.ForwardMetadataContext(ctx)
+		var err error
+		resp, err = pbresource.NewResourceServiceClient(cc).Read(ctx, req)
+		return err
+	})
+	if handled || err != nil {
+		return resp, err
 	}
 
 	// check type exists

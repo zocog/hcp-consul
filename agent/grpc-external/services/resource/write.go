@@ -14,10 +14,12 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"google.golang.org/grpc"
 )
 
 // errUseWriteStatus is returned when the user attempts to modify the resource
@@ -44,6 +46,18 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 	reg, err := s.resolveType(req.Resource.Id.Type)
 	if err != nil {
 		return nil, err
+	}
+
+	rpcInfo := writeRequestFromContext(ctx, reg.PrimaryOnly, s.PrimaryDatacenter)
+	var resp *pbresource.WriteResponse
+	handled, err := s.ForwardRPC(rpcInfo, func(cc *grpc.ClientConn) error {
+		ctx := external.ForwardMetadataContext(ctx)
+		var err error
+		resp, err = pbresource.NewResourceServiceClient(cc).Write(ctx, req)
+		return err
+	})
+	if handled || err != nil {
+		return resp, err
 	}
 
 	authz, err := s.getAuthorizer(tokenFromContext(ctx))

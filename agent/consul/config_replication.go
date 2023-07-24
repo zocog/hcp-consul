@@ -11,9 +11,11 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func diffConfigEntries(local []structs.ConfigEntry, remote []structs.ConfigEntry, lastRemoteIndex uint64) ([]structs.ConfigEntry, []structs.ConfigEntry) {
@@ -122,6 +124,30 @@ func (s *Server) fetchConfigEntries(lastRemoteIndex uint64) (*structs.IndexedGen
 	return &response, nil
 }
 
+// We need to do watch lists. We can't order resources based on version or generation.
+func (s *Server) fetchResources(t *pbresource.Type, local bool) (*pbresource.ListResponse, error) {
+	ctx := context.Background()
+	client := s.insecureResourceServiceClient
+	if !local {
+		ctx = metadata.NewOutgoingContext(ctx, metadata.New(map[string]string{
+			"x-consul-datacenter":     s.config.PrimaryDatacenter,
+			"x-consul-token":          s.tokens.ReplicationToken(),
+			"x-consul-bypass-forward": "true",
+		}))
+		client = s.secureResourceServiceClient
+	}
+
+	resp, err := client.List(ctx, &pbresource.ListRequest{
+		Type: t,
+		Tenancy: &pbresource.Tenancy{
+			Partition: "default",
+			Namespace: "*",
+			PeerName:  "local",
+		},
+	})
+	return resp, err
+}
+
 func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64, logger hclog.Logger) (uint64, bool, error) {
 	remote, err := s.fetchConfigEntries(lastRemoteIndex)
 	if err != nil {
@@ -223,4 +249,137 @@ func (s *Server) replicateConfig(ctx context.Context, lastRemoteIndex uint64, lo
 	// Return the index we got back from the remote side, since we've synced
 	// up with the remote state as of that index.
 	return remote.QueryMeta.Index, false, nil
+}
+
+type RemoteGenerations map[resourceId]string
+
+// TODO
+func (s *Server) replicateResource(ctx context.Context, t *pbresource.Type, remoteVersions RemoteGenerations, logger hclog.Logger) (RemoteGenerations, bool, error) {
+	remote, err := s.fetchResources(t, false)
+	if err != nil {
+		return remoteVersions, false, fmt.Errorf("failed to retrieve remote resources: %v", err)
+	}
+
+	logger.Debug("finished fetching resources", "amount", len(remote.Resources))
+
+	// Measure everything after the remote query, which can block for long
+	// periods of time. This metric is a good measure of how expensive the
+	// replication process is.
+	defer metrics.MeasureSince([]string{"leader", "replication", "resources", "apply"}, time.Now())
+
+	local, err := s.fetchResources(t, true)
+	if err != nil {
+		return remoteVersions, false, fmt.Errorf("failed to retrieve local resources: %v", err)
+	}
+
+	logger.Debug("Resource replication",
+		"local", len(local.Resources),
+		"remote", len(remote.Resources),
+	)
+	// Calculate the changes required to bring the state into sync and then
+	// apply them.
+	deletions, updates, remoteVersions := diffResources(local.Resources, remote.Resources, remoteVersions)
+
+	logger.Debug("Resource replication",
+		"deletions", len(deletions),
+		"updates", len(updates),
+		"remoteVersions", remoteVersions,
+	)
+
+	ctx = metadata.NewOutgoingContext(ctx, metadata.New(map[string]string{
+		"x-consul-token":          s.tokens.ReplicationToken(),
+		"x-consul-bypass-forward": "true",
+	}))
+
+	var merr error
+	if len(deletions) > 0 {
+		logger.Debug("Deleting local resources",
+			"deletions", len(deletions),
+		)
+
+		for _, r := range deletions {
+			_, err := s.insecureResourceServiceClient.Delete(ctx, &pbresource.DeleteRequest{
+				Id: r.Id,
+			})
+			if err != nil {
+				merr = multierror.Append(merr, err)
+			} else {
+				logger.Debug("Resource replication - finished deletions")
+			}
+		}
+	}
+
+	if len(updates) > 0 {
+		logger.Debug("Updating local resources",
+			"updates", len(updates),
+		)
+		for _, r := range updates {
+			r.Status = nil
+			_, err := s.insecureResourceServiceClient.Write(ctx, &pbresource.WriteRequest{
+				Resource: r,
+			})
+			if err != nil {
+				merr = multierror.Append(merr, err)
+			} else {
+				logger.Debug("Resource replication - finished updates")
+			}
+		}
+	}
+
+	if merr != nil {
+		return remoteVersions, false, merr
+	}
+
+	// Return the index we got back from the remote side, since we've synced
+	// up with the remote state as of that index.
+	return remoteVersions, false, nil
+}
+
+type resourceId struct {
+	name      string
+	namespace string
+}
+
+func diffResources(local []*pbresource.Resource, remote []*pbresource.Resource, remoteGenerations RemoteGenerations) ([]*pbresource.Resource, []*pbresource.Resource, RemoteGenerations) {
+	var deletions []*pbresource.Resource
+	var updates []*pbresource.Resource
+
+	seen := make(map[resourceId]struct{})
+	for i := range remote {
+		r := remote[i]
+		id := resourceId{
+			name:      r.Id.Name,
+			namespace: r.GetId().GetTenancy().GetNamespace(),
+		}
+		seen[id] = struct{}{}
+		// if we didn't know about it or the version changes, use it.
+		if oldGeneration, ok := remoteGenerations[id]; !ok || oldGeneration != r.Generation {
+			remoteGenerations[id] = r.Generation
+			r.Status = nil
+			r.Version = ""
+			r.Generation = ""
+			updates = append(updates, r)
+		}
+	}
+
+	for i := range local {
+		l := local[i]
+		id := resourceId{
+			name:      l.Id.Name,
+			namespace: l.GetId().GetTenancy().GetNamespace(),
+		}
+
+		// if it doesn't exist on the remote, remove it.
+		if _, ok := seen[id]; !ok {
+			deletions = append(deletions, l)
+		}
+	}
+
+	for id := range remoteGenerations {
+		if _, ok := seen[id]; !ok {
+			delete(remoteGenerations, id)
+		}
+	}
+
+	return deletions, updates, remoteGenerations
 }
