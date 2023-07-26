@@ -161,6 +161,11 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 			}
 		}
 
+		//TODO @sarahalsmiller add in other config changes consumption?
+		if rule.Filters.TrafficFilter != nil {
+			destination.NumRetries = (uint32)(rule.Filters.TrafficFilter.NumRetries)
+		}
+
 		// for each match rule a ServiceRoute is created for the service-router
 		// if there are no rules a single route with the destination is set
 		if len(rule.Matches) == 0 {
@@ -173,6 +178,7 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 				Destination: &destination,
 			})
 		}
+
 	}
 
 	return router, splitters, defaults

@@ -197,6 +197,8 @@ type HTTPQueryMatch struct {
 type HTTPFilters struct {
 	Headers    []HTTPHeaderFilter
 	URLRewrite *URLRewrite
+	//TODO figure out what the UX should be here
+	TrafficFilter *TrafficFilter
 }
 
 // HTTPHeaderFilter specifies how HTTP headers should be modified.
@@ -208,6 +210,10 @@ type HTTPHeaderFilter struct {
 
 type URLRewrite struct {
 	Path string
+}
+
+type TrafficFilter struct {
+	NumRetries int32
 }
 
 // HTTPRouteRule specifies the routing rules used to determine what upstream

@@ -417,8 +417,9 @@ type HTTPQueryMatch struct {
 // HTTPFilters specifies a list of filters used to modify a request
 // before it is routed to an upstream.
 type HTTPFilters struct {
-	Headers    []HTTPHeaderFilter
-	URLRewrite *URLRewrite
+	Headers       []HTTPHeaderFilter
+	URLRewrite    *URLRewrite
+	TrafficFilter *TrafficFilter
 }
 
 // HTTPHeaderFilter specifies how HTTP headers should be modified.
@@ -430,6 +431,10 @@ type HTTPHeaderFilter struct {
 
 type URLRewrite struct {
 	Path string
+}
+
+type TrafficFilter struct {
+	NumRetries int32
 }
 
 // HTTPRouteRule specifies the routing rules used to determine what upstream

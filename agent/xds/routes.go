@@ -664,6 +664,7 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 					routeAction.Route.PrefixRewrite = destination.PrefixRewrite
 				}
 
+				//TODO this is where timeouts get manipulated
 				if destination.RequestTimeout > 0 {
 					routeAction.Route.Timeout = durationpb.New(destination.RequestTimeout)
 				}
