@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -119,53 +120,54 @@ Total                                    45`,
 }
 
 func TestUsageInstances_formatNodesCounts(t *testing.T) {
-	t.Skip("TODO: flaky")
-	usageBasic := map[string]api.ServiceUsage{
-		"dc1": {
-			Nodes: 10,
-		},
-	}
+	testutil.RetryFlakyTest(t, func() {
+		usageBasic := map[string]api.ServiceUsage{
+			"dc1": {
+				Nodes: 10,
+			},
+		}
 
-	usageMultiDC := map[string]api.ServiceUsage{
-		"dc1": {
-			Nodes: 10,
-		},
-		"dc2": {
-			Nodes: 11,
-		},
-	}
+		usageMultiDC := map[string]api.ServiceUsage{
+			"dc1": {
+				Nodes: 10,
+			},
+			"dc2": {
+				Nodes: 11,
+			},
+		}
 
-	cases := []struct {
-		name          string
-		usageStats    map[string]api.ServiceUsage
-		expectedNodes string
-	}{
-		{
-			name:       "basic",
-			usageStats: usageBasic,
-			expectedNodes: `
+		cases := []struct {
+			name          string
+			usageStats    map[string]api.ServiceUsage
+			expectedNodes string
+		}{
+			{
+				name:       "basic",
+				usageStats: usageBasic,
+				expectedNodes: `
 Datacenter      Count            
 dc1             10
                 
 Total           10`,
-		},
-		{
-			name:       "multi-datacenter",
-			usageStats: usageMultiDC,
-			expectedNodes: `
+			},
+			{
+				name:       "multi-datacenter",
+				usageStats: usageMultiDC,
+				expectedNodes: `
 Datacenter      Count            
 dc1             10
 dc2             11
                 
 Total           21`,
-		},
-	}
+			},
+		}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			nodesOutput, err := formatNodesCounts(tc.usageStats)
-			require.NoError(t, err)
-			require.Equal(t, strings.TrimSpace(tc.expectedNodes), nodesOutput)
-		})
-	}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				nodesOutput, err := formatNodesCounts(tc.usageStats)
+				require.NoError(t, err)
+				require.Equal(t, strings.TrimSpace(tc.expectedNodes), nodesOutput)
+			})
+		}
+	})
 }

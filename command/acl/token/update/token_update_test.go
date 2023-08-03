@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -182,14 +183,14 @@ func TestTokenUpdateCommand(t *testing.T) {
 }
 
 func TestTokenUpdateCommandWithAppend(t *testing.T) {
-	t.Skip("TODO: flaky")
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
+	testutil.RetryFlakyTest(t, func() {
+		if testing.Short() {
+			t.Skip("too slow for testing.Short")
+		}
 
-	t.Parallel()
+		t.Parallel()
 
-	a := agent.NewTestAgent(t, `
+		a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
 	acl {
 		enabled = true
@@ -198,119 +199,120 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 		}
 	}`)
 
-	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+		defer a.Shutdown()
+		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Create a policy
-	client := a.Client()
+		// Create a policy
+		client := a.Client()
 
-	policy, _, err := client.ACL().PolicyCreate(
-		&api.ACLPolicy{Name: "test-policy"},
-		&api.WriteOptions{Token: "root"},
-	)
-	require.NoError(t, err)
-
-	//secondary policy
-	secondPolicy, _, policyErr := client.ACL().PolicyCreate(
-		&api.ACLPolicy{Name: "secondary-policy"},
-		&api.WriteOptions{Token: "root"},
-	)
-	require.NoError(t, policyErr)
-
-	run := func(t *testing.T, args []string) *api.ACLToken {
-		ui := cli.NewMockUi()
-		cmd := New(ui)
-
-		code := cmd.Run(append(args, "-format=json"))
-		require.Equal(t, 0, code)
-		require.Empty(t, ui.ErrorWriter.String())
-
-		var token api.ACLToken
-		require.NoError(t, json.Unmarshal(ui.OutputWriter.Bytes(), &token))
-		return &token
-	}
-
-	// update with append-policy-name
-	t.Run("append-policy-name", func(t *testing.T) {
-		token := create_token(t, client,
-			&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: policy.Name}}},
+		policy, _, err := client.ACL().PolicyCreate(
+			&api.ACLPolicy{Name: "test-policy"},
 			&api.WriteOptions{Token: "root"},
 		)
+		require.NoError(t, err)
 
-		responseToken := run(t, []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-accessor-id=" + token.AccessorID,
-			"-token=root",
-			"-append-policy-name=" + secondPolicy.Name,
-			"-description=test token",
-		})
-
-		require.Len(t, responseToken.Policies, 2)
-	})
-
-	// update with append-policy-id
-	t.Run("append-policy-id", func(t *testing.T) {
-		token := create_token(t, client,
-			&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: policy.Name}}},
+		//secondary policy
+		secondPolicy, _, policyErr := client.ACL().PolicyCreate(
+			&api.ACLPolicy{Name: "secondary-policy"},
 			&api.WriteOptions{Token: "root"},
 		)
+		require.NoError(t, policyErr)
 
-		responseToken := run(t, []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-accessor-id=" + token.AccessorID,
-			"-token=root",
-			"-append-policy-id=" + secondPolicy.ID,
-			"-description=test token",
+		run := func(t *testing.T, args []string) *api.ACLToken {
+			ui := cli.NewMockUi()
+			cmd := New(ui)
+
+			code := cmd.Run(append(args, "-format=json"))
+			require.Equal(t, 0, code)
+			require.Empty(t, ui.ErrorWriter.String())
+
+			var token api.ACLToken
+			require.NoError(t, json.Unmarshal(ui.OutputWriter.Bytes(), &token))
+			return &token
+		}
+
+		// update with append-policy-name
+		t.Run("append-policy-name", func(t *testing.T) {
+			token := create_token(t, client,
+				&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: policy.Name}}},
+				&api.WriteOptions{Token: "root"},
+			)
+
+			responseToken := run(t, []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-accessor-id=" + token.AccessorID,
+				"-token=root",
+				"-append-policy-name=" + secondPolicy.Name,
+				"-description=test token",
+			})
+
+			require.Len(t, responseToken.Policies, 2)
 		})
 
-		require.Len(t, responseToken.Policies, 2)
-	})
+		// update with append-policy-id
+		t.Run("append-policy-id", func(t *testing.T) {
+			token := create_token(t, client,
+				&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: policy.Name}}},
+				&api.WriteOptions{Token: "root"},
+			)
 
-	// update with append-node-identity
-	t.Run("append-node-identity", func(t *testing.T) {
-		token := create_token(t, client,
-			&api.ACLToken{
-				Description:    "test",
-				Policies:       []*api.ACLTokenPolicyLink{{Name: policy.Name}},
-				NodeIdentities: []*api.ACLNodeIdentity{{NodeName: "namenode", Datacenter: "somewhere"}},
-			},
-			&api.WriteOptions{Token: "root"},
-		)
+			responseToken := run(t, []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-accessor-id=" + token.AccessorID,
+				"-token=root",
+				"-append-policy-id=" + secondPolicy.ID,
+				"-description=test token",
+			})
 
-		responseToken := run(t, []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-accessor-id=" + token.AccessorID,
-			"-token=root",
-			"-append-node-identity=third:node",
-			"-description=test token",
+			require.Len(t, responseToken.Policies, 2)
 		})
 
-		require.Len(t, responseToken.NodeIdentities, 2)
-		require.Equal(t, "third", responseToken.NodeIdentities[1].NodeName)
-		require.Equal(t, "node", responseToken.NodeIdentities[1].Datacenter)
-	})
+		// update with append-node-identity
+		t.Run("append-node-identity", func(t *testing.T) {
+			token := create_token(t, client,
+				&api.ACLToken{
+					Description:    "test",
+					Policies:       []*api.ACLTokenPolicyLink{{Name: policy.Name}},
+					NodeIdentities: []*api.ACLNodeIdentity{{NodeName: "namenode", Datacenter: "somewhere"}},
+				},
+				&api.WriteOptions{Token: "root"},
+			)
 
-	// update with append-service-identity
-	t.Run("append-service-identity", func(t *testing.T) {
-		token := create_token(t, client,
-			&api.ACLToken{
-				Description:       "test",
-				Policies:          []*api.ACLTokenPolicyLink{{Name: policy.Name}},
-				ServiceIdentities: []*api.ACLServiceIdentity{{ServiceName: "service"}},
-			},
-			&api.WriteOptions{Token: "root"},
-		)
+			responseToken := run(t, []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-accessor-id=" + token.AccessorID,
+				"-token=root",
+				"-append-node-identity=third:node",
+				"-description=test token",
+			})
 
-		responseToken := run(t, []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-accessor-id=" + token.AccessorID,
-			"-token=root",
-			"-append-service-identity=web",
-			"-description=test token",
+			require.Len(t, responseToken.NodeIdentities, 2)
+			require.Equal(t, "third", responseToken.NodeIdentities[1].NodeName)
+			require.Equal(t, "node", responseToken.NodeIdentities[1].Datacenter)
 		})
 
-		require.Len(t, responseToken.ServiceIdentities, 2)
-		require.Equal(t, "web", responseToken.ServiceIdentities[1].ServiceName)
+		// update with append-service-identity
+		t.Run("append-service-identity", func(t *testing.T) {
+			token := create_token(t, client,
+				&api.ACLToken{
+					Description:       "test",
+					Policies:          []*api.ACLTokenPolicyLink{{Name: policy.Name}},
+					ServiceIdentities: []*api.ACLServiceIdentity{{ServiceName: "service"}},
+				},
+				&api.WriteOptions{Token: "root"},
+			)
+
+			responseToken := run(t, []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"-accessor-id=" + token.AccessorID,
+				"-token=root",
+				"-append-service-identity=web",
+				"-description=test token",
+			})
+
+			require.Len(t, responseToken.ServiceIdentities, 2)
+			require.Equal(t, "web", responseToken.ServiceIdentities[1].ServiceName)
+		})
 	})
 }
 
