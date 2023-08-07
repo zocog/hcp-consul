@@ -2,8 +2,6 @@ module github.com/hashicorp/consul/envoyextensions
 
 go 1.20
 
-replace github.com/hashicorp/consul/api => ../api
-
 require (
 	github.com/envoyproxy/go-control-plane v0.11.0
 	github.com/google/go-cmp v0.5.9
