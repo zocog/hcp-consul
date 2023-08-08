@@ -21,3 +21,7 @@ func (r *Counter) Continue() bool {
 	r.count++
 	return true
 }
+
+func (r *Counter) Iteration() int {
+	return r.count
+}
