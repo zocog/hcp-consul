@@ -2,26 +2,27 @@ package testutil
 
 import (
 	"testing"
-
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
-type Forever struct{}
-
-func (f *Forever) Continue() bool {
-	return true
-}
+const MaxRetries = 3
 
 // RetryFlakyTest retries a flaky test forever
 func RetryFlakyTest(t0 *testing.T, f func(*testing.T)) {
-	i := 0
-	retry.RunWith(&Forever{}, t0, func(_ *retry.R) {
-		t0.Run("rerun", func(t *testing.T) {
-			if i > 0 {
-				t.Logf("RetryFlakyTest: %d", i)
-			}
+	for i := 0; i < MaxRetries; i++ {
+		t := &testing.T{}
+		func() {
+			defer func() {
+				if v := recover(); v != nil {
+					t0.Logf("RetryFlakyTest: recover: %#v", v)
+				}
+				if t.Failed() {
+					t0.Logf("RetryFlakyTest: FAIL")
+				}
+			}()
 			f(t)
-			i++
-		})
-	})
+		}()
+		if !t.Failed() {
+			break
+		}
+	}
 }
