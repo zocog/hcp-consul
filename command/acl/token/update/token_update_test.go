@@ -182,12 +182,12 @@ func TestTokenUpdateCommand(t *testing.T) {
 	})
 }
 
-func TestTokenUpdateCommandWithAppend(t *testing.T) {
-	testutil.RetryFlakyTest(t, func() {
-		if testing.Short() {
-			t.Skip("too slow for testing.Short")
-		}
+func TestTokenUpdateCommandWithAppend(t0 *testing.T) {
+	if testing.Short() {
+		t0.Skip("too slow for testing.Short")
+	}
 
+	testutil.RetryFlakyTest(t0, func(t *testing.T) {
 		t.Parallel()
 
 		a := agent.NewTestAgent(t, `

@@ -173,11 +173,11 @@ func assertMetricNotExists(t *testing.T, respRec *httptest.ResponseRecorder, met
 
 // TestAgent_OneTwelveRPCMetrics test for the 1.12 style RPC metrics. These are the labeled metrics coming from
 // agent.rpc.middleware.interceptors package.
-func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
-	testutil.RetryFlakyTest(t, func() {
-		skipIfShortTesting(t)
-		// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
+func TestAgent_OneTwelveRPCMetrics(t0 *testing.T) {
+	skipIfShortTesting(t0)
 
+	testutil.RetryFlakyTest(t0, func(t *testing.T) {
+		// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
 		t.Run("Check that 1.12 rpc metrics are not emitted by default.", func(t *testing.T) {
 			metricsPrefix := "new_rpc_metrics"
 			hcl := fmt.Sprintf(`
@@ -438,11 +438,11 @@ func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 
 }
 
-func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {
-	testutil.RetryFlakyTest(t, func() {
-		skipIfShortTesting(t)
-		// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
+func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t0 *testing.T) {
+	skipIfShortTesting(t0)
 
+	testutil.RetryFlakyTest(t0, func(t *testing.T) {
+		// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
 		t.Run("client agent emits nothing", func(t *testing.T) {
 			hcl := `
 		server = false
@@ -534,11 +534,11 @@ func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {
 	})
 }
 
-func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t *testing.T) {
-	testutil.RetryFlakyTest(t, func() {
-		skipIfShortTesting(t)
-		// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
+func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t0 *testing.T) {
+	skipIfShortTesting(t0)
 
+	testutil.RetryFlakyTest(t0, func(t *testing.T) {
+		// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
 		t.Run("client agent emits nothing", func(t *testing.T) {
 			hcl := `
 		server = false

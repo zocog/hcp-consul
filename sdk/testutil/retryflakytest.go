@@ -13,14 +13,14 @@ func (f *Forever) Continue() bool {
 }
 
 // RetryFlakyTest retries a flaky test forever
-func RetryFlakyTest(t *testing.T, f func()) {
+func RetryFlakyTest(t0 *testing.T, f func(*testing.T)) {
 	i := 0
-	retry.RunWith(&Forever{}, t, func(_ *retry.R) {
-		t.Run("rerun", func(_ *testing.T) {
+	retry.RunWith(&Forever{}, t0, func(_ *retry.R) {
+		t0.Run("rerun", func(t *testing.T) {
 			if i > 0 {
 				t.Logf("RetryFlakyTest: %d", i)
 			}
-			f()
+			f(t)
 			i++
 		})
 	})

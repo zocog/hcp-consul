@@ -119,8 +119,8 @@ Total                                    45`,
 	}
 }
 
-func TestUsageInstances_formatNodesCounts(t *testing.T) {
-	testutil.RetryFlakyTest(t, func() {
+func TestUsageInstances_formatNodesCounts(t0 *testing.T) {
+	testutil.RetryFlakyTest(t0, func(t *testing.T) {
 		usageBasic := map[string]api.ServiceUsage{
 			"dc1": {
 				Nodes: 10,
