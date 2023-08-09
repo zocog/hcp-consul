@@ -14,7 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
+	sdkretry "github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -187,10 +187,7 @@ func TestTokenUpdateCommandWithAppend(t0 *testing.T) {
 		t0.Skip("too slow for testing.Short")
 	}
 
-	testutil.RetryFlakyTest(t0, func(t *testing.T) {
-		t.Parallel()
-
-		a := agent.NewTestAgent(t, `
+	a := agent.NewTestAgent(t0, `
 	primary_datacenter = "dc1"
 	acl {
 		enabled = true
@@ -199,8 +196,10 @@ func TestTokenUpdateCommandWithAppend(t0 *testing.T) {
 		}
 	}`)
 
-		defer a.Shutdown()
-		testrpc.WaitForLeader(t, a.RPC, "dc1")
+	defer a.Shutdown()
+	t0.Parallel()
+	sdkretry.FlakyTest(t0, func(r *sdkretry.R) {
+		testrpc.WaitForLeader(r, a.RPC, "dc1")
 
 		// Create a policy
 		client := a.Client()
@@ -209,14 +208,14 @@ func TestTokenUpdateCommandWithAppend(t0 *testing.T) {
 			&api.ACLPolicy{Name: "test-policy"},
 			&api.WriteOptions{Token: "root"},
 		)
-		require.NoError(t, err)
+		require.NoError(r, err)
 
 		//secondary policy
 		secondPolicy, _, policyErr := client.ACL().PolicyCreate(
 			&api.ACLPolicy{Name: "secondary-policy"},
 			&api.WriteOptions{Token: "root"},
 		)
-		require.NoError(t, policyErr)
+		require.NoError(r, policyErr)
 
 		run := func(t *testing.T, args []string) *api.ACLToken {
 			ui := cli.NewMockUi()
@@ -232,7 +231,7 @@ func TestTokenUpdateCommandWithAppend(t0 *testing.T) {
 		}
 
 		// update with append-policy-name
-		t.Run("append-policy-name", func(t *testing.T) {
+		t0.Run("append-policy-name", func(t *testing.T) {
 			token := create_token(t, client,
 				&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: policy.Name}}},
 				&api.WriteOptions{Token: "root"},
@@ -250,7 +249,7 @@ func TestTokenUpdateCommandWithAppend(t0 *testing.T) {
 		})
 
 		// update with append-policy-id
-		t.Run("append-policy-id", func(t *testing.T) {
+		t0.Run("append-policy-id", func(t *testing.T) {
 			token := create_token(t, client,
 				&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: policy.Name}}},
 				&api.WriteOptions{Token: "root"},
@@ -268,7 +267,7 @@ func TestTokenUpdateCommandWithAppend(t0 *testing.T) {
 		})
 
 		// update with append-node-identity
-		t.Run("append-node-identity", func(t *testing.T) {
+		t0.Run("append-node-identity", func(t *testing.T) {
 			token := create_token(t, client,
 				&api.ACLToken{
 					Description:    "test",
@@ -292,7 +291,7 @@ func TestTokenUpdateCommandWithAppend(t0 *testing.T) {
 		})
 
 		// update with append-service-identity
-		t.Run("append-service-identity", func(t *testing.T) {
+		t0.Run("append-service-identity", func(t *testing.T) {
 			token := create_token(t, client,
 				&api.ACLToken{
 					Description:       "test",

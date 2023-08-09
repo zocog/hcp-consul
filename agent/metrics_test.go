@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/sdk/testutil"
+	sdkretry "github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -30,7 +31,7 @@ func skipIfShortTesting(t *testing.T) {
 	}
 }
 
-func recordPromMetrics(t *testing.T, a *TestAgent, respRec *httptest.ResponseRecorder) {
+func recordPromMetrics(t sdkretry.RT, a *TestAgent, respRec *httptest.ResponseRecorder) {
 	t.Helper()
 	req, err := http.NewRequest("GET", "/v1/agent/metrics?format=prometheus", nil)
 	require.NoError(t, err, "Failed to generate new http request.")
@@ -52,7 +53,7 @@ func assertMetricExists(t *testing.T, respRec *httptest.ResponseRecorder, metric
 
 // assertMetricExistsWithLabels looks in the prometheus metrics response for the metric name and all the labels. eg:
 // new_rpc_metrics_rpc_server_call{errored="false",method="Status.Ping",request_type="unknown",rpc_type="net/rpc"}
-func assertMetricExistsWithLabels(t *testing.T, respRec *httptest.ResponseRecorder, metric string, labelNames []string) {
+func assertMetricExistsWithLabels(t sdkretry.RT, respRec *httptest.ResponseRecorder, metric string, labelNames []string) {
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
 	}
@@ -92,7 +93,7 @@ func assertMetricExistsWithLabels(t *testing.T, respRec *httptest.ResponseRecord
 	}
 }
 
-func assertLabelWithValueForMetricExistsNTime(t *testing.T, respRec *httptest.ResponseRecorder, metric string, label string, labelValue string, occurrences int) {
+func assertLabelWithValueForMetricExistsNTime(t sdkretry.RT, respRec *httptest.ResponseRecorder, metric string, label string, labelValue string, occurrences int) {
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
 	}
@@ -139,7 +140,7 @@ func assertMetricExistsWithValue(t *testing.T, respRec *httptest.ResponseRecorde
 	}
 }
 
-func assertMetricsWithLabelIsNonZero(t *testing.T, respRec *httptest.ResponseRecorder, label, labelValue string) {
+func assertMetricsWithLabelIsNonZero(t sdkretry.RT, respRec *httptest.ResponseRecorder, label, labelValue string) {
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
 	}
@@ -161,7 +162,7 @@ func assertMetricsWithLabelIsNonZero(t *testing.T, respRec *httptest.ResponseRec
 	}
 }
 
-func assertMetricNotExists(t *testing.T, respRec *httptest.ResponseRecorder, metric string) {
+func assertMetricNotExists(t sdkretry.RT, respRec *httptest.ResponseRecorder, metric string) {
 	if respRec.Body.String() == "" {
 		t.Fatalf("Response body is empty.")
 	}
@@ -173,66 +174,69 @@ func assertMetricNotExists(t *testing.T, respRec *httptest.ResponseRecorder, met
 
 // TestAgent_OneTwelveRPCMetrics test for the 1.12 style RPC metrics. These are the labeled metrics coming from
 // agent.rpc.middleware.interceptors package.
-func TestAgent_OneTwelveRPCMetrics(t0 *testing.T) {
-	skipIfShortTesting(t0)
+func TestAgent_OneTwelveRPCMetrics(t *testing.T) {
+	skipIfShortTesting(t)
 
-	testutil.RetryFlakyTest(t0, func(t *testing.T) {
-		// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
-		t.Run("Check that 1.12 rpc metrics are not emitted by default.", func(t *testing.T) {
-			metricsPrefix := "new_rpc_metrics"
-			hcl := fmt.Sprintf(`
+	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
+	t.Run("Check that 1.12 rpc metrics are not emitted by default.", func(t0 *testing.T) {
+		metricsPrefix := "new_rpc_metrics"
+		hcl := fmt.Sprintf(`
 		telemetry = {
 			prometheus_retention_time = "5s"
 			disable_hostname = true
 			metrics_prefix = "%s"
 		}
 		`, metricsPrefix)
-
-			a := StartTestAgent(t, TestAgent{HCL: hcl})
-			defer a.Shutdown()
-
+		a := StartTestAgent(t0, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+		sdkretry.FlakyTest(t0, func(r *sdkretry.R) {
 			var out struct{}
+			// TODO: probably retry this?
 			err := a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
-			require.NoError(t, err)
+			require.NoError(r, err)
 
 			respRec := httptest.NewRecorder()
-			recordPromMetrics(t, a, respRec)
+			recordPromMetrics(r, a, respRec)
 
-			assertMetricNotExists(t, respRec, metricsPrefix+"_rpc_server_call")
+			assertMetricNotExists(r, respRec, metricsPrefix+"_rpc_server_call")
 		})
+	})
 
-		t.Run("Check that 1.12 rpc metrics are emitted when specified by operator.", func(t *testing.T) {
-			metricsPrefix := "new_rpc_metrics_2"
-			allowRPCMetricRule := metricsPrefix + "." + strings.Join(middleware.OneTwelveRPCSummary[0].Name, ".")
-			hcl := fmt.Sprintf(`
-		telemetry = {
-			prometheus_retention_time = "5s"
-			disable_hostname = true
-			metrics_prefix = "%s"
-			prefix_filter = ["+%s"]
-		}
-		`, metricsPrefix, allowRPCMetricRule)
+	t.Run("Check that 1.12 rpc metrics are emitted when specified by operator.", func(t *testing.T) {
 
-			a := StartTestAgent(t, TestAgent{HCL: hcl})
-			defer a.Shutdown()
+		metricsPrefix := "new_rpc_metrics_2"
+		allowRPCMetricRule := metricsPrefix + "." + strings.Join(middleware.OneTwelveRPCSummary[0].Name, ".")
+		hcl := fmt.Sprintf(`
+	telemetry = {
+		prometheus_retention_time = "5s"
+		disable_hostname = true
+		metrics_prefix = "%s"
+		prefix_filter = ["+%s"]
+	}
+	`, metricsPrefix, allowRPCMetricRule)
 
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+
+		sdkretry.FlakyTest(t, func(r *sdkretry.R) {
 			var out struct{}
+			// TODO: why?
 			err := a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
-			require.NoError(t, err)
+			require.NoError(r, err)
 			err = a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
-			require.NoError(t, err)
+			require.NoError(r, err)
 			err = a.RPC(context.Background(), "Status.Ping", struct{}{}, &out)
-			require.NoError(t, err)
+			require.NoError(r, err)
 
 			respRec := httptest.NewRecorder()
-			recordPromMetrics(t, a, respRec)
+			recordPromMetrics(r, a, respRec)
 
 			// make sure the labels exist for this metric
-			assertMetricExistsWithLabels(t, respRec, metricsPrefix+"_rpc_server_call", []string{"errored", "method", "request_type", "rpc_type", "leader"})
+			assertMetricExistsWithLabels(r, respRec, metricsPrefix+"_rpc_server_call", []string{"errored", "method", "request_type", "rpc_type", "leader"})
 			// make sure we see 3 Status.Ping metrics corresponding to the calls we made above
-			assertLabelWithValueForMetricExistsNTime(t, respRec, metricsPrefix+"_rpc_server_call", "method", "Status.Ping", 3)
+			assertLabelWithValueForMetricExistsNTime(r, respRec, metricsPrefix+"_rpc_server_call", "method", "Status.Ping", 3)
 			// make sure rpc calls with elapsed time below 1ms are reported as decimal
-			assertMetricsWithLabelIsNonZero(t, respRec, "method", "Status.Ping")
+			assertMetricsWithLabelIsNonZero(r, respRec, "method", "Status.Ping")
 		})
 	})
 }
@@ -438,13 +442,12 @@ func TestHTTPHandlers_AgentMetrics_CACertExpiry_Prometheus(t *testing.T) {
 
 }
 
-func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t0 *testing.T) {
-	skipIfShortTesting(t0)
+func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {
+	skipIfShortTesting(t)
 
-	testutil.RetryFlakyTest(t0, func(t *testing.T) {
-		// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
-		t.Run("client agent emits nothing", func(t *testing.T) {
-			hcl := `
+	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
+	t.Run("client agent emits nothing", func(t *testing.T) {
+		hcl := `
 		server = false
 		telemetry = {
 			prometheus_retention_time = "5s",
@@ -456,18 +459,19 @@ func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t0 *testing.T) {
 		}
 		bootstrap = false
 		`
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
 
-			a := StartTestAgent(t, TestAgent{HCL: hcl})
-			defer a.Shutdown()
-
+		sdkretry.FlakyTest(t, func(r *sdkretry.R) {
 			respRec := httptest.NewRecorder()
 			recordPromMetrics(t, a, respRec)
 
 			require.NotContains(t, respRec.Body.String(), "agent_4_raft_wal")
 		})
+	})
 
-		t.Run("server with WAL enabled emits WAL metrics", func(t *testing.T) {
-			hcl := `
+	t.Run("server with WAL enabled emits WAL metrics", func(t0 *testing.T) {
+		hcl := `
 		server = true
 		bootstrap = true
 		telemetry = {
@@ -483,29 +487,32 @@ func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t0 *testing.T) {
 		}
 		`
 
-			a := StartTestAgent(t, TestAgent{HCL: hcl})
-			defer a.Shutdown()
-			testrpc.WaitForLeader(t, a.RPC, "dc1")
+		a := StartTestAgent(t0, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+
+		sdkretry.FlakyTest(t0, func(r *sdkretry.R) {
+			testrpc.WaitForLeader(r, a.RPC, "dc1")
 
 			respRec := httptest.NewRecorder()
-			recordPromMetrics(t, a, respRec)
+			recordPromMetrics(r, a, respRec)
 
 			out := respRec.Body.String()
-			require.Contains(t, out, "agent_5_raft_wal_head_truncations")
-			require.Contains(t, out, "agent_5_raft_wal_last_segment_age_seconds")
-			require.Contains(t, out, "agent_5_raft_wal_log_appends")
-			require.Contains(t, out, "agent_5_raft_wal_log_entries_read")
-			require.Contains(t, out, "agent_5_raft_wal_log_entries_written")
-			require.Contains(t, out, "agent_5_raft_wal_log_entry_bytes_read")
-			require.Contains(t, out, "agent_5_raft_wal_log_entry_bytes_written")
-			require.Contains(t, out, "agent_5_raft_wal_segment_rotations")
-			require.Contains(t, out, "agent_5_raft_wal_stable_gets")
-			require.Contains(t, out, "agent_5_raft_wal_stable_sets")
-			require.Contains(t, out, "agent_5_raft_wal_tail_truncations")
+			require.Contains(r, out, "agent_5_raft_wal_head_truncations")
+			require.Contains(r, out, "agent_5_raft_wal_last_segment_age_seconds")
+			require.Contains(r, out, "agent_5_raft_wal_log_appends")
+			require.Contains(r, out, "agent_5_raft_wal_log_entries_read")
+			require.Contains(r, out, "agent_5_raft_wal_log_entries_written")
+			require.Contains(r, out, "agent_5_raft_wal_log_entry_bytes_read")
+			require.Contains(r, out, "agent_5_raft_wal_log_entry_bytes_written")
+			require.Contains(r, out, "agent_5_raft_wal_segment_rotations")
+			require.Contains(r, out, "agent_5_raft_wal_stable_gets")
+			require.Contains(r, out, "agent_5_raft_wal_stable_sets")
+			require.Contains(r, out, "agent_5_raft_wal_tail_truncations")
 		})
+	})
 
-		t.Run("server without WAL enabled emits no WAL metrics", func(t *testing.T) {
-			hcl := `
+	t.Run("server without WAL enabled emits no WAL metrics", func(t0 *testing.T) {
+		hcl := `
 		server = true
 		bootstrap = true
 		telemetry = {
@@ -521,26 +528,26 @@ func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t0 *testing.T) {
 		}
 		`
 
-			a := StartTestAgent(t, TestAgent{HCL: hcl})
-			defer a.Shutdown()
-			testrpc.WaitForLeader(t, a.RPC, "dc1")
+		a := StartTestAgent(t0, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+
+		sdkretry.FlakyTest(t0, func(r *sdkretry.R) {
+			testrpc.WaitForLeader(r, a.RPC, "dc1")
 
 			respRec := httptest.NewRecorder()
-			recordPromMetrics(t, a, respRec)
+			recordPromMetrics(r, a, respRec)
 
-			require.NotContains(t, respRec.Body.String(), "agent_6_raft_wal")
+			require.NotContains(r, respRec.Body.String(), "agent_6_raft_wal")
 		})
-
 	})
 }
 
-func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t0 *testing.T) {
-	skipIfShortTesting(t0)
+func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t *testing.T) {
+	skipIfShortTesting(t)
 
-	testutil.RetryFlakyTest(t0, func(t *testing.T) {
-		// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
-		t.Run("client agent emits nothing", func(t *testing.T) {
-			hcl := `
+	// This test cannot use t.Parallel() since we modify global state, ie the global metrics instance
+	t.Run("client agent emits nothing", func(t *testing.T) {
+		hcl := `
 		server = false
 		telemetry = {
 			prometheus_retention_time = "5s",
@@ -556,17 +563,19 @@ func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t0 *testing.T) {
 		bootstrap = false
 		`
 
-			a := StartTestAgent(t, TestAgent{HCL: hcl})
-			defer a.Shutdown()
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
 
+		sdkretry.FlakyTest(t, func(r *sdkretry.R) {
 			respRec := httptest.NewRecorder()
-			recordPromMetrics(t, a, respRec)
+			recordPromMetrics(r, a, respRec)
 
-			require.NotContains(t, respRec.Body.String(), "agent_4_raft_logstore_verifier")
+			require.NotContains(r, respRec.Body.String(), "agent_4_raft_logstore_verifier")
 		})
+	})
 
-		t.Run("server with verifier enabled emits all metrics", func(t *testing.T) {
-			hcl := `
+	t.Run("server with verifier enabled emits all metrics", func(t *testing.T) {
+		hcl := `
 		server = true
 		bootstrap = true
 		telemetry = {
@@ -585,23 +594,26 @@ func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t0 *testing.T) {
 		}
 		`
 
-			a := StartTestAgent(t, TestAgent{HCL: hcl})
-			defer a.Shutdown()
-			testrpc.WaitForLeader(t, a.RPC, "dc1")
+		a := StartTestAgent(t, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+		sdkretry.FlakyTest(t, func(r *sdkretry.R) {
+
+			testrpc.WaitForLeader(r, a.RPC, "dc1")
 
 			respRec := httptest.NewRecorder()
-			recordPromMetrics(t, a, respRec)
+			recordPromMetrics(r, a, respRec)
 
 			out := respRec.Body.String()
-			require.Contains(t, out, "agent_5_raft_logstore_verifier_checkpoints_written")
-			require.Contains(t, out, "agent_5_raft_logstore_verifier_dropped_reports")
-			require.Contains(t, out, "agent_5_raft_logstore_verifier_ranges_verified")
-			require.Contains(t, out, "agent_5_raft_logstore_verifier_read_checksum_failures")
-			require.Contains(t, out, "agent_5_raft_logstore_verifier_write_checksum_failures")
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_checkpoints_written")
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_dropped_reports")
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_ranges_verified")
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_read_checksum_failures")
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_write_checksum_failures")
 		})
+	})
 
-		t.Run("server with verifier disabled emits no extra metrics", func(t *testing.T) {
-			hcl := `
+	t.Run("server with verifier disabled emits no extra metrics", func(t0 *testing.T) {
+		hcl := `
 		server = true
 		bootstrap = true
 		telemetry = {
@@ -619,15 +631,16 @@ func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t0 *testing.T) {
 		}
 		`
 
-			a := StartTestAgent(t, TestAgent{HCL: hcl})
-			defer a.Shutdown()
-			testrpc.WaitForLeader(t, a.RPC, "dc1")
+		a := StartTestAgent(t0, TestAgent{HCL: hcl})
+		defer a.Shutdown()
+
+		sdkretry.FlakyTest(t0, func(r *sdkretry.R) {
+			testrpc.WaitForLeader(r, a.RPC, "dc1")
 
 			respRec := httptest.NewRecorder()
-			recordPromMetrics(t, a, respRec)
+			recordPromMetrics(r, a, respRec)
 
-			require.NotContains(t, respRec.Body.String(), "agent_6_raft_logstore_verifier")
+			require.NotContains(r, respRec.Body.String(), "agent_6_raft_logstore_verifier")
 		})
-
 	})
 }

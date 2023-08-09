@@ -46,6 +46,8 @@ type Failer interface {
 // and printed only if the retryer fails. Printed logs are deduped and
 // prefixed with source code line numbers
 type R struct {
+	// reported by `Name()`
+	Name_ string
 	// fail is set by FailNow and (Fatal|Error)(f). It indicates the pass
 	// did not succeed, and should be retried
 	fail bool
@@ -108,13 +110,27 @@ type runFailed struct{}
 
 // FailNow stops run execution. It is roughly equivalent to:
 //
-//	r.Error("")
+//	r.Fail()
 //	return
 //
 // inside the function being run.
 func (r *R) FailNow() {
-	r.fail = true
+	r.Fail()
 	panic(runFailed{})
+}
+
+// Fail marks the current run as failed, but does not interrupt execution
+func (r *R) Fail() {
+	r.fail = true
+}
+
+// Failed reports whether the run is marked as failed
+func (r *R) Failed() bool {
+	return r.fail
+}
+
+func (r *R) Name() string {
+	return r.Name_
 }
 
 // Fatal is equivalent to r.Logf(args) followed by r.FailNow(), i.e. the run
@@ -140,13 +156,13 @@ func (r *R) Fatalf(format string, args ...interface{}) {
 // It *does not* stop execution of the rest of the run function.
 func (r *R) Error(args ...interface{}) {
 	r.log(fmt.Sprint(args...))
-	r.fail = true
+	r.Fail()
 }
 
 // Errorf is like Error but allows a format string
 func (r *R) Errorf(format string, args ...interface{}) {
 	r.log(fmt.Sprintf(format, args...))
-	r.fail = true
+	r.Fail()
 }
 
 // If err is non-nil, equivalent to r.Fatal(err.Error()) followed by
@@ -167,6 +183,21 @@ func (r *R) log(s string) {
 func (r *R) Stop(err error) {
 	r.log(err.Error())
 	r.done = true
+}
+
+// RT is the intersection of R and testing.T
+type RT interface {
+	Cleanup(func())
+	Error(args ...any)
+	Errorf(format string, args ...any)
+	Fail()
+	FailNow()
+	Failed() bool
+	Fatal(args ...any)
+	Fatalf(format string, args ...any)
+	Helper()
+	Log(args ...any)
+	Logf(format string, args ...any)
 }
 
 func decorate(s string) string {

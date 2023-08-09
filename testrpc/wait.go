@@ -21,7 +21,7 @@ type rpcFn func(context.Context, string, interface{}, interface{}) error
 //
 // Most uses of this would be better served in the agent/consul package by
 // using waitForLeaderEstablishment() instead.
-func WaitForLeader(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
+func WaitForLeader(t retry.RT, rpc rpcFn, dc string, options ...waitOption) {
 	t.Helper()
 
 	flat := flattenOptions(options)

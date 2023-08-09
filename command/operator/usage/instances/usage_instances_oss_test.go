@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
+	sdkretry "github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -120,7 +120,7 @@ Total                                    45`,
 }
 
 func TestUsageInstances_formatNodesCounts(t0 *testing.T) {
-	testutil.RetryFlakyTest(t0, func(t *testing.T) {
+	sdkretry.FlakyTest(t0, func(r *sdkretry.R) {
 		usageBasic := map[string]api.ServiceUsage{
 			"dc1": {
 				Nodes: 10,
@@ -136,6 +136,7 @@ func TestUsageInstances_formatNodesCounts(t0 *testing.T) {
 			},
 		}
 
+		// TODO: detable this; it's 2 cases
 		cases := []struct {
 			name          string
 			usageStats    map[string]api.ServiceUsage
@@ -163,7 +164,7 @@ Total           21`,
 		}
 
 		for _, tc := range cases {
-			t.Run(tc.name, func(t *testing.T) {
+			t0.Run(tc.name, func(t *testing.T) {
 				nodesOutput, err := formatNodesCounts(tc.usageStats)
 				require.NoError(t, err)
 				require.Equal(t, strings.TrimSpace(tc.expectedNodes), nodesOutput)
