@@ -17,7 +17,7 @@ import (
 )
 
 func TestWrite_Create(t *testing.T) {
-	cache := New()
+	cache := NewDestinationsCache()
 
 	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
 	destination := testDestination(proxyID)
@@ -38,7 +38,7 @@ func TestWrite_Create(t *testing.T) {
 }
 
 func TestWrite_Update(t *testing.T) {
-	cache := New()
+	cache := NewDestinationsCache()
 
 	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
 	destination1 := testDestination(proxyID)
@@ -95,7 +95,7 @@ func TestWrite_Update(t *testing.T) {
 }
 
 func TestWrite_Delete(t *testing.T) {
-	cache := New()
+	cache := NewDestinationsCache()
 
 	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
 	destination1 := testDestination(proxyID)
@@ -129,7 +129,7 @@ func TestWrite_Delete(t *testing.T) {
 }
 
 func TestDeleteSourceProxy(t *testing.T) {
-	cache := New()
+	cache := NewDestinationsCache()
 
 	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
 	destination1 := testDestination(proxyID)
@@ -164,7 +164,7 @@ func TestDeleteSourceProxy(t *testing.T) {
 }
 
 func TestDestinationsBySourceProxy(t *testing.T) {
-	cache := New()
+	cache := NewDestinationsCache()
 
 	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").ID()
 	destination1 := testDestination(proxyID)

@@ -898,6 +898,7 @@ func (s *Server) registerControllers(deps Deps) {
 
 				return s.getTrustDomain(caConfig)
 			},
+			LocalDatacenter: s.config.Datacenter,
 		})
 	}
 
