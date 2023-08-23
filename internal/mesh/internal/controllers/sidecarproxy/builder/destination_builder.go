@@ -4,6 +4,8 @@
 package builder
 
 import (
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
@@ -12,7 +14,6 @@ import (
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *Builder {
