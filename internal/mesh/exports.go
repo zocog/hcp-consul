@@ -37,7 +37,8 @@ var (
 	ProxyConfigurationV1Alpha1Type              = types.ProxyConfigurationV1Alpha1Type
 	UpstreamsV1Alpha1Type                       = types.UpstreamsV1Alpha1Type
 	UpstreamsConfigurationV1Alpha1Type          = types.UpstreamsConfigurationV1Alpha1Type
-	ProxyStateTemplateConfigurationV1Alpha1Type = types.ProxyStateTemplateV1Alpha1Type
+	ProxyStateTemplateV1Alpha1Type              = types.ProxyStateTemplateV1Alpha1Type // TODO(rb): which one is it?
+	ProxyStateTemplateConfigurationV1Alpha1Type = types.ProxyStateTemplateV1Alpha1Type // TODO(rb): which one is it?
 	HTTPRouteV1Alpha1Type                       = types.HTTPRouteV1Alpha1Type
 	GRPCRouteV1Alpha1Type                       = types.GRPCRouteV1Alpha1Type
 	TCPRouteV1Alpha1Type                        = types.TCPRouteV1Alpha1Type
@@ -47,15 +48,16 @@ var (
 
 	// Resource Types for the latest version.
 
-	ProxyConfigurationType     = types.ProxyConfigurationType
-	UpstreamsType              = types.UpstreamsType
-	UpstreamsConfigurationType = types.UpstreamsConfigurationType
-	ProxyStateTemplateType     = types.ProxyStateTemplateType
-	HTTPRouteType              = types.HTTPRouteType
-	GRPCRouteType              = types.GRPCRouteType
-	TCPRouteType               = types.TCPRouteType
-	DestinationPolicyType      = types.DestinationPolicyType
-	ComputedRoutesType         = types.ComputedRoutesType
+	ProxyConfigurationType              = types.ProxyConfigurationType
+	UpstreamsType                       = types.UpstreamsType
+	UpstreamsConfigurationType          = types.UpstreamsConfigurationType
+	ProxyStateTemplateType              = types.ProxyStateTemplateType // TODO(rb): which one is it?
+	ProxyStateTemplateConfigurationType = types.ProxyStateTemplateType // TODO(rb): which one is it?
+	HTTPRouteType                       = types.HTTPRouteType
+	GRPCRouteType                       = types.GRPCRouteType
+	TCPRouteType                        = types.TCPRouteType
+	DestinationPolicyType               = types.DestinationPolicyType
+	ComputedRoutesType                  = types.ComputedRoutesType
 
 	// Controller statuses.
 

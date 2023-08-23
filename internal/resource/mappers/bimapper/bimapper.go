@@ -272,7 +272,6 @@ func (m *Mapper) MapLink(_ context.Context, _ controller.Runtime, res *pbresourc
 }
 
 func (m *Mapper) itemIDsByLink(link resource.ReferenceKey) []*pbresource.ID {
-
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -288,11 +287,11 @@ func (m *Mapper) itemIDsByLink(link resource.ReferenceKey) []*pbresource.ID {
 	return out
 }
 
-func (m *Mapper) itemRefsByLink(ref resource.ReferenceKey) []*pbresource.Reference {
+func (m *Mapper) itemRefsByLink(link resource.ReferenceKey) []*pbresource.Reference {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	items, ok := m.linkToItem[ref]
+	items, ok := m.linkToItem[link]
 	if !ok {
 		return nil
 	}
