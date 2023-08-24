@@ -8,6 +8,7 @@ package limiter
 import (
 	"context"
 	"errors"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"math/rand"
 	"sort"
 	"sync"
@@ -120,7 +121,7 @@ func (l *SessionLimiter) SetDrainRateLimit(limit rate.Limit) {
 //  1. Call End on the session when finished.
 //  2. Receive on the session's Terminated channel and exit (e.g. close the gRPC
 //     stream) when it is closed.
-func (l *SessionLimiter) BeginSession() (Session, error) {
+func (l *SessionLimiter) BeginSession() (proxysnapshot.Session, error) {
 	if !l.hasCapacity() {
 		return nil, ErrCapacityReached
 	}
@@ -216,28 +217,6 @@ func (l *SessionLimiter) deleteSessionWithID(id uint64) {
 	l.deleteSessionLocked(idx, id)
 }
 
-// SessionTerminatedChan is a channel that will be closed to notify session-
-// holders that a session has been terminated.
-type SessionTerminatedChan <-chan struct{}
-
-// Session allows its holder to perform an operation (e.g. serve a gRPC stream)
-// concurrenly with other session-holders. Sessions may be terminated abruptly
-// by the SessionLimiter, so it is the responsibility of the holder to receive
-// on the Terminated channel and halt the operation when it is closed.
-type Session interface {
-	// End the session.
-	//
-	// This MUST be called when the session-holder is done (e.g. the gRPC stream
-	// is closed).
-	End()
-
-	// Terminated is a channel that is closed when the session is terminated.
-	//
-	// The session-holder MUST receive on it and exit (e.g. close the gRPC stream)
-	// when it is closed.
-	Terminated() SessionTerminatedChan
-}
-
 type session struct {
 	l *SessionLimiter
 
@@ -247,6 +226,6 @@ type session struct {
 
 func (s *session) End() { s.l.deleteSessionWithID(s.id) }
 
-func (s *session) Terminated() SessionTerminatedChan { return s.termCh }
+func (s *session) Terminated() proxysnapshot.SessionTerminatedChan { return s.termCh }
 
 func (s *session) terminate() { close(s.termCh) }

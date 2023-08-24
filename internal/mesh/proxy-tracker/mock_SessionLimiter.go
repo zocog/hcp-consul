@@ -3,7 +3,7 @@
 package proxytracker
 
 import (
-	limiter "github.com/hashicorp/consul/agent/grpc-external/limiter"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -13,19 +13,19 @@ type MockSessionLimiter struct {
 }
 
 // BeginSession provides a mock function with given fields:
-func (_m *MockSessionLimiter) BeginSession() (limiter.Session, error) {
+func (_m *MockSessionLimiter) BeginSession() (proxysnapshot.Session, error) {
 	ret := _m.Called()
 
-	var r0 limiter.Session
+	var r0 proxysnapshot.Session
 	var r1 error
-	if rf, ok := ret.Get(0).(func() (limiter.Session, error)); ok {
+	if rf, ok := ret.Get(0).(func() (proxysnapshot.Session, error)); ok {
 		return rf()
 	}
-	if rf, ok := ret.Get(0).(func() limiter.Session); ok {
+	if rf, ok := ret.Get(0).(func() proxysnapshot.Session); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(limiter.Session)
+			r0 = ret.Get(0).(proxysnapshot.Session)
 		}
 	}
 
