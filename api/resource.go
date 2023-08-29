@@ -4,14 +4,18 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 type Resource struct {
 	c *Client
+	grpcClient *GRPCClient
 }
 
 type GVK struct {
@@ -28,7 +32,11 @@ type WriteRequest struct {
 
 // Config returns a handle to the Config endpoints
 func (c *Client) Resource() *Resource {
-	return &Resource{c}
+	return &Resource{c, nil}
+}
+
+func (c *GRPCClient) GRPCResource() *Resource {
+	return &Resource{nil, c}
 }
 
 func (resource *Resource) Read(gvk *GVK, resourceName string, q *QueryOptions) (map[string]interface{}, error) {
@@ -75,4 +83,38 @@ func (resource *Resource) Apply(gvk *GVK, resourceName string, q *QueryOptions, 
 	}
 
 	return out, wm, nil
+}
+
+func (resource *Resource) Write(parsedResource *pbresource.Resource) (map[string]interface{}, error) {
+	ctx, _ := context.WithCancel(context.Background())
+
+	fmt.Printf("\n**** resource.c: %+v", resource.grpcClient)
+	fmt.Printf("\n**** resource config: %+v", resource.grpcClient.Config)
+	fmt.Printf("\n**** grpc client: %+v", resource.grpcClient.Config.GRPCClient)
+
+	rsp, err := resource.grpcClient.Config.GRPCClient.Write(ctx, &pbresource.WriteRequest{
+		Resource: parsedResource,
+	})
+
+	if err != nil {
+		fmt.Printf("\n**** grpc response err: %+v", err)
+
+		return nil, err
+	}
+
+	fmt.Printf("\n**** grpc response: %+v", rsp)
+
+	output, err := protojson.Marshal(rsp)
+	if err != nil {
+		return nil, err
+	}
+
+	var stuff map[string]any
+	if err := json.Unmarshal(output, &stuff); err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("\n**** response stuff: %+v", stuff)
+
+	return stuff, nil
 }

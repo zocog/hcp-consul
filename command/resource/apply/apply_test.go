@@ -80,3 +80,40 @@ func TestResourceApplyInvalidArgs(t *testing.T) {
 		})
 	}
 }
+
+func TestResourceWriteCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	cases := []struct {
+		name      string
+		output    string
+	}{
+		{
+			name:   "sample output",
+			output: "demo.v2.Artist 'korn' created.",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			c := New(ui)
+			args := []string{
+				"-f=../testdata/demo.hcl",
+				"-grpc-addr=127.0.0.1:8502",
+			}
+
+			code := c.Run(args)
+			require.Equal(t, 0, code)
+			require.Empty(t, ui.ErrorWriter.String())
+			require.Contains(t, ui.OutputWriter.String(), tc.output)
+		})
+	}
+}

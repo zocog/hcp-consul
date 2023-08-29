@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-rootcerts"
@@ -361,6 +362,8 @@ type Config struct {
 	// HttpAuth is the auth info to use for http access.
 	HttpAuth *HttpBasicAuth
 
+	GRPCClient pbresource.ResourceServiceClient
+
 	// WaitTime limits how long a Watch will block. If not provided,
 	// the agent default values will be used.
 	WaitTime time.Duration
@@ -624,6 +627,12 @@ type Client struct {
 	headers    http.Header
 
 	config Config
+}
+
+type GRPCClient struct {
+	modifyLock sync.RWMutex
+
+	Config Config
 }
 
 // Headers gets the current set of headers used for requests. This returns a

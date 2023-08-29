@@ -28,7 +28,7 @@ func New(ui cli.Ui) *cmd {
 type cmd struct {
 	UI    cli.Ui
 	flags *flag.FlagSet
-	http  *flags.HTTPFlags
+	grpc  *flags.GRPCFlags
 	help  string
 
 	filePath  string
@@ -39,8 +39,8 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.filePath, "f", "",
 		"File path with resource definition")
 
-	c.http = &flags.HTTPFlags{}
-	flags.Merge(c.flags, c.http.ClientFlags())
+	c.grpc = &flags.GRPCFlags{}
+	flags.Merge(c.flags, c.grpc.ClientFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -89,18 +89,19 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	client, err := c.http.APIClient()
+	// client, err := c.http.APIClient()
+	client, err := c.grpc.GRPCClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connect to Consul agent: %s", err))
 		return 1
 	}
 
-	opts := &api.QueryOptions{
-		Namespace: parsedResource.Id.Tenancy.GetNamespace(),
-		Partition: parsedResource.Id.Tenancy.GetPartition(),
-		Peer:      parsedResource.Id.Tenancy.GetPeerName(),
-		Token:     c.http.Token(),
-	}
+	// opts := &api.QueryOptions{
+	// 	Namespace: parsedResource.Id.Tenancy.GetNamespace(),
+	// 	Partition: parsedResource.Id.Tenancy.GetPartition(),
+	// 	Peer:      parsedResource.Id.Tenancy.GetPeerName(),
+	// 	Token:     c.http.Token(),
+	// }
 
 	gvk := &api.GVK{
 		Group: parsedResource.Id.Type.GetGroup(),
@@ -108,13 +109,19 @@ func (c *cmd) Run(args []string) int {
 		Kind: parsedResource.Id.Type.GetKind(),
 	}
 
-	writeRequest, err := makeWriteRequest(parsedResource)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error parsing hcl input: %v", err))
-		return 1
-	}
+	// writeRequest, err := makeWriteRequest(parsedResource)
+	// if err != nil {
+	// 	c.UI.Error(fmt.Sprintf("Error parsing hcl input: %v", err))
+	// 	return 1
+	// }
 
-	entry, _, err := client.Resource().Apply(gvk,  parsedResource.Id.GetName(), opts, writeRequest)
+	// entry, _, err := client.Resource().Apply(gvk,  parsedResource.Id.GetName(), opts, writeRequest)
+	// if err != nil {
+	// 	c.UI.Error(fmt.Sprintf("Error writing resource %s/%s: %v", gvk, parsedResource.Id.GetName(), err))
+	// 	return 1
+	// }
+
+	entry, err := client.GRPCResource().Write(parsedResource)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error writing resource %s/%s: %v", gvk, parsedResource.Id.GetName(), err))
 		return 1

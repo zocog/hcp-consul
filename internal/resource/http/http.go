@@ -79,6 +79,8 @@ func (h *resourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	fmt.Printf("\n!!!!! In http write !!!!!")
+
 	var req writeRequest
 	// convert req body to writeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

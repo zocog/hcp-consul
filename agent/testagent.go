@@ -358,6 +358,15 @@ func (a *TestAgent) HTTPAddr() string {
 	return addr.String()
 }
 
+func (a *TestAgent) GRPCAddr() string {
+	addr, err := firstAddr(a.Agent.apiServers, "rpc")
+	if err != nil {
+		// TODO: t.Fatal instead of panic
+		panic("no http server registered")
+	}
+	return addr.String()
+}
+
 // firstAddr is used by tests to look up the address for the first server which
 // matches the protocol
 func firstAddr(s *apiServers, protocol string) (net.Addr, error) {
