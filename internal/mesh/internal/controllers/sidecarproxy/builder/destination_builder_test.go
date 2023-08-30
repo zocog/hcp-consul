@@ -174,13 +174,13 @@ func TestBuildImplicitDestinations(t *testing.T) {
 	cases := map[string]struct {
 		destinations []*intermediate.Destination
 	}{
-		"l4-single-implicit-destination-tproxy": {
+		"destination/l4-single-implicit-destination-tproxy": {
 			destinations: []*intermediate.Destination{destination1},
 		},
-		"l4-multiple-implicit-destinations-tproxy": {
+		"destination/l4-multiple-implicit-destinations-tproxy": {
 			destinations: []*intermediate.Destination{destination1, destination2},
 		},
-		"l4-implicit-and-explicit-destinations-tproxy": {
+		"destination/l4-implicit-and-explicit-destinations-tproxy": {
 			destinations: []*intermediate.Destination{destination2, destination3},
 		},
 	}
