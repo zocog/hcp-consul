@@ -67,7 +67,7 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 	cases := map[string]struct {
 		destinations []*intermediate.Destination
 	}{
-		"l4-multiport-single-implicit-destination-tproxy": {
+		"destination/l4-multiport-single-implicit-destination-tproxy": {
 			destinations: []*intermediate.Destination{destination1},
 		},
 	}
