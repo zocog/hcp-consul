@@ -86,13 +86,13 @@ func TestBuildExplicitDestinations(t *testing.T) {
 	cases := map[string]struct {
 		destinations []*intermediate.Destination
 	}{
-		"l4-single-destination-ip-port-bind-address": {
+		"destination/l4-single-destination-ip-port-bind-address": {
 			destinations: []*intermediate.Destination{destinationIpPort},
 		},
-		"l4-single-destination-unix-socket-bind-address": {
+		"destination/l4-single-destination-unix-socket-bind-address": {
 			destinations: []*intermediate.Destination{destinationUnix},
 		},
-		"l4-multi-destination": {
+		"destination/l4-multi-destination": {
 			destinations: []*intermediate.Destination{destinationIpPort, destinationUnix},
 		},
 	}
