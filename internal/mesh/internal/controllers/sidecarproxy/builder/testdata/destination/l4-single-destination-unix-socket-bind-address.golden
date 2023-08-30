@@ -19,15 +19,15 @@
         "routers":  [
           {
             "l4":  {
-              "name":  "api-2.default.dc1.internal.foo.consul",
-              "statPrefix":  "upstream.api-2.default.default.dc1"
+              "name":  "tcp.api-2.default.dc1.internal.foo.consul",
+              "statPrefix":  "upstream.tcp.api-2.default.default.dc1"
             }
           }
         ]
       }
     ],
     "clusters":  {
-      "api-2.default.dc1.internal.foo.consul":  {
+      "tcp.api-2.default.dc1.internal.foo.consul":  {
         "endpointGroup":  {
           "dynamic":  {
             "config":  {
@@ -42,7 +42,10 @@
                   ]
                 },
                 "sni":  "api-2.default.dc1.internal.foo.consul"
-              }
+              },
+              "alpnProtocols": [
+                "consul~tcp"
+              ]
             }
           }
         }

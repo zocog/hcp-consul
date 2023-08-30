@@ -18,6 +18,11 @@
         },
         "routers":  [
           {
+            "match":  {
+              "alpnProtocols":  [
+                "consul~port1"
+              ]
+            },
             "l4":  {
               "name":  "local_app:port1",
               "statPrefix":  "public_listener"
