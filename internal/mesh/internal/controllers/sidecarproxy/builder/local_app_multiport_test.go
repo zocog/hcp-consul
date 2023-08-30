@@ -15,7 +15,7 @@ func TestBuildLocalApp_Multiport(t *testing.T) {
 	cases := map[string]struct {
 		workload *pbcatalog.Workload
 	}{
-		"l4-multiport-single-workload-address": {
+		"source/l4-multiport-single-workload-address": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
