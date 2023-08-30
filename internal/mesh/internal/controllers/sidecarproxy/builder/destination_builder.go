@@ -20,7 +20,6 @@ import (
 func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *Builder {
 	if b.proxyCfg.GetDynamicConfig() != nil &&
 		b.proxyCfg.DynamicConfig.Mode == pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT {
-
 		b.addOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
 	}
 
@@ -41,47 +40,44 @@ func (b *Builder) getLastBuiltListener() *pbproxystate.Listener {
 }
 
 func (b *Builder) buildExplicitDestination(destination *intermediate.Destination) *Builder {
-	b.addOutboundDestinationListener(destination.Explicit)
-	for _, endpoint := range destination.ServiceEndpoints.Endpoints.Endpoints {
-		for portName, port := range endpoint.Ports {
-			sni := DestinationSNI(destination.Explicit.DestinationRef, destination.Explicit.Datacenter, b.trustDomain)
-			clusterName := fmt.Sprintf("%s.%s", portName, sni)
-			statPrefix := DestinationStatPrefix(destination.Explicit.DestinationRef, portName, destination.Explicit.Datacenter)
-			if isMeshPort(port) {
-				b.addEndpointsRef(sni, destination.ServiceEndpoints.Resource.Id, portName)
-			} else if port.GetProtocol() != pbcatalog.Protocol_PROTOCOL_TCP {
-				//only implementing L4 at the moment
-				continue
-			} else {
-				b.addRouterWithIPAndPortMatch(clusterName, statPrefix, nil, destination.VirtualIPs).
-					addCluster(clusterName, sni, portName, destination.Identities)
-			}
-		}
-	}
-
+	// create listener for explicit
+	b.addOutboundDestinationListener(destination.Explicit).
+		addRoutersClustersAndMeshEndpoints(destination, destination.Explicit.DestinationRef,
+			b.trustDomain, destination.Explicit.Datacenter, false)
 	return b
 }
 
 func (b *Builder) buildImplicitDestination(destination *intermediate.Destination) *Builder {
+	serviceRef := resource.Reference(destination.ServiceEndpoints.Resource.Owner, "")
+	b.addRoutersClustersAndMeshEndpoints(destination, serviceRef, b.trustDomain, b.localDatacenter, true)
+	return b
+}
+
+func (b *Builder) addRoutersClustersAndMeshEndpoints(destination *intermediate.Destination,
+	serviceRef *pbresource.Reference, trustDomain, datacenter string, isImplicitDestination bool) {
 	for _, endpoint := range destination.ServiceEndpoints.Endpoints.Endpoints {
 		for portName, port := range endpoint.Ports {
-			serviceRef := resource.Reference(destination.ServiceEndpoints.Resource.Owner, "")
-			sni := DestinationSNI(serviceRef, b.localDatacenter, b.trustDomain)
-			statPrefix := DestinationStatPrefix(serviceRef, portName, b.localDatacenter)
+			sni := DestinationSNI(serviceRef, datacenter, trustDomain)
+			statPrefix := DestinationStatPrefix(serviceRef, portName, datacenter)
+
 			if isMeshPort(port) {
 				b.addEndpointsRef(sni, destination.ServiceEndpoints.Resource.Id, portName)
 			} else if port.GetProtocol() != pbcatalog.Protocol_PROTOCOL_TCP {
 				//only implementing L4 at the moment
-				continue
 			} else {
 				clusterName := fmt.Sprintf("%s.%s", portName, sni)
-				b.addRouterWithIPAndPortMatch(clusterName, statPrefix, port, destination.VirtualIPs).
+				var portForRouterMatch *pbcatalog.WorkloadPort
+				// router matches based on destination ports should only occur on implicit destinations
+				// for explicit, nil will get passed to addRouterWithIPAndPortMatch() which will then
+				// exclude the destinationPort match on the listener router.
+				if isImplicitDestination {
+					portForRouterMatch = port
+				}
+				b.addRouterWithIPAndPortMatch(clusterName, statPrefix, portForRouterMatch, destination.VirtualIPs).
 					addCluster(clusterName, sni, portName, destination.Identities)
 			}
 		}
 	}
-
-	return b
 }
 
 func (b *Builder) addOutboundDestinationListener(explicit *pbmesh.Upstream) *Builder {
@@ -130,7 +126,7 @@ func (b *Builder) addOutboundListener(port uint32) *Builder {
 	return b.addListener(listener)
 }
 
-func (b *Builder) addRouterDestination(router *pbproxystate.Router, clusterName, statPrefix string, port *pbcatalog.WorkloadPort) {
+func (b *Builder) addRouterDestination(router *pbproxystate.Router, clusterName, statPrefix string, port *pbcatalog.WorkloadPort) *Builder {
 	switch port.GetProtocol() {
 	case pbcatalog.Protocol_PROTOCOL_TCP:
 		router.Destination = &pbproxystate.Router_L4{
@@ -147,7 +143,9 @@ func (b *Builder) addRouterDestination(router *pbproxystate.Router, clusterName,
 			},
 		}
 	}
+	return b
 }
+
 func (b *Builder) addRouterWithIPAndPortMatch(clusterName, statPrefix string, port *pbcatalog.WorkloadPort, vips []string) *Builder {
 	listener := b.getLastBuiltListener()
 
@@ -174,7 +172,7 @@ func (b *Builder) addRouterWithIPAndPortMatch(clusterName, statPrefix string, po
 	return b
 }
 
-func (b *Builder) addCluster(clusterName, sni, portName string, destinationIdentities []*pbresource.Reference) {
+func (b *Builder) addCluster(clusterName, sni, portName string, destinationIdentities []*pbresource.Reference) *Builder {
 	var spiffeIDs []string
 	for _, identity := range destinationIdentities {
 		spiffeIDs = append(spiffeIDs, connect.SpiffeIDFromIdentityRef(b.trustDomain, identity))
@@ -210,11 +208,14 @@ func (b *Builder) addCluster(clusterName, sni, portName string, destinationIdent
 	}
 
 	b.proxyStateTemplate.ProxyState.Clusters[clusterName] = cluster
+
+	return b
 }
 
-func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbresource.ID, destinationPort string) {
+func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbresource.ID, destinationPort string) *Builder {
 	b.proxyStateTemplate.RequiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
 		Id:   serviceEndpointsID,
 		Port: destinationPort,
 	}
+	return b
 }
