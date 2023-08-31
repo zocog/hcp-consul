@@ -128,7 +128,7 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 				BuildDestinations(c.getDestinations()).
 				Build()
 
-			//sort routers because JSON does not guarantee ordering and it causes flakes
+			// sort routers because of test flakes where order was flip flopping.
 			actualRouters := proxyTmpl.ProxyState.Listeners[0].Routers
 			sort.Slice(actualRouters, func(i, j int) bool {
 				return actualRouters[i].String() < actualRouters[j].String()
@@ -137,11 +137,13 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 			actual := protoToJSON(t, proxyTmpl)
 			expected := JSONToProxyTemplate(t, goldenValueBytes(t, name, actual, *update))
 
-			//sort routers on listener from golden file
+			// sort routers on listener from golden file
 			expectedRouters := expected.ProxyState.Listeners[0].Routers
 			sort.Slice(expectedRouters, func(i, j int) bool {
 				return expectedRouters[i].String() < expectedRouters[j].String()
 			})
+
+			// convert back to json after sorting so that test output does not contain extraneous fields.
 			require.Equal(t, protoToJSON(t, expected), protoToJSON(t, proxyTmpl))
 		})
 	}
