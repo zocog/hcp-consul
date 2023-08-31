@@ -98,14 +98,16 @@ func TestBuildExplicitDestinations(t *testing.T) {
 	}
 
 	for name, c := range cases {
-		proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", nil).
-			BuildDestinations(c.destinations).
-			Build()
+		t.Run(name, func(t *testing.T) {
+			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", nil).
+				BuildDestinations(c.destinations).
+				Build()
 
-		actual := protoToJSON(t, proxyTmpl)
-		expected := goldenValue(t, name, actual, *update)
+			actual := protoToJSON(t, proxyTmpl)
+			expected := goldenValue(t, name, actual, *update)
 
-		require.JSONEq(t, expected, actual)
+			require.JSONEq(t, expected, actual)
+		})
 	}
 }
 
@@ -186,14 +188,16 @@ func TestBuildImplicitDestinations(t *testing.T) {
 	}
 
 	for name, c := range cases {
-		proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", proxyCfg).
-			BuildDestinations(c.destinations).
-			Build()
+		t.Run(name, func(t *testing.T) {
+			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", proxyCfg).
+				BuildDestinations(c.destinations).
+				Build()
 
-		actual := protoToJSON(t, proxyTmpl)
-		expected := goldenValue(t, name, actual, *update)
+			actual := protoToJSON(t, proxyTmpl)
+			expected := goldenValue(t, name, actual, *update)
 
-		require.JSONEq(t, expected, actual)
+			require.JSONEq(t, expected, actual)
+		})
 	}
 }
 
@@ -226,6 +230,84 @@ func Test_isMeshPort(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			require.Equal(t, tc.expectedResult, isMeshPort(&pbcatalog.WorkloadPort{Protocol: tc.protocol}))
+		})
+	}
+}
+
+func Test_getListOfDistinctPortsFromServiceEndpoints(t *testing.T) {
+	cases := map[string]struct {
+		serviceEndpoints *pbcatalog.ServiceEndpoints
+		expectedResult   *servicePortInfo
+	}{
+		"address specific ports union": {
+			serviceEndpoints: &pbcatalog.ServiceEndpoints{
+				Endpoints: []*pbcatalog.Endpoint{
+					{
+						Addresses: []*pbcatalog.WorkloadAddress{
+							{Host: "10.0.0.1", Ports: []string{"api-port"}},
+						},
+						Ports: map[string]*pbcatalog.WorkloadPort{
+							"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+							"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+							"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+						},
+					},
+					{
+						Addresses: []*pbcatalog.WorkloadAddress{
+							{Host: "10.0.0.2",
+								Ports: []string{"api-port"}},
+						},
+						Ports: map[string]*pbcatalog.WorkloadPort{
+							"api-port": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+							"mesh":     {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+						},
+					},
+				},
+			},
+			expectedResult: &servicePortInfo{
+				meshPortName: "mesh",
+				meshPort:     &pbcatalog.WorkloadPort{Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				servicePorts: map[string]*pbcatalog.WorkloadPort{
+					"api-port": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+				},
+			},
+		},
+		"no address specific ports create union of workload ports": {
+			serviceEndpoints: &pbcatalog.ServiceEndpoints{
+				Endpoints: []*pbcatalog.Endpoint{
+					{
+						Addresses: []*pbcatalog.WorkloadAddress{
+							{Host: "10.0.0.1"},
+						},
+						Ports: map[string]*pbcatalog.WorkloadPort{
+							"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+							"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+							"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+						},
+					},
+					{
+						Addresses: []*pbcatalog.WorkloadAddress{
+							{Host: "10.0.0.2"},
+						},
+						Ports: map[string]*pbcatalog.WorkloadPort{
+							"api-port": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+							"mesh":     {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+						},
+					},
+				},
+			},
+			expectedResult: &servicePortInfo{
+				meshPortName: "mesh",
+				meshPort:     &pbcatalog.WorkloadPort{Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				servicePorts: map[string]*pbcatalog.WorkloadPort{
+					"api-port": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+				},
+			},
+		},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			require.Equal(t, tc.expectedResult, getServicePortInfo(tc.serviceEndpoints))
 		})
 	}
 }
