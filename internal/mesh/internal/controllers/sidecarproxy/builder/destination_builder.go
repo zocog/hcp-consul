@@ -17,6 +17,12 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+type servicePortInfo struct {
+	meshPortName string
+	meshPort     *pbcatalog.WorkloadPort
+	servicePorts map[string]*pbcatalog.WorkloadPort
+}
+
 func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *Builder {
 	if b.proxyCfg.GetDynamicConfig() != nil &&
 		b.proxyCfg.DynamicConfig.Mode == pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT {
@@ -34,50 +40,61 @@ func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *B
 	return b
 }
 
-func (b *Builder) getLastBuiltListener() *pbproxystate.Listener {
-	lastBuiltIndex := len(b.proxyStateTemplate.ProxyState.Listeners) - 1
-	return b.proxyStateTemplate.ProxyState.Listeners[lastBuiltIndex]
-}
-
 func (b *Builder) buildExplicitDestination(destination *intermediate.Destination) *Builder {
-	// create listener for explicit
-	b.addOutboundDestinationListener(destination.Explicit).
-		addRoutersClustersAndMeshEndpoints(destination, destination.Explicit.DestinationRef,
-			b.trustDomain, destination.Explicit.Datacenter, false)
-	return b
+	serviceRef := destination.Explicit.DestinationRef
+	sni := DestinationSNI(serviceRef, b.localDatacenter, b.trustDomain)
+	portInfo := getServicePortInfo(destination.ServiceEndpoints.Endpoints)
+
+	return b.addOutboundDestinationListener(destination.Explicit).
+		addEndpointsRef(sni, destination.ServiceEndpoints.Resource.Id, portInfo.meshPortName).
+		addRouters(portInfo, destination, serviceRef, sni, b.localDatacenter, false).
+		addClusters(portInfo, destination, sni)
 }
 
 func (b *Builder) buildImplicitDestination(destination *intermediate.Destination) *Builder {
 	serviceRef := resource.Reference(destination.ServiceEndpoints.Resource.Owner, "")
-	b.addRoutersClustersAndMeshEndpoints(destination, serviceRef, b.trustDomain, b.localDatacenter, true)
+	sni := DestinationSNI(serviceRef, b.localDatacenter, b.trustDomain)
+	portInfo := getServicePortInfo(destination.ServiceEndpoints.Endpoints)
+
+	return b.addEndpointsRef(sni, destination.ServiceEndpoints.Resource.Id, portInfo.meshPortName).
+		addRouters(portInfo, destination, serviceRef, sni, b.localDatacenter, true).
+		addClusters(portInfo, destination, sni)
+}
+
+func (b *Builder) addClusters(portInfo *servicePortInfo, destination *intermediate.Destination, sni string) *Builder {
+	for portName, port := range portInfo.servicePorts {
+		if port.GetProtocol() != pbcatalog.Protocol_PROTOCOL_TCP {
+			//only implementing L4 at the moment
+		} else {
+			clusterName := fmt.Sprintf("%s.%s", portName, sni)
+			b.addCluster(clusterName, sni, portName, destination.Identities)
+		}
+	}
 	return b
 }
 
-func (b *Builder) addRoutersClustersAndMeshEndpoints(destination *intermediate.Destination,
-	serviceRef *pbresource.Reference, trustDomain, datacenter string, isImplicitDestination bool) {
-	for _, endpoint := range destination.ServiceEndpoints.Endpoints.Endpoints {
-		for portName, port := range endpoint.Ports {
-			sni := DestinationSNI(serviceRef, datacenter, trustDomain)
-			statPrefix := DestinationStatPrefix(serviceRef, portName, datacenter)
+func (b *Builder) addRouters(portInfo *servicePortInfo, destination *intermediate.Destination,
+	serviceRef *pbresource.Reference, sni, datacenter string, isImplicitDestination bool) *Builder {
 
-			if isMeshPort(port) {
-				b.addEndpointsRef(sni, destination.ServiceEndpoints.Resource.Id, portName)
-			} else if port.GetProtocol() != pbcatalog.Protocol_PROTOCOL_TCP {
-				//only implementing L4 at the moment
-			} else {
-				clusterName := fmt.Sprintf("%s.%s", portName, sni)
-				var portForRouterMatch *pbcatalog.WorkloadPort
-				// router matches based on destination ports should only occur on implicit destinations
-				// for explicit, nil will get passed to addRouterWithIPAndPortMatch() which will then
-				// exclude the destinationPort match on the listener router.
-				if isImplicitDestination {
-					portForRouterMatch = port
-				}
-				b.addRouterWithIPAndPortMatch(clusterName, statPrefix, portForRouterMatch, destination.VirtualIPs).
-					addCluster(clusterName, sni, portName, destination.Identities)
-			}
+	for portName, port := range portInfo.servicePorts {
+		statPrefix := DestinationStatPrefix(serviceRef, portName, datacenter)
+
+		if port.GetProtocol() != pbcatalog.Protocol_PROTOCOL_TCP {
+			//only implementing L4 at the moment
+			continue
 		}
+
+		clusterName := fmt.Sprintf("%s.%s", portName, sni)
+		var portForRouterMatch *pbcatalog.WorkloadPort
+		// router matches based on destination ports should only occur on implicit destinations
+		// for explicit, nil will get passed to addRouterWithIPAndPortMatch() which will then
+		// exclude the destinationPort match on the listener router.
+		if isImplicitDestination {
+			portForRouterMatch = port
+		}
+		b.addRouterWithIPAndPortMatch(clusterName, statPrefix, portForRouterMatch, destination.VirtualIPs)
 	}
+	return b
 }
 
 func (b *Builder) addOutboundDestinationListener(explicit *pbmesh.Upstream) *Builder {
@@ -218,4 +235,82 @@ func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbreso
 		Port: destinationPort,
 	}
 	return b
+}
+
+func (b *Builder) getLastBuiltListener() *pbproxystate.Listener {
+	lastBuiltIndex := len(b.proxyStateTemplate.ProxyState.Listeners) - 1
+	return b.proxyStateTemplate.ProxyState.Listeners[lastBuiltIndex]
+}
+
+func getServicePortInfo(serviceEndpoints *pbcatalog.ServiceEndpoints) *servicePortInfo {
+	spInfo := &servicePortInfo{
+		servicePorts: make(map[string]*pbcatalog.WorkloadPort),
+	}
+	type seenData struct {
+		port      *pbcatalog.WorkloadPort
+		timesSeen int
+	}
+	seen := make(map[string]*seenData)
+	numberOfEndpointAddresses := 0
+	for _, ep := range serviceEndpoints.GetEndpoints() {
+		for _, address := range ep.Addresses {
+			numberOfEndpointAddresses++
+			hasAddressLevelPorts := false
+			if len(address.Ports) > 0 {
+				hasAddressLevelPorts = true
+			}
+
+			// if address has specific ports, add those to the seen array
+			for _, portName := range address.Ports {
+				// check that it is not service mesh port because we don't
+				// want to add that to the service ports map.
+				epPort, epOK := ep.Ports[portName]
+				if isMeshPort(epPort) {
+					continue
+				}
+
+				portData, ok := seen[portName]
+				if ok {
+					portData.timesSeen += 1
+				} else {
+					if epOK {
+						seen[portName] = &seenData{port: epPort, timesSeen: 1}
+					}
+				}
+			}
+
+			// iterate through endpoint ports and set the mesh port
+			// as well as all endpoint ports for this workload if there
+			// are no specific workload ports.
+			for epPortName, epPort := range ep.Ports {
+				// look to set mesh port
+				if isMeshPort(epPort) {
+					spInfo.meshPortName = epPortName
+					spInfo.meshPort = epPort
+					continue
+				}
+
+				// if address specifies a subset, it has already been accounted
+				// for in the seen list.
+				if hasAddressLevelPorts {
+					continue
+				}
+				// otherwise, add all ports for this endpoint.
+				portData, ok := seen[epPortName]
+				if ok {
+					portData.timesSeen += 1
+				} else {
+					seen[epPortName] = &seenData{port: epPort, timesSeen: 1}
+				}
+			}
+		}
+	}
+
+	for portName, portData := range seen {
+		// make sure each port is available to all workloads
+		if portData.timesSeen == numberOfEndpointAddresses {
+			spInfo.servicePorts[portName] = portData.port
+		}
+	}
+	return spInfo
 }

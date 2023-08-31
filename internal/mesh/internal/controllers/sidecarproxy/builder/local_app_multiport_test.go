@@ -15,11 +15,47 @@ func TestBuildLocalApp_Multiport(t *testing.T) {
 	cases := map[string]struct {
 		workload *pbcatalog.Workload
 	}{
-		"source/l4-multiport-single-workload-address": {
+		"source/multiport-l4-single-workload-address-without-ports": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
 						Host: "10.0.0.1",
+					},
+				},
+				Ports: map[string]*pbcatalog.WorkloadPort{
+					"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				},
+			},
+		},
+		"source/multiport-l4-multiple-workload-addresses-without-ports": {
+			workload: &pbcatalog.Workload{
+				Addresses: []*pbcatalog.WorkloadAddress{
+					{
+						Host: "10.0.0.1",
+					},
+					{
+						Host: "10.0.0.2",
+					},
+				},
+				Ports: map[string]*pbcatalog.WorkloadPort{
+					"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				},
+			},
+		},
+		"source/multiport-l4-multiple-workload-addresses-with-specific-ports": {
+			workload: &pbcatalog.Workload{
+				Addresses: []*pbcatalog.WorkloadAddress{
+					{
+						Host:  "10.0.0.1",
+						Ports: []string{"admin-port"},
+					},
+					{
+						Host:  "10.0.0.2",
+						Ports: []string{"api-port"},
 					},
 				},
 				Ports: map[string]*pbcatalog.WorkloadPort{

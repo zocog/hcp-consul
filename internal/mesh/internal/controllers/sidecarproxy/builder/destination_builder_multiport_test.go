@@ -20,9 +20,19 @@ import (
 func TestBuildMultiportImplicitDestinations(t *testing.T) {
 	const (
 		apiApp      = "api-app"
+		apiApp2     = "api-app2"
 		trustDomain = "foo.consul"
 		datacenter  = "dc1"
 	)
+	proxyCfg := &pbmesh.ProxyConfiguration{
+		DynamicConfig: &pbmesh.DynamicConfig{
+			Mode: pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
+			TransparentProxy: &pbmesh.TransparentProxy{
+				OutboundListenerPort: 15001,
+			},
+		},
+	}
+
 	multiportEndpointsData := &pbcatalog.ServiceEndpoints{
 		Endpoints: []*pbcatalog.Endpoint{
 			{
@@ -46,15 +56,6 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 		Tenancy: apiAppEndpoints.Id.Tenancy,
 	}
 
-	proxyCfg := &pbmesh.ProxyConfiguration{
-		DynamicConfig: &pbmesh.DynamicConfig{
-			Mode: pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
-			TransparentProxy: &pbmesh.TransparentProxy{
-				OutboundListenerPort: 15001,
-			},
-		},
-	}
-
 	destination1 := &intermediate.Destination{
 		ServiceEndpoints: &intermediate.ServiceEndpoints{
 			Resource:  apiAppEndpoints,
@@ -65,21 +66,72 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 	}
 
 	cases := map[string]struct {
-		destinations []*intermediate.Destination
+		getDestinations func() []*intermediate.Destination
 	}{
-		"destination/l4-multiport-single-implicit-destination-tproxy": {
-			destinations: []*intermediate.Destination{destination1},
+		// Most basic test that multiport configuration works
+		"destination/multiport-l4-single-implicit-destination-tproxy": {
+			getDestinations: func() []*intermediate.Destination { return []*intermediate.Destination{destination1} },
+		},
+		// Test shows that with multiple workloads for a service exposing the same ports, the routers
+		// and clusters do not get duplicated.
+		"destination/multiport-l4-single-implicit-destination-with-multiple-workloads-tproxy": {
+			getDestinations: func() []*intermediate.Destination {
+				mwEndpointsData := &pbcatalog.ServiceEndpoints{
+					Endpoints: []*pbcatalog.Endpoint{
+						{
+							Addresses: []*pbcatalog.WorkloadAddress{
+								{Host: "10.0.0.1"},
+							},
+							Ports: map[string]*pbcatalog.WorkloadPort{
+								"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+								"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+								"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+							},
+						},
+						{
+							Addresses: []*pbcatalog.WorkloadAddress{
+								{Host: "10.0.0.2"},
+							},
+							Ports: map[string]*pbcatalog.WorkloadPort{
+								"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+								"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+								"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+							},
+						},
+					},
+				}
+				mwEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, apiApp).
+					WithOwner(resourcetest.Resource(catalog.ServiceType, apiApp).ID()).
+					WithData(t, mwEndpointsData).Build()
+
+				mwIdentity := &pbresource.Reference{
+					Name:    fmt.Sprintf("%s-identity", apiApp),
+					Tenancy: mwEndpoints.Id.Tenancy,
+				}
+
+				mwDestination := &intermediate.Destination{
+					ServiceEndpoints: &intermediate.ServiceEndpoints{
+						Resource:  mwEndpoints,
+						Endpoints: mwEndpointsData,
+					},
+					Identities: []*pbresource.Reference{mwIdentity},
+					VirtualIPs: []string{"1.1.1.1"},
+				}
+				return []*intermediate.Destination{mwDestination}
+			},
 		},
 	}
 
 	for name, c := range cases {
-		proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), trustDomain, datacenter, proxyCfg).
-			BuildDestinations(c.destinations).
-			Build()
+		t.Run(name, func(t *testing.T) {
+			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), trustDomain, datacenter, proxyCfg).
+				BuildDestinations(c.getDestinations()).
+				Build()
 
-		actual := protoToJSON(t, proxyTmpl)
-		expected := goldenValue(t, name, actual, *update)
+			actual := protoToJSON(t, proxyTmpl)
+			expected := goldenValue(t, name, actual, *update)
 
-		require.JSONEq(t, expected, actual)
+			require.JSONEq(t, expected, actual)
+		})
 	}
 }
