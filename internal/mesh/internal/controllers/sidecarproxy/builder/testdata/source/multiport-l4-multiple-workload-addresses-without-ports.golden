@@ -108,5 +108,6 @@
     "local":  {
       "peer":  "local"
     }
-  }
+  },
+  "requiredEndpoints": {}
 }
