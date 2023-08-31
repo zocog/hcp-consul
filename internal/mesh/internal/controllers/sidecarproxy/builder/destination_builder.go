@@ -17,10 +17,12 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+// BuildDestinations creates listeners, routers, clusters, and endpointRefs for all destinations
+// and adds them to the proxyState.
 func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *Builder {
 	if b.proxyCfg.GetDynamicConfig() != nil &&
 		b.proxyCfg.DynamicConfig.Mode == pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT {
-		b.addOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
+		b.addTransparentProxyOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
 	}
 
 	for _, destination := range destinations {
@@ -34,17 +36,21 @@ func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *B
 	return b
 }
 
+// buildExplicitDestination creates listeners, routers, clusters, and endpointRefs for an explicit destination
+// and adds them to the proxyState.
 func (b *Builder) buildExplicitDestination(destination *intermediate.Destination) *Builder {
 	serviceRef := destination.Explicit.DestinationRef
 	sni := DestinationSNI(serviceRef, b.localDatacenter, b.trustDomain)
 	portInfo := newServicePortInfo(destination.ServiceEndpoints.Endpoints)
 
-	return b.addOutboundDestinationListener(destination.Explicit).
+	return b.addExplicitOutboundListener(destination.Explicit).
 		addEndpointsRef(sni, destination.ServiceEndpoints.Resource.Id, portInfo.meshPortName).
 		addRouters(portInfo, destination, serviceRef, sni, b.localDatacenter, false).
 		addClusters(portInfo, destination, sni)
 }
 
+// buildImplicitDestination creates listeners, routers, clusters, and endpointRefs for an implicit destination
+// and adds them to the proxyState.
 func (b *Builder) buildImplicitDestination(destination *intermediate.Destination) *Builder {
 	serviceRef := resource.Reference(destination.ServiceEndpoints.Resource.Owner, "")
 	sni := DestinationSNI(serviceRef, b.localDatacenter, b.trustDomain)
@@ -55,6 +61,7 @@ func (b *Builder) buildImplicitDestination(destination *intermediate.Destination
 		addClusters(portInfo, destination, sni)
 }
 
+// addClusters creates clusters for each service port in the pre-processed a servicePortInfo.
 func (b *Builder) addClusters(portInfo *servicePortInfo, destination *intermediate.Destination, sni string) *Builder {
 	for portName, port := range portInfo.servicePorts {
 		if port.GetProtocol() != pbcatalog.Protocol_PROTOCOL_TCP {
@@ -67,6 +74,7 @@ func (b *Builder) addClusters(portInfo *servicePortInfo, destination *intermedia
 	return b
 }
 
+// addRouters creates routers for each service port in the pre-processed a servicePortInfo.
 func (b *Builder) addRouters(portInfo *servicePortInfo, destination *intermediate.Destination,
 	serviceRef *pbresource.Reference, sni, datacenter string, isImplicitDestination bool) *Builder {
 
@@ -91,7 +99,8 @@ func (b *Builder) addRouters(portInfo *servicePortInfo, destination *intermediat
 	return b
 }
 
-func (b *Builder) addOutboundDestinationListener(explicit *pbmesh.Upstream) *Builder {
+// addOutboundDestinationListener creates an outbound listener for an explicit destination.
+func (b *Builder) addExplicitOutboundListener(explicit *pbmesh.Upstream) *Builder {
 	listener := &pbproxystate.Listener{
 		Direction: pbproxystate.Direction_DIRECTION_OUTBOUND,
 	}
@@ -121,7 +130,8 @@ func (b *Builder) addOutboundDestinationListener(explicit *pbmesh.Upstream) *Bui
 	return b.addListener(listener)
 }
 
-func (b *Builder) addOutboundListener(port uint32) *Builder {
+// addTransparentProxyOutboundListener creates an outbound listener for transparent proxy mode.
+func (b *Builder) addTransparentProxyOutboundListener(port uint32) *Builder {
 	listener := &pbproxystate.Listener{
 		Name:      xdscommon.OutboundListenerName,
 		Direction: pbproxystate.Direction_DIRECTION_OUTBOUND,
@@ -137,7 +147,8 @@ func (b *Builder) addOutboundListener(port uint32) *Builder {
 	return b.addListener(listener)
 }
 
-func (b *Builder) addRouterDestination(router *pbproxystate.Router, clusterName, statPrefix string, port *pbcatalog.WorkloadPort) *Builder {
+// getRouterDestination returns the appropriate router destination based on the port protocol.
+func (b *Builder) getRouterDestination(router *pbproxystate.Router, clusterName, statPrefix string, port *pbcatalog.WorkloadPort) *Builder {
 	switch port.GetProtocol() {
 	case pbcatalog.Protocol_PROTOCOL_TCP:
 		router.Destination = &pbproxystate.Router_L4{
@@ -157,12 +168,14 @@ func (b *Builder) addRouterDestination(router *pbproxystate.Router, clusterName,
 	return b
 }
 
+// addRouterWithIPAndPortMatch will create and add a listener router to proxyState that
+// matches on the IP and port of the cluster.
 func (b *Builder) addRouterWithIPAndPortMatch(clusterName, statPrefix string, port *pbcatalog.WorkloadPort, vips []string) *Builder {
 	listener := b.getLastBuiltListener()
 
 	// For explicit destinations, we have no filter chain match, and filters are based on port protocol.
 	router := &pbproxystate.Router{}
-	b.addRouterDestination(router, clusterName, statPrefix, port)
+	b.getRouterDestination(router, clusterName, statPrefix, port)
 
 	if router.Destination != nil {
 		if (port != nil || len(vips) > 0) && router.Match == nil {
@@ -183,6 +196,7 @@ func (b *Builder) addRouterWithIPAndPortMatch(clusterName, statPrefix string, po
 	return b
 }
 
+// addCluster creates and adds a cluster to the proxyState based on the destination.
 func (b *Builder) addCluster(clusterName, sni, portName string, destinationIdentities []*pbresource.Reference) *Builder {
 	var spiffeIDs []string
 	for _, identity := range destinationIdentities {
@@ -223,6 +237,9 @@ func (b *Builder) addCluster(clusterName, sni, portName string, destinationIdent
 	return b
 }
 
+// addEndpointsRef creates and add an endpointRef for each serviceEndpoint for a destination and
+// adds it to the proxyStateTemplate so it will be processed later during reconciliation by
+// the XDS controller.
 func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbresource.ID, destinationPort string) *Builder {
 	b.proxyStateTemplate.RequiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
 		Id:   serviceEndpointsID,
