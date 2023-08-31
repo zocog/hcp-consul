@@ -62,9 +62,8 @@ func newServicePortInfo(serviceEndpoints *pbcatalog.ServiceEndpoints) *servicePo
 						} else if len(seen[portName].seenBy)-1 < epIdx {
 							// port is in the seen map and has seenBy indexes but not this one.
 							seen[portName].seenBy = append(seen[portName].seenBy, &epIdx)
-						} else {
-							// do nothing since this endpoint has already marked it as seen.
 						}
+						// else do nothing since this endpoint has already marked it as seen.
 					}
 				} else {
 					// port is not yet in the seen map
