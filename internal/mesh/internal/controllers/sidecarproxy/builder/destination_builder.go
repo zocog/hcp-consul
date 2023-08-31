@@ -230,8 +230,3 @@ func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbreso
 	}
 	return b
 }
-
-func (b *Builder) getLastBuiltListener() *pbproxystate.Listener {
-	lastBuiltIndex := len(b.proxyStateTemplate.ProxyState.Listeners) - 1
-	return b.proxyStateTemplate.ProxyState.Listeners[lastBuiltIndex]
-}
