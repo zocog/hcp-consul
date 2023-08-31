@@ -118,7 +118,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			sort.Slice(expectedRouters, func(i, j int) bool {
 				return expectedRouters[i].String() < expectedRouters[j].String()
 			})
-			require.Equal(t, expected, proxyTmpl)
+			require.Equal(t, protoToJSON(t, expected), protoToJSON(t, proxyTmpl))
 		})
 	}
 }
@@ -220,7 +220,7 @@ func TestBuildImplicitDestinations(t *testing.T) {
 				return expectedRouters[i].String() < expectedRouters[j].String()
 			})
 
-			require.Equal(t, expected, proxyTmpl)
+			require.Equal(t, protoToJSON(t, expected), protoToJSON(t, proxyTmpl))
 		})
 	}
 }
