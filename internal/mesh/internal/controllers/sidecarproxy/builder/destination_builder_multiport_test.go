@@ -6,6 +6,7 @@ package builder
 import (
 	"fmt"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -20,7 +21,6 @@ import (
 func TestBuildMultiportImplicitDestinations(t *testing.T) {
 	const (
 		apiApp      = "api-app"
-		apiApp2     = "api-app2"
 		trustDomain = "foo.consul"
 		datacenter  = "dc1"
 	)
@@ -128,10 +128,21 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 				BuildDestinations(c.getDestinations()).
 				Build()
 
-			actual := protoToJSON(t, proxyTmpl)
-			expected := goldenValue(t, name, actual, *update)
+			//sort routers because JSON does not guarantee ordering and it causes flakes
+			actualRouters := proxyTmpl.ProxyState.Listeners[0].Routers
+			sort.Slice(actualRouters, func(i, j int) bool {
+				return actualRouters[i].String() < actualRouters[j].String()
+			})
 
-			require.JSONEq(t, expected, actual)
+			actual := protoToJSON(t, proxyTmpl)
+			expected := JSONToProxyTemplate(t, goldenValueBytes(t, name, actual, *update))
+
+			//sort routers on listener from golden file
+			expectedRouters := expected.ProxyState.Listeners[0].Routers
+			sort.Slice(expectedRouters, func(i, j int) bool {
+				return expectedRouters[i].String() < expectedRouters[j].String()
+			})
+			require.Equal(t, expected, proxyTmpl)
 		})
 	}
 }

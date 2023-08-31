@@ -4,6 +4,7 @@
 package builder
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -72,10 +73,23 @@ func TestBuildLocalApp_Multiport(t *testing.T) {
 			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", nil).
 				BuildLocalApp(c.workload).
 				Build()
-			actual := protoToJSON(t, proxyTmpl)
-			expected := goldenValue(t, name, actual, *update)
 
-			require.JSONEq(t, expected, actual)
+			//sort routers because JSON does not guarantee ordering and it causes flakes
+			actualRouters := proxyTmpl.ProxyState.Listeners[0].Routers
+			sort.Slice(actualRouters, func(i, j int) bool {
+				return actualRouters[i].String() < actualRouters[j].String()
+			})
+
+			actual := protoToJSON(t, proxyTmpl)
+			expected := JSONToProxyTemplate(t, goldenValueBytes(t, name, actual, *update))
+
+			//sort routers on listener from golden file
+			expectedRouters := expected.ProxyState.Listeners[0].Routers
+			sort.Slice(expectedRouters, func(i, j int) bool {
+				return expectedRouters[i].String() < expectedRouters[j].String()
+			})
+			
+			require.Equal(t, expected, proxyTmpl)
 		})
 	}
 }
