@@ -17,12 +17,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-type servicePortInfo struct {
-	meshPortName string
-	meshPort     *pbcatalog.WorkloadPort
-	servicePorts map[string]*pbcatalog.WorkloadPort
-}
-
 func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *Builder {
 	if b.proxyCfg.GetDynamicConfig() != nil &&
 		b.proxyCfg.DynamicConfig.Mode == pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT {
@@ -43,7 +37,7 @@ func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *B
 func (b *Builder) buildExplicitDestination(destination *intermediate.Destination) *Builder {
 	serviceRef := destination.Explicit.DestinationRef
 	sni := DestinationSNI(serviceRef, b.localDatacenter, b.trustDomain)
-	portInfo := getServicePortInfo(destination.ServiceEndpoints.Endpoints)
+	portInfo := newServicePortInfo(destination.ServiceEndpoints.Endpoints)
 
 	return b.addOutboundDestinationListener(destination.Explicit).
 		addEndpointsRef(sni, destination.ServiceEndpoints.Resource.Id, portInfo.meshPortName).
@@ -54,7 +48,7 @@ func (b *Builder) buildExplicitDestination(destination *intermediate.Destination
 func (b *Builder) buildImplicitDestination(destination *intermediate.Destination) *Builder {
 	serviceRef := resource.Reference(destination.ServiceEndpoints.Resource.Owner, "")
 	sni := DestinationSNI(serviceRef, b.localDatacenter, b.trustDomain)
-	portInfo := getServicePortInfo(destination.ServiceEndpoints.Endpoints)
+	portInfo := newServicePortInfo(destination.ServiceEndpoints.Endpoints)
 
 	return b.addEndpointsRef(sni, destination.ServiceEndpoints.Resource.Id, portInfo.meshPortName).
 		addRouters(portInfo, destination, serviceRef, sni, b.localDatacenter, true).
@@ -240,77 +234,4 @@ func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbreso
 func (b *Builder) getLastBuiltListener() *pbproxystate.Listener {
 	lastBuiltIndex := len(b.proxyStateTemplate.ProxyState.Listeners) - 1
 	return b.proxyStateTemplate.ProxyState.Listeners[lastBuiltIndex]
-}
-
-func getServicePortInfo(serviceEndpoints *pbcatalog.ServiceEndpoints) *servicePortInfo {
-	spInfo := &servicePortInfo{
-		servicePorts: make(map[string]*pbcatalog.WorkloadPort),
-	}
-	type seenData struct {
-		port      *pbcatalog.WorkloadPort
-		timesSeen int
-	}
-	seen := make(map[string]*seenData)
-	numberOfEndpointAddresses := 0
-	for _, ep := range serviceEndpoints.GetEndpoints() {
-		for _, address := range ep.Addresses {
-			numberOfEndpointAddresses++
-			hasAddressLevelPorts := false
-			if len(address.Ports) > 0 {
-				hasAddressLevelPorts = true
-			}
-
-			// if address has specific ports, add those to the seen array
-			for _, portName := range address.Ports {
-				// check that it is not service mesh port because we don't
-				// want to add that to the service ports map.
-				epPort, epOK := ep.Ports[portName]
-				if isMeshPort(epPort) {
-					continue
-				}
-
-				portData, ok := seen[portName]
-				if ok {
-					portData.timesSeen += 1
-				} else {
-					if epOK {
-						seen[portName] = &seenData{port: epPort, timesSeen: 1}
-					}
-				}
-			}
-
-			// iterate through endpoint ports and set the mesh port
-			// as well as all endpoint ports for this workload if there
-			// are no specific workload ports.
-			for epPortName, epPort := range ep.Ports {
-				// look to set mesh port
-				if isMeshPort(epPort) {
-					spInfo.meshPortName = epPortName
-					spInfo.meshPort = epPort
-					continue
-				}
-
-				// if address specifies a subset, it has already been accounted
-				// for in the seen list.
-				if hasAddressLevelPorts {
-					continue
-				}
-				// otherwise, add all ports for this endpoint.
-				portData, ok := seen[epPortName]
-				if ok {
-					portData.timesSeen += 1
-				} else {
-					seen[epPortName] = &seenData{port: epPort, timesSeen: 1}
-				}
-			}
-		}
-	}
-
-	for portName, portData := range seen {
-		// make sure each port is available to all workloads
-		if portData.timesSeen == numberOfEndpointAddresses {
-			spInfo.servicePorts[portName] = portData.port
-		}
-	}
-	return spInfo
 }

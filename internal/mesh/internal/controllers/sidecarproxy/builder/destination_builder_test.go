@@ -4,6 +4,7 @@
 package builder
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -103,10 +104,21 @@ func TestBuildExplicitDestinations(t *testing.T) {
 				BuildDestinations(c.destinations).
 				Build()
 
-			actual := protoToJSON(t, proxyTmpl)
-			expected := goldenValue(t, name, actual, *update)
+			//sort routers because JSON does not guarantee ordering and it causes flakes
+			actualRouters := proxyTmpl.ProxyState.Listeners[0].Routers
+			sort.Slice(actualRouters, func(i, j int) bool {
+				return actualRouters[i].String() < actualRouters[j].String()
+			})
 
-			require.JSONEq(t, expected, actual)
+			actual := protoToJSON(t, proxyTmpl)
+			expected := JSONToProxyTemplate(t, goldenValueBytes(t, name, actual, *update))
+
+			//sort routers on listener from golden file
+			expectedRouters := expected.ProxyState.Listeners[0].Routers
+			sort.Slice(expectedRouters, func(i, j int) bool {
+				return expectedRouters[i].String() < expectedRouters[j].String()
+			})
+			require.Equal(t, expected, proxyTmpl)
 		})
 	}
 }
@@ -193,10 +205,22 @@ func TestBuildImplicitDestinations(t *testing.T) {
 				BuildDestinations(c.destinations).
 				Build()
 
-			actual := protoToJSON(t, proxyTmpl)
-			expected := goldenValue(t, name, actual, *update)
+			//sort routers because JSON does not guarantee ordering and it causes flakes
+			actualRouters := proxyTmpl.ProxyState.Listeners[0].Routers
+			sort.Slice(actualRouters, func(i, j int) bool {
+				return actualRouters[i].String() < actualRouters[j].String()
+			})
 
-			require.JSONEq(t, expected, actual)
+			actual := protoToJSON(t, proxyTmpl)
+			expected := JSONToProxyTemplate(t, goldenValueBytes(t, name, actual, *update))
+
+			//sort routers on listener from golden file
+			expectedRouters := expected.ProxyState.Listeners[0].Routers
+			sort.Slice(expectedRouters, func(i, j int) bool {
+				return expectedRouters[i].String() < expectedRouters[j].String()
+			})
+
+			require.Equal(t, expected, proxyTmpl)
 		})
 	}
 }
@@ -230,84 +254,6 @@ func Test_isMeshPort(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			require.Equal(t, tc.expectedResult, isMeshPort(&pbcatalog.WorkloadPort{Protocol: tc.protocol}))
-		})
-	}
-}
-
-func Test_getListOfDistinctPortsFromServiceEndpoints(t *testing.T) {
-	cases := map[string]struct {
-		serviceEndpoints *pbcatalog.ServiceEndpoints
-		expectedResult   *servicePortInfo
-	}{
-		"address specific ports union": {
-			serviceEndpoints: &pbcatalog.ServiceEndpoints{
-				Endpoints: []*pbcatalog.Endpoint{
-					{
-						Addresses: []*pbcatalog.WorkloadAddress{
-							{Host: "10.0.0.1", Ports: []string{"api-port"}},
-						},
-						Ports: map[string]*pbcatalog.WorkloadPort{
-							"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-							"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-							"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-						},
-					},
-					{
-						Addresses: []*pbcatalog.WorkloadAddress{
-							{Host: "10.0.0.2",
-								Ports: []string{"api-port"}},
-						},
-						Ports: map[string]*pbcatalog.WorkloadPort{
-							"api-port": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-							"mesh":     {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-						},
-					},
-				},
-			},
-			expectedResult: &servicePortInfo{
-				meshPortName: "mesh",
-				meshPort:     &pbcatalog.WorkloadPort{Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-				servicePorts: map[string]*pbcatalog.WorkloadPort{
-					"api-port": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-				},
-			},
-		},
-		"no address specific ports create union of workload ports": {
-			serviceEndpoints: &pbcatalog.ServiceEndpoints{
-				Endpoints: []*pbcatalog.Endpoint{
-					{
-						Addresses: []*pbcatalog.WorkloadAddress{
-							{Host: "10.0.0.1"},
-						},
-						Ports: map[string]*pbcatalog.WorkloadPort{
-							"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-							"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-							"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-						},
-					},
-					{
-						Addresses: []*pbcatalog.WorkloadAddress{
-							{Host: "10.0.0.2"},
-						},
-						Ports: map[string]*pbcatalog.WorkloadPort{
-							"api-port": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-							"mesh":     {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-						},
-					},
-				},
-			},
-			expectedResult: &servicePortInfo{
-				meshPortName: "mesh",
-				meshPort:     &pbcatalog.WorkloadPort{Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-				servicePorts: map[string]*pbcatalog.WorkloadPort{
-					"api-port": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-				},
-			},
-		},
-	}
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			require.Equal(t, tc.expectedResult, getServicePortInfo(tc.serviceEndpoints))
 		})
 	}
 }

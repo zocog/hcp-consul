@@ -1,4 +1,6 @@
 {
+  "requiredLeafCertificates": {},
+  "requiredTrustBundles": {},
   "proxyState":  {
     "identity":  {
       "tenancy":  {
@@ -100,7 +102,8 @@
           }
         }
       }
-    }
+    },
+    "endpoints": {}
   },
   "requiredEndpoints":  {
     "api-app.default.dc1.internal.foo.consul":  {

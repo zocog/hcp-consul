@@ -5,6 +5,7 @@ package builder
 
 import (
 	"flag"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"os"
 	"path/filepath"
 	"testing"
@@ -33,18 +34,33 @@ func protoToJSON(t *testing.T, pb proto.Message) string {
 	return string(gotJSON)
 }
 
+func JSONToProxyTemplate(t *testing.T, json []byte) *pbmesh.ProxyStateTemplate {
+	t.Helper()
+	proxyTemplate := &pbmesh.ProxyStateTemplate{}
+	m := protojson.UnmarshalOptions{}
+	err := m.Unmarshal(json, proxyTemplate)
+	require.NoError(t, err)
+	return proxyTemplate
+}
+
 func goldenValue(t *testing.T, goldenFile string, actual string, update bool) string {
+	t.Helper()
+	return string(goldenValueBytes(t, goldenFile, actual, update))
+}
+
+func goldenValueBytes(t *testing.T, goldenFile string, actual string, update bool) []byte {
 	t.Helper()
 	goldenPath := filepath.Join("testdata", goldenFile) + ".golden"
 
 	if update {
-		err := os.WriteFile(goldenPath, []byte(actual), 0644)
+		bytes := []byte(actual)
+		err := os.WriteFile(goldenPath, bytes, 0644)
 		require.NoError(t, err)
 
-		return actual
+		return bytes
 	}
 
 	content, err := os.ReadFile(goldenPath)
 	require.NoError(t, err)
-	return string(content)
+	return content
 }
