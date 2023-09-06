@@ -114,7 +114,7 @@ type BackendReference struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// For east/west configuration, this should point to either a
+	// For north/south + east/west configuration, this should point to either a
 	// pbcatalog.Service or ServiceSubset.
 	//
 	// For Partition/PeerName fields likely we could map them to ServiceImports
