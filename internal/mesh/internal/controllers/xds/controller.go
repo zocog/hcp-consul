@@ -58,14 +58,26 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 
 	rt.Logger.Trace("reconciling  proxy state template", "id", req.ID)
 
+	// TODO(jm): should this be up here?  Should we get the proxyStateTemplate if the proxy is not connected?
+	// It will cause an enqueue when it connects and will get the updated proxyState at that time.
+	if !r.updater.ProxyConnectedToServer(req.ID) {
+		rt.Logger.Trace("proxy for this proxy state template is not currently connected", "id", req.ID)
+
+		// If the proxy is not connected, we should remove references to it in the mapper.
+		r.bimapper.UntrackItem(req.ID)
+
+		return nil
+	}
+
 	// Get the ProxyStateTemplate.
 	proxyStateTemplate, err := getProxyStateTemplate(ctx, rt, req.ID)
+	rt.Logger.Trace("proxy state template", proxyStateTemplate, err)
 	if err != nil {
 		rt.Logger.Error("error reading proxy state template", "error", err)
 		return err
 	}
 
-	if proxyStateTemplate == nil || proxyStateTemplate.Template == nil || !r.updater.ProxyConnectedToServer(req.ID) {
+	if proxyStateTemplate == nil || proxyStateTemplate.Template == nil {
 		rt.Logger.Trace("proxy state template has been deleted or this controller is not responsible for this proxy state template", "id", req.ID)
 
 		// If the proxy state was deleted, we should remove references to it in the mapper.

@@ -1,0 +1,23 @@
+{
+   "id": {
+      "type": {
+         "group": "catalog",
+         "group_version": "v1alpha1",
+         "kind": "Node"
+      },
+      "tenancy": {
+         "partition": "default",
+         "namespace": "default",
+         "peer_name": "local"
+      },
+      "name": "node-1"
+   },
+   "data": {
+      "@type": "hashicorp.consul.catalog.v1alpha1.Node",
+      "addresses": [
+         {
+            "host": "127.0.0.1"
+         }
+      ]
+   }
+}

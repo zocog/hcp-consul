@@ -13,6 +13,7 @@ func proxySource(updater ProxyUpdater) *controller.Source {
 }
 
 func proxyMapper(ctx context.Context, rt controller.Runtime, event controller.Event) ([]controller.Request, error) {
+	rt.Logger.Trace("message received on updater.EventChannel", event.Obj)
 	connection, ok := event.Obj.(*proxytracker.ProxyConnection)
 	if !ok {
 		return nil, fmt.Errorf("expected event to be of type *proxytracker.ProxyConnection but was %+v", event)
