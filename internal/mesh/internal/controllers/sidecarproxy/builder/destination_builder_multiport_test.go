@@ -21,6 +21,7 @@ import (
 func TestBuildMultiportImplicitDestinations(t *testing.T) {
 	const (
 		apiApp      = "api-app"
+		apiApp2     = "api-app2"
 		trustDomain = "foo.consul"
 		datacenter  = "dc1"
 	)
@@ -51,9 +52,18 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 		WithOwner(resourcetest.Resource(catalog.ServiceType, apiApp).ID()).
 		WithData(t, multiportEndpointsData).Build()
 
+	apiApp2Endpoints := resourcetest.Resource(catalog.ServiceEndpointsType, apiApp2).
+		WithOwner(resourcetest.Resource(catalog.ServiceType, apiApp2).ID()).
+		WithData(t, multiportEndpointsData).Build()
+
 	apiAppIdentity := &pbresource.Reference{
 		Name:    fmt.Sprintf("%s-identity", apiApp),
 		Tenancy: apiAppEndpoints.Id.Tenancy,
+	}
+
+	apiApp2Identity := &pbresource.Reference{
+		Name:    fmt.Sprintf("%s-identity", apiApp2),
+		Tenancy: apiApp2Endpoints.Id.Tenancy,
 	}
 
 	destination1 := &intermediate.Destination{
@@ -63,6 +73,15 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 		},
 		Identities: []*pbresource.Reference{apiAppIdentity},
 		VirtualIPs: []string{"1.1.1.1"},
+	}
+
+	destination2 := &intermediate.Destination{
+		ServiceEndpoints: &intermediate.ServiceEndpoints{
+			Resource:  apiApp2Endpoints,
+			Endpoints: multiportEndpointsData,
+		},
+		Identities: []*pbresource.Reference{apiApp2Identity},
+		VirtualIPs: []string{"2.2.2.2", "3.3.3.3"},
 	}
 
 	cases := map[string]struct {
@@ -119,6 +138,11 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 				}
 				return []*intermediate.Destination{mwDestination}
 			},
+		},
+		// Test shows that with multiple workloads for a service exposing the same ports, the routers
+		// and clusters do not get duplicated.
+		"destination/multiport-l4-multiple-implicit-destinations-tproxy": {
+			getDestinations: func() []*intermediate.Destination { return []*intermediate.Destination{destination1, destination2} },
 		},
 	}
 
