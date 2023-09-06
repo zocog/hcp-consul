@@ -157,13 +157,14 @@ func (b *Builder) getRouterDestination(router *pbproxystate.Router, clusterName,
 				StatPrefix: statPrefix,
 			},
 		}
-	case pbcatalog.Protocol_PROTOCOL_HTTP:
-		router.Destination = &pbproxystate.Router_L7{
-			L7: &pbproxystate.L7Destination{
-				Name:       clusterName,
-				StatPrefix: statPrefix,
-			},
-		}
+		// TODO(proxystate): add L7 in future work.
+		//case pbcatalog.Protocol_PROTOCOL_HTTP:
+		//	router.Destination = &pbproxystate.Router_L7{
+		//		L7: &pbproxystate.L7Destination{
+		//			Name:       clusterName,
+		//			StatPrefix: statPrefix,
+		//		},
+		//	}
 	}
 	return b
 }
