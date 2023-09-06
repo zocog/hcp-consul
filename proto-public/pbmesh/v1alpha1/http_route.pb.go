@@ -210,7 +210,7 @@ func (QueryParamMatchType) EnumDescriptor() ([]byte, []int) {
 // NOTE: this should align to the GAMMA/gateway-api version, or at least be
 // easily translatable.
 //
-// https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1alpha2.HTTPRoute
+// https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1beta1.HTTPRoute
 //
 // This is a Resource type.
 type HTTPRoute struct {
