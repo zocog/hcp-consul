@@ -21,7 +21,14 @@ type servicePortInfo struct {
 	servicePorts map[string]*pbcatalog.WorkloadPort
 }
 
-// newServicePortInfo builds a servicePointInfo given a serviceEndpoints struct.
+// newServicePortInfo builds a servicePointInfo given a serviceEndpoints struct. It pre-process
+// what the service mesh port and the distinct service ports across the endpoints for a destination.
+// The following occurs during pre-processing:
+//   - a port must be exposed to at least one workload address on every workload in
+//     the service to be a service port.  Otherwise, the system would risk errors.
+//   - a Workload can optionally define ports specific to workload address.  If no
+//     ports are specified for a workload address, then all the destination ports are
+//     used.
 func newServicePortInfo(serviceEndpoints *pbcatalog.ServiceEndpoints) *servicePortInfo {
 	spInfo := &servicePortInfo{
 		servicePorts: make(map[string]*pbcatalog.WorkloadPort),
