@@ -47,6 +47,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 		resource.Registration{
 			Type:  demo.TypeV2Artist,
 			Proto: &pbdemov2.Artist{},
+			Scope: resource.ScopeNamespace,
 		},
 		client,
 		func(req *http.Request, token *string) { return },
@@ -165,7 +166,7 @@ func TestResourceWriteHandler(t *testing.T) {
 		readRsp, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV2Artist,
-				Tenancy: demo.TenancyDefault,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 				Name:    "keith-urban",
 			},
 		})
@@ -264,7 +265,7 @@ func TestResourceWriteHandler(t *testing.T) {
 		readRsp, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV1Artist,
-				Tenancy: demo.TenancyDefault,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 				Name:    "keith-urban-v1",
 			},
 		})
@@ -430,7 +431,7 @@ func TestResourceDeleteHandler(t *testing.T) {
 		_, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV2Artist,
-				Tenancy: demo.TenancyDefault,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 				Name:    "keith-urban",
 			},
 		})
@@ -453,7 +454,7 @@ func TestResourceDeleteHandler(t *testing.T) {
 		_, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV2Artist,
-				Tenancy: demo.TenancyDefault,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 				Name:    "keith-urban",
 			},
 		})

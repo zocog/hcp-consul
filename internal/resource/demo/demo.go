@@ -22,13 +22,6 @@ import (
 )
 
 var (
-	// TenancyDefault contains the default values for all tenancy units.
-	TenancyDefault = &pbresource.Tenancy{
-		Partition: resource.DefaultPartitionName,
-		PeerName:  "local",
-		Namespace: resource.DefaultNamespaceName,
-	}
-
 	// TypeV1RecordLabel represents a record label which artists are signed to.
 	// Used specifically as a resource to test partition only scoped resources.
 	TypeV1RecordLabel = &pbresource.Type{
@@ -135,40 +128,41 @@ func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  TypeV1RecordLabel,
 		Proto: &pbdemov1.RecordLabel{},
+		Scope: resource.ScopePartition,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
 			List:  makeListACL(TypeV1RecordLabel),
 		},
-		Scope: resource.ScopePartition,
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV1Artist,
 		Proto: &pbdemov1.Artist{},
+		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
 			List:  makeListACL(TypeV1Artist),
 		},
 		Validate: validateV1ArtistFn,
-		Scope:    resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV1Album,
 		Proto: &pbdemov1.Album{},
+		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
 			List:  makeListACL(TypeV1Album),
 		},
-		Scope: resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV2Artist,
 		Proto: &pbdemov2.Artist{},
+		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
@@ -176,18 +170,17 @@ func RegisterTypes(r resource.Registry) {
 		},
 		Validate: validateV2ArtistFn,
 		Mutate:   mutateV2ArtistFn,
-		Scope:    resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV2Album,
 		Proto: &pbdemov2.Album{},
+		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
 			List:  makeListACL(TypeV2Album),
 		},
-		Scope: resource.ScopeNamespace,
 	})
 }
 
