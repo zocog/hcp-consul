@@ -5,7 +5,7 @@ package xdsv2
 
 import (
 	"fmt"
-	"golang.org/x/exp/slices"
+	"slices"
 	"sort"
 	"strconv"
 
