@@ -531,6 +531,10 @@ function run_tests {
     echo "Verifying the alpha peer"
     verify alpha
   fi
+    if is_set $REQUIRE_PARTITIONS; then
+      echo "Verifying the ap1 partition"
+      verify ap1
+    fi
 }
 
 function test_teardown {
@@ -581,7 +585,7 @@ function suite_setup {
 }
 
 function suite_teardown {
-    docker_kill_rm verify-primary verify-secondary verify-alpha
+    docker_kill_rm verify-primary verify-secondary verify-alpha verify-ap1
 
     # this is some hilarious magic
     docker_kill_rm $(grep "^function run_container_" $self_name | \
@@ -724,6 +728,13 @@ function run_container_s1-sidecar-proxy-consul-exec {
     -envoy-version ${ENVOY_VERSION} \
     -- \
     -l trace >/dev/null
+}
+
+function run_container_s4-sidecar-proxy {
+  common_run_container_sidecar_proxy s4 primary
+}
+function run_container_s4-ap1-sidecar-proxy {
+  common_run_container_sidecar_proxy s4 ap1
 }
 
 function run_container_s2-sidecar-proxy {

@@ -488,8 +488,9 @@ type ProxyUpdater interface {
 	// PushChange allows pushing a computed ProxyState to xds for xds resource generation to send to a proxy.
 	PushChange(id *pbresource.ID, snapshot proxysnapshot.ProxySnapshot) error
 
-	// ProxyConnectedToServer returns whether this id is connected to this server.
-	ProxyConnectedToServer(id *pbresource.ID) bool
+	// ProxyConnectedToServer returns whether this id is connected to this server. If it is connected, it also returns
+	// the token as the first argument.
+	ProxyConnectedToServer(id *pbresource.ID) (string, bool)
 
 	EventChannel() chan controller.Event
 }
@@ -816,17 +817,8 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	s.reportingManager = reporting.NewReportingManager(s.logger, getEnterpriseReportingDeps(flat), s, s.fsm.State())
 	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	// Setup resource service clients.
-	if err := s.setupSecureResourceServiceClient(); err != nil {
-		return nil, err
-	}
-
-	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger); err != nil {
-		return nil, err
-	}
-
 	// Initialize external gRPC server
-	s.setupExternalGRPC(config, flat, logger)
+	s.setupExternalGRPC(config, flat.Registry, logger)
 
 	// Initialize internal gRPC server.
 	//
@@ -834,6 +826,14 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	// to enable RPC forwarding.
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
+
+	if err := s.setupSecureResourceServiceClient(); err != nil {
+		return nil, err
+	}
+
+	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger); err != nil {
+		return nil, err
+	}
 
 	s.controllerManager = controller.NewManager(
 		s.insecureResourceServiceClient,
@@ -906,7 +906,9 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 				}
 				return &bundle, nil
 			},
-			ProxyUpdater: proxyUpdater,
+			ProxyUpdater:    proxyUpdater,
+			LeafCertManager: deps.LeafCertManager,
+			Datacenter:      s.config.Datacenter,
 		})
 	}
 
@@ -1310,7 +1312,7 @@ func (s *Server) setupRPC() error {
 }
 
 // Initialize and register services on external gRPC server.
-func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logger) {
+func (s *Server) setupExternalGRPC(config *Config, typeRegistry resource.Registry, logger hclog.Logger) {
 	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
 		ACLsEnabled: s.config.ACLsEnabled,
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
@@ -1343,12 +1345,10 @@ func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logge
 	s.externalConnectCAServer.Register(s.externalGRPCServer)
 
 	dataplane.NewServer(dataplane.Config{
-		GetStore:          func() dataplane.StateStore { return s.FSM().State() },
-		Logger:            logger.Named("grpc-api.dataplane"),
-		ACLResolver:       s.ACLResolver,
-		Datacenter:        s.config.Datacenter,
-		EnableV2:          stringslice.Contains(deps.Experiments, CatalogResourceExperimentName),
-		ResourceAPIClient: s.insecureResourceServiceClient,
+		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
+		Logger:      logger.Named("grpc-api.dataplane"),
+		ACLResolver: s.ACLResolver,
+		Datacenter:  s.config.Datacenter,
 	}).Register(s.externalGRPCServer)
 
 	serverdiscovery.NewServer(serverdiscovery.Config{
@@ -1378,7 +1378,7 @@ func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logge
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
 	s.resourceServiceServer = resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:        deps.Registry,
+		Registry:        typeRegistry,
 		Backend:         s.raftStorageBackend,
 		ACLResolver:     s.ACLResolver,
 		Logger:          logger.Named("grpc-api.resource"),
