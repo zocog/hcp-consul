@@ -50,7 +50,7 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 	command = append(command, containerArgs...)
 
 	req := testcontainers.ContainerRequest{
-		Image:      "consul-dataplane/release-default:1.3.0-dev",
+		Image:      "consul-dataplane:local",
 		WaitingFor: wait.ForLog("").WithStartupTimeout(60 * time.Second),
 		AutoRemove: false,
 		Name:       containerName,
