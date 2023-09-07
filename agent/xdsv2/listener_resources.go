@@ -531,13 +531,18 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 		return nil, nil
 	}
 	commonTLSContext := &envoy_tls_v3.CommonTlsContext{}
-
+	// TODO(jm): there are usages below that fail and checks that are in place for proxyStateConverter stuff.
+	// sidecar and xds controller code don't currently set proxyState.Tls.  Decide what to do here.
+	if pr.proxyState.Tls == nil {
+		pr.proxyState.Tls = &pbproxystate.TLS{}
+	}
 	// Create connection TLS. Listeners should only look at inbound TLS.
 	switch ts.ConnectionTls.(type) {
 	case *pbproxystate.TransportSocket_InboundMesh:
 		downstreamContext := &envoy_tls_v3.DownstreamTlsContext{}
 		downstreamContext.CommonTlsContext = commonTLSContext
 		// Set TLS Parameters.
+		pr.logger.Trace("making envoy transport socke", pr.proxyState)
 		tlsParams := pr.makeEnvoyTLSParameters(pr.proxyState.Tls.InboundTlsParameters, ts.TlsParameters)
 		commonTLSContext.TlsParams = tlsParams
 

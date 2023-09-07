@@ -85,7 +85,7 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Servic
 		require.NoError(t, err)
 
 		// Create Consul Dataplane
-		_, err = libcluster.NewConsulDataplane(context.Background(), libservice.StaticClientServiceName, "0.0.0.0", 8502, node)
+		_, err = libcluster.NewConsulDataplane(context.Background(), "static-client-1", "0.0.0.0", 8502, node)
 		require.NoError(t, err)
 
 		//libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
@@ -245,46 +245,4 @@ func createCluster(t *testing.T) *libcluster.Cluster {
 	})
 
 	return cluster
-}
-
-//// createStaticServerAndSidecar launches static-server containers.
-//func createStaticServerAndSidecar(t testing.T, node libcluster.Agent, svc *libservice.ServiceOpts) (libservice.Service, libservice.Service, error) {
-//	node := cluster.Agents[1]
-//	client := node.GetClient()
-//	// Create a service and proxy instance
-//	serviceOpts := &libservice.ServiceOpts{
-//		Name:     libservice.StaticServerServiceName,
-//		ID:       "static-server",
-//		HTTPPort: 8080,
-//		GRPCPort: 8079,
-//		Connect: libservice.SidecarService{
-//			Proxy: libservice.ConnectProxy{
-//				Mode: "transparent",
-//			},
-//		},
-//	}
-//
-//	// Create a service and proxy instance
-//	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
-//	require.NoError(t, err)
-//
-//	return serverService, serverConnectProxy, nil
-//}
-
-func createStaticClient(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
-	// Do some trickery to ensure that partial completion is correctly torn
-	// down, but successful execution is not.
-	var deferClean utils.ResettableDefer
-	defer deferClean.Execute()
-
-	node := cluster.Agents[2]
-	//client := node.GetClient()
-
-	// Create a client proxy instance with the server as an upstream
-	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, true, nil)
-	require.NoError(t, err)
-
-	//libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
-	return clientConnectProxy
-
 }

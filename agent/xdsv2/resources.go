@@ -31,12 +31,14 @@ func NewResourceGenerator(
 type ProxyResources struct {
 	proxyState     *proxytracker.ProxyState
 	envoyResources map[string][]proto.Message
+	logger         hclog.Logger
 }
 
 func (g *ResourceGenerator) AllResourcesFromIR(proxyState *proxytracker.ProxyState) (map[string][]proto.Message, error) {
 	pr := &ProxyResources{
 		proxyState:     proxyState,
 		envoyResources: make(map[string][]proto.Message),
+		logger:         g.Logger.Named("proxy-resources"),
 	}
 	err := pr.generateXDSResources()
 	if err != nil {

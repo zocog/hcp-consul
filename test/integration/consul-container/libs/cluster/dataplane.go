@@ -23,7 +23,7 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 		grpcPortStr = strconv.Itoa(grpcPort)
 	)
 
-	nodeName := node.GetAgentName()
+	nodeName := "node-1"
 	command := []string{
 		"-addresses", serverAddresses,
 		fmt.Sprintf("-grpc-port=%d", grpcPort),
@@ -33,7 +33,7 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 		"-log-json=false",
 		"-envoy-concurrency=2",
 		"-tls-disabled",
-		"-consul-dns-bind-port=8600",
+		"-consul-dns-bind-port=8601",
 	}
 
 	command = append(command, containerArgs...)

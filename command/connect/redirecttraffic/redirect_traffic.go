@@ -6,14 +6,10 @@ package redirecttraffic
 import (
 	"flag"
 	"fmt"
-	"net"
-	"strconv"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/mitchellh/cli"
-	"github.com/mitchellh/mapstructure"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -159,93 +155,94 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 			}
 		}
 
-		var svc *api.AgentService
-		if c.nodeName == "" {
-			svc, _, err = c.client.Agent().Service(c.proxyID, nil)
-			if err != nil {
-				return iptables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul Agent: %s", err)
-			}
-		} else {
-			svcList, _, err := c.client.Catalog().NodeServiceList(c.nodeName, &api.QueryOptions{
-				Filter:             fmt.Sprintf("ID == %q", c.proxyID),
-				MergeCentralConfig: true,
-			})
-			if err != nil {
-				return iptables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul: %s", err)
-			}
-			if len(svcList.Services) < 1 {
-				return iptables.Config{}, fmt.Errorf("proxy service with ID %q not found", c.proxyID)
-			}
-			if len(svcList.Services) > 1 {
-				return iptables.Config{}, fmt.Errorf("expected to find only one proxy service with ID %q, but more were found", c.proxyID)
-			}
-			svc = svcList.Services[0]
-		}
-
-		if svc.Proxy == nil {
-			return iptables.Config{}, fmt.Errorf("service %s is not a proxy service", c.proxyID)
-		}
-
-		// Decode proxy's opaque config so that we can use it later to configure
-		// traffic redirection with iptables.
-		var trCfg trafficRedirectProxyConfig
-		if err := mapstructure.WeakDecode(svc.Proxy.Config, &trCfg); err != nil {
-			return iptables.Config{}, fmt.Errorf("failed parsing Proxy.Config: %s", err)
-		}
-
-		// Set the proxy's inbound port.
-		cfg.ProxyInboundPort = svc.Port
-		if trCfg.BindPort != 0 {
-			cfg.ProxyInboundPort = trCfg.BindPort
-		}
+		// TODO(jm): figure out what to do with this.
+		//var svc *api.AgentService
+		//if c.nodeName == "" {
+		//	svc, _, err = c.client.Agent().Service(c.proxyID, nil)
+		//	if err != nil {
+		//		return iptables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul Agent: %s", err)
+		//	}
+		//} else {
+		//	svcList, _, err := c.client.Catalog().NodeServiceList(c.nodeName, &api.QueryOptions{
+		//		Filter:             fmt.Sprintf("ID == %q", c.proxyID),
+		//		MergeCentralConfig: true,
+		//	})
+		//	if err != nil {
+		//		return iptables.Config{}, fmt.Errorf("failed to fetch proxy service from Consul: %s", err)
+		//	}
+		//	if len(svcList.Services) < 1 {
+		//		return iptables.Config{}, fmt.Errorf("proxy service with ID %q not found", c.proxyID)
+		//	}
+		//	if len(svcList.Services) > 1 {
+		//		return iptables.Config{}, fmt.Errorf("expected to find only one proxy service with ID %q, but more were found", c.proxyID)
+		//	}
+		//	svc = svcList.Services[0]
+		//}
+		//
+		//if svc.Proxy == nil {
+		//	return iptables.Config{}, fmt.Errorf("service %s is not a proxy service", c.proxyID)
+		//}
+		//
+		//// Decode proxy's opaque config so that we can use it later to configure
+		//// traffic redirection with iptables.
+		//var trCfg trafficRedirectProxyConfig
+		//if err := mapstructure.WeakDecode(svc.Proxy.Config, &trCfg); err != nil {
+		//	return iptables.Config{}, fmt.Errorf("failed parsing Proxy.Config: %s", err)
+		//}
+		//
+		//// Set the proxy's inbound port.
+		//cfg.ProxyInboundPort = svc.Port
+		//if trCfg.BindPort != 0 {
+		//	cfg.ProxyInboundPort = trCfg.BindPort
+		//}
 
 		// Set the proxy's outbound port.
 		cfg.ProxyOutboundPort = iptables.DefaultTProxyOutboundPort
-		if svc.Proxy.TransparentProxy != nil && svc.Proxy.TransparentProxy.OutboundListenerPort != 0 {
-			cfg.ProxyOutboundPort = svc.Proxy.TransparentProxy.OutboundListenerPort
-		}
+		//if svc.Proxy.TransparentProxy != nil && svc.Proxy.TransparentProxy.OutboundListenerPort != 0 {
+		//	cfg.ProxyOutboundPort = svc.Proxy.TransparentProxy.OutboundListenerPort
+		//}
 
-		// Exclude envoy_prometheus_bind_addr port from inbound redirection rules.
-		if trCfg.PrometheusBindAddr != "" {
-			_, port, err := net.SplitHostPort(trCfg.PrometheusBindAddr)
-			if err != nil {
-				return iptables.Config{}, fmt.Errorf("failed parsing host and port from envoy_prometheus_bind_addr: %s", err)
-			}
+		//// Exclude envoy_prometheus_bind_addr port from inbound redirection rules.
+		//if trCfg.PrometheusBindAddr != "" {
+		//	_, port, err := net.SplitHostPort(trCfg.PrometheusBindAddr)
+		//	if err != nil {
+		//		return iptables.Config{}, fmt.Errorf("failed parsing host and port from envoy_prometheus_bind_addr: %s", err)
+		//	}
+		//
+		//	cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, port)
+		//}
 
-			cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, port)
-		}
+		//// Exclude envoy_stats_bind_addr port from inbound redirection rules.
+		//if trCfg.StatsBindAddr != "" {
+		//	_, port, err := net.SplitHostPort(trCfg.StatsBindAddr)
+		//	if err != nil {
+		//		return iptables.Config{}, fmt.Errorf("failed parsing host and port from envoy_stats_bind_addr: %s", err)
+		//	}
+		//
+		//	cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, port)
+		//}
 
-		// Exclude envoy_stats_bind_addr port from inbound redirection rules.
-		if trCfg.StatsBindAddr != "" {
-			_, port, err := net.SplitHostPort(trCfg.StatsBindAddr)
-			if err != nil {
-				return iptables.Config{}, fmt.Errorf("failed parsing host and port from envoy_stats_bind_addr: %s", err)
-			}
+		//// Exclude the ListenerPort from Expose configs from inbound traffic redirection.
+		//for _, exposePath := range svc.Proxy.Expose.Paths {
+		//	if exposePath.ListenerPort != 0 {
+		//		cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, strconv.Itoa(exposePath.ListenerPort))
+		//	}
+		//}
 
-			cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, port)
-		}
-
-		// Exclude the ListenerPort from Expose configs from inbound traffic redirection.
-		for _, exposePath := range svc.Proxy.Expose.Paths {
-			if exposePath.ListenerPort != 0 {
-				cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, strconv.Itoa(exposePath.ListenerPort))
-			}
-		}
-
-		// Exclude any exposed health check ports when Proxy.Expose.Checks is true and nodeName is not provided.
-		if svc.Proxy.Expose.Checks && c.nodeName == "" {
-			// Get the health checks of the destination service.
-			checks, err := c.client.Agent().ChecksWithFilter(fmt.Sprintf("ServiceName == %q", svc.Proxy.DestinationServiceName))
-			if err != nil {
-				return iptables.Config{}, err
-			}
-
-			for _, check := range checks {
-				if check.ExposedPort != 0 {
-					cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, strconv.Itoa(check.ExposedPort))
-				}
-			}
-		}
+		//// Exclude any exposed health check ports when Proxy.Expose.Checks is true and nodeName is not provided.
+		//if svc.Proxy.Expose.Checks && c.nodeName == "" {
+		//	// Get the health checks of the destination service.
+		//	checks, err := c.client.Agent().ChecksWithFilter(fmt.Sprintf("ServiceName == %q", svc.Proxy.DestinationServiceName))
+		//	if err != nil {
+		//		return iptables.Config{}, err
+		//	}
+		//
+		//	for _, check := range checks {
+		//		if check.ExposedPort != 0 {
+		//			cfg.ExcludeInboundPorts = append(cfg.ExcludeInboundPorts, strconv.Itoa(check.ExposedPort))
+		//		}
+		//	}
+		//}
 	}
 
 	for _, port := range c.excludeInboundPorts {
