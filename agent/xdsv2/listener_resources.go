@@ -5,6 +5,7 @@ package xdsv2
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 
@@ -274,6 +275,14 @@ func makeEnvoyFilterChainMatch(routerMatch *pbproxystate.Match) *envoy_listener_
 				ranges = append(ranges, cidrRange)
 			}
 			envoyFilterChainMatch.SourcePrefixRanges = ranges
+		}
+		if len(routerMatch.AlpnProtocols) > 0 {
+			slices.Sort(routerMatch.AlpnProtocols)
+			var alpnProtocols []string
+			for _, protocol := range routerMatch.AlpnProtocols {
+				alpnProtocols = append(alpnProtocols, protocol)
+			}
+			envoyFilterChainMatch.ApplicationProtocols = alpnProtocols
 		}
 	}
 	return envoyFilterChainMatch
