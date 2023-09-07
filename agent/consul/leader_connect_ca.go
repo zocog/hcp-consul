@@ -1433,6 +1433,7 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 	}
 	// Parse the SPIFFE ID from the CSR SAN.
 	spiffeID, err := connect.ParseCertURI(csr.URIs[0])
+	c.logger.Trace("authorizing and signing cert", spiffeID, csr)
 	if err != nil {
 		return nil, err
 	}
@@ -1453,6 +1454,11 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 		if v.Datacenter != dc {
 			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different datacenter: %s, "+
 				"we are %s", v.Datacenter, dc)
+		}
+	case *connect.SpiffeIDWorkloadIdentity:
+		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
+		if err := allow.ServiceWriteAllowed(v.WorkloadIdentity, &authzContext); err != nil {
+			return nil, err
 		}
 	case *connect.SpiffeIDAgent:
 		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
@@ -1487,6 +1493,8 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 				"we are %s", v.Datacenter, dc)
 		}
 	default:
+		c.logger.Trace("spiffe ID type is not expected", spiffeID, csr, v)
+
 		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service, mesh-gateway, or agent ID")
 	}
 
@@ -1513,6 +1521,9 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
 	serverID, isServer := spiffeID.(*connect.SpiffeIDServer)
 	mgwID, isMeshGateway := spiffeID.(*connect.SpiffeIDMeshGateway)
+	wID, isWorkloadIdentity := spiffeID.(*connect.SpiffeIDWorkloadIdentity)
+
+	c.logger.Trace("signing certificate", isWorkloadIdentity, isService, isAgent, isMeshGateway, signingID, serviceID, agentID, serverID, mgwID, wID)
 
 	var entMeta acl.EnterpriseMeta
 	switch {
@@ -1523,6 +1534,12 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 		}
 		entMeta.Merge(serviceID.GetEnterpriseMeta())
 
+	case isWorkloadIdentity:
+		if !signingID.CanSign(spiffeID) {
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different trust domain: %s, "+
+				"we are %s", wID.TrustDomain, signingID.Host())
+		}
+		entMeta.Merge(wID.GetEnterpriseMeta())
 	case isMeshGateway:
 		if !signingID.CanSign(spiffeID) {
 			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different trust domain: %s, "+
@@ -1645,6 +1662,9 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	case isService:
 		reply.Service = serviceID.Service
 		reply.ServiceURI = cert.URIs[0].String()
+	case isWorkloadIdentity:
+		reply.WorkloadIdentity = wID.WorkloadIdentity
+		reply.WorkloadIdentityURI = cert.URIs[0].String()
 	case isMeshGateway:
 		reply.Kind = structs.ServiceKindMeshGateway
 		reply.KindURI = cert.URIs[0].String()

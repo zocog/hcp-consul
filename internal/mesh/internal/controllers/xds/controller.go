@@ -225,7 +225,7 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 	leafReferencesMap := proxyStateTemplate.Template.RequiredLeafCertificates
 	var leafsInProxyStateTemplate []resource.ReferenceOrID
 	for workloadIdentityName, leafRef := range leafReferencesMap {
-
+		rt.Logger.Trace("creating leaf certificate", workloadIdentityName, leafRef)
 		leafResourceReference := leafResourceRef(leafRef.Name, leafRef.Namespace, leafRef.Partition)
 		leafKey := keyFromReference(leafResourceReference)
 		leafRequest := &leafcert.ConnectCALeafRequest{
