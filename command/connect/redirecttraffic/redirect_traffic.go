@@ -196,6 +196,9 @@ func (c *cmd) generateConfigFromFlags() (iptables.Config, error) {
 		//	cfg.ProxyInboundPort = trCfg.BindPort
 		//}
 
+		// TODO(jm) hardcoded this based on GRPC port of test
+		cfg.ProxyInboundPort = 8079
+
 		// Set the proxy's outbound port.
 		cfg.ProxyOutboundPort = iptables.DefaultTProxyOutboundPort
 		//if svc.Proxy.TransparentProxy != nil && svc.Proxy.TransparentProxy.OutboundListenerPort != 0 {

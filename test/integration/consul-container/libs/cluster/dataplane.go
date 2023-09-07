@@ -10,8 +10,20 @@ import (
 	"time"
 )
 
-func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses string, grpcPort int, node Agent, containerArgs ...string) (*LaunchInfo, error) {
-	namePrefix := fmt.Sprintf("%s-consul-dataplane", node.GetDatacenter())
+type ConsulDataplaneContainer struct {
+	ctx         context.Context
+	container   testcontainers.Container
+	ip          string
+	grpcPort    int
+	serviceName string
+}
+
+func (c ConsulDataplaneContainer) Terminate() error {
+	return TerminateContainer(c.ctx, c.container, true)
+}
+
+func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses string, grpcPort int, node Agent, containerArgs ...string) (*ConsulDataplaneContainer, error) {
+	namePrefix := fmt.Sprintf("%s-consul-dataplane-%s", node.GetDatacenter(), proxyID)
 	containerName := utils.RandName(namePrefix)
 
 	pod := node.GetPod()
@@ -23,12 +35,11 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 		grpcPortStr = strconv.Itoa(grpcPort)
 	)
 
-	nodeName := "node-1"
 	command := []string{
 		"-addresses", serverAddresses,
 		fmt.Sprintf("-grpc-port=%d", grpcPort),
 		fmt.Sprintf("-proxy-service-id=%s", proxyID),
-		fmt.Sprintf("-service-node-name=%s", nodeName),
+		fmt.Sprintf("-service-node-name=%s", node.GetName()),
 		"-log-level=info",
 		"-log-json=false",
 		"-envoy-concurrency=2",
@@ -47,6 +58,17 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 		Env:        map[string]string{},
 	}
 
-	return LaunchContainerOnNode(ctx, node, req, []string{grpcPortStr})
+	info, err := LaunchContainerOnNode(ctx, node, req, []string{grpcPortStr})
+	if err != nil {
+		return nil, err
+	}
+	out := &ConsulDataplaneContainer{
+		ctx:         ctx,
+		container:   info.Container,
+		ip:          info.IP,
+		grpcPort:    info.MappedPorts[grpcPortStr].Int(),
+		serviceName: containerName,
+	}
+	return out, nil
 
 }
