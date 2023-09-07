@@ -428,6 +428,7 @@ func newResourceIDFromEnvoyNode(node *envoy_config_core_v3.Node) *pbresource.ID 
 		Tenancy: &pbresource.Tenancy{
 			Namespace: entMeta.NamespaceOrDefault(),
 			Partition: entMeta.PartitionOrDefault(),
+			PeerName:  "local",
 		},
 		Type: mesh.ProxyStateTemplateConfigurationV1Alpha1Type,
 	}
