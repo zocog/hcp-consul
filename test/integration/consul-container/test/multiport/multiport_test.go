@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
 	"testing"
 	"time"
 
@@ -41,7 +40,7 @@ func TestTProxyMultiportService(t *testing.T) {
 
 	createServicesWorkloadsAndNodes(t, resourceClient, cluster)
 
-	_ = createServices(t, cluster)
+	createServices(t, cluster)
 	time.Sleep(10 * time.Minute)
 	//_, adminPort := clientService.GetAdminAddr()
 	//
@@ -52,25 +51,13 @@ func TestTProxyMultiportService(t *testing.T) {
 
 // createServices creates the static-client and static-server services with
 // transparent proxy enabled. It returns a Service for the static-client.
-func createServices(t *testing.T, cluster *libcluster.Cluster) *libcluster.ConsulDataplaneContainer {
+func createServices(t *testing.T, cluster *libcluster.Cluster) {
 	{
 		node := cluster.Agents[1]
 		//client := node.GetClient()
-		// Create a service and proxy instance
-		serviceOpts := &libservice.ServiceOpts{
-			Name:     libservice.StaticServerServiceName,
-			ID:       "static-server",
-			HTTPPort: 8080,
-			GRPCPort: 8079,
-			Connect: libservice.SidecarService{
-				Proxy: libservice.ConnectProxy{
-					Mode: "transparent",
-				},
-			},
-		}
 
-		// Create a service
-		_, err := createAndRegisterStaticServer(t, node, serviceOpts.HTTPPort, serviceOpts.GRPCPort, serviceOpts, nil)
+		// Create a service and dataplane
+		_, err := createServiceAndDataplane(t, node, "static-server-1", "static-server", 8080, 8079)
 		require.NoError(t, err)
 
 		//libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy", nil)
@@ -79,54 +66,40 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) *libcluster.Consu
 
 	{
 		node := cluster.Agents[2]
-		//client := node.GetClient()
-
-		// Do some trickery to ensure that partial completion is correctly torn
-		// down, but successful execution is not.
-		var deferClean utils.ResettableDefer
-		defer deferClean.Execute()
-
-		// Create Consul Dataplanes
-		clientDataplane, err := libcluster.NewConsulDataplane(context.Background(), "static-client-1", "0.0.0.0", 8502, node)
+		// Create a service and dataplane
+		_, err := createServiceAndDataplane(t, node, "static-client-1", "static-client", 8080, 8079)
 		require.NoError(t, err)
-		deferClean.Add(func() {
-			_ = clientDataplane.Terminate()
-		})
 
 		//libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
-		return clientDataplane
 	}
 }
 
-func createAndRegisterStaticServer(t *testing.T, node libcluster.Agent, httpPort int,
-	grpcPort int, svcOpts *libservice.ServiceOpts,
-	customContainerCfg func(testcontainers.ContainerRequest) testcontainers.ContainerRequest,
-	containerArgs ...string) (libservice.Service, error) {
+func createServiceAndDataplane(t *testing.T, node libcluster.Agent, proxyID, serviceName string, httpPort, grpcPort int) (libservice.Service, error) {
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
 	var deferClean utils.ResettableDefer
 	defer deferClean.Execute()
 
 	// Create a service and proxy instance
-	serverService, err := libservice.NewExampleService(context.Background(), svcOpts.ID, httpPort, grpcPort, node, containerArgs...)
+	svc, err := libservice.NewExampleService(context.Background(), serviceName, httpPort, grpcPort, node)
 	if err != nil {
 		return nil, err
 	}
 	deferClean.Add(func() {
-		_ = serverService.Terminate()
+		_ = svc.Terminate()
 	})
 
-	// Create Consul Dataplanes
-	serverDataplane, err := libcluster.NewConsulDataplane(context.Background(), "static-server-1", "0.0.0.0", 8502, node)
+	// Create Consul Dataplane
+	dp, err := libcluster.NewConsulDataplane(context.Background(), proxyID, "0.0.0.0", 8502, node)
 	require.NoError(t, err)
 	deferClean.Add(func() {
-		_ = serverDataplane.Terminate()
+		_ = dp.Terminate()
 	})
 
 	// disable cleanup functions now that we have an object with a Terminate() function
 	deferClean.Reset()
 
-	return serverService, nil
+	return svc, nil
 }
 
 func createServicesWorkloadsAndNodes(t *testing.T, resourceClient *rtest.Client, cluster *libcluster.Cluster) {
