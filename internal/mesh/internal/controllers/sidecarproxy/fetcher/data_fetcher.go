@@ -5,6 +5,7 @@ package fetcher
 
 import (
 	"context"
+	"github.com/hashicorp/go-hclog"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -26,16 +27,19 @@ type Fetcher struct {
 	Client            pbresource.ResourceServiceClient
 	DestinationsCache *sidecarproxycache.DestinationsCache
 	ProxyCfgCache     *sidecarproxycache.ProxyConfigurationCache
+	logger            hclog.Logger
 }
 
 func New(client pbresource.ResourceServiceClient,
 	dCache *sidecarproxycache.DestinationsCache,
-	pcfgCache *sidecarproxycache.ProxyConfigurationCache) *Fetcher {
-
+	pcfgCache *sidecarproxycache.ProxyConfigurationCache,
+	logger hclog.Logger) *Fetcher {
+	pcfgCache.Logger = logger
 	return &Fetcher{
 		Client:            client,
 		DestinationsCache: dCache,
 		ProxyCfgCache:     pcfgCache,
+		logger:            logger,
 	}
 }
 
@@ -336,7 +340,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(ctx context.Context, proxyID *pb
 // and merges them into one object.
 func (f *Fetcher) FetchAndMergeProxyConfigurations(ctx context.Context, id *pbresource.ID) (*pbmesh.ProxyConfiguration, error) {
 	proxyCfgRefs := f.ProxyCfgCache.ProxyConfigurationsByProxyID(id)
-
+	f.logger.Trace("proxyconfigs fetched", proxyCfgRefs, id)
 	result := &pbmesh.ProxyConfiguration{
 		DynamicConfig: &pbmesh.DynamicConfig{},
 	}
@@ -368,6 +372,8 @@ func (f *Fetcher) FetchAndMergeProxyConfigurations(ctx context.Context, id *pbre
 		// todo (ishustava): do sorting etc.
 		proto.Merge(result.DynamicConfig, proxyCfg.DynamicConfig)
 	}
+
+	f.logger.Trace("proxyconfig merge result", result)
 
 	return result, nil
 }

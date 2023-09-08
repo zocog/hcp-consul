@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-hclog"
 )
 
 // ProxyConfigurationCache tracks mappings between proxy configurations and proxy IDs
@@ -15,6 +16,7 @@ import (
 // keep this cache up-to-date.
 type ProxyConfigurationCache struct {
 	mapper *bimapper.Mapper
+	Logger hclog.Logger
 }
 
 func NewProxyConfigurationCache() *ProxyConfigurationCache {
@@ -30,6 +32,9 @@ func (c *ProxyConfigurationCache) ProxyConfigurationsByProxyID(id *pbresource.ID
 
 // TrackProxyConfiguration tracks given proxy configuration ID and the linked proxy state template IDs.
 func (c *ProxyConfigurationCache) TrackProxyConfiguration(proxyCfgID *pbresource.ID, proxyIDs []resource.ReferenceOrID) {
+	if c.Logger != nil {
+		c.Logger.Trace("Tracking Proxy Configuration", proxyCfgID, proxyIDs)
+	}
 	c.mapper.TrackItem(proxyCfgID, proxyIDs)
 }
 

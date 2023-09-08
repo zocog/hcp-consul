@@ -10,7 +10,7 @@
          "namespace": "default",
          "peer_name": "local"
       },
-      "name": "static-server"
+      "name": "static-server-service"
    },
    "data": {
       "@type": "hashicorp.consul.catalog.v1alpha1.Service",

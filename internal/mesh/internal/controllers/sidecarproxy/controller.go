@@ -58,15 +58,15 @@ type reconciler struct {
 
 func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
 	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", ControllerName)
-
+	r.proxyCfgCache.Logger = rt.Logger.Named("proxy-cfg-cache")
 	rt.Logger.Trace("reconciling proxy state template", "id", req.ID)
 
 	// Instantiate a data fetcher to fetch all reconciliation data.
-	dataFetcher := fetcher.New(rt.Client, r.destinationsCache, r.proxyCfgCache)
+	dataFetcher := fetcher.New(rt.Client, r.destinationsCache, r.proxyCfgCache, rt.Logger.Named("sidecar-proxy-datafetcher"))
 
 	// Check if the workload exists.
 	workloadID := resource.ReplaceType(catalog.WorkloadType, req.ID)
-	workload, err := dataFetcher.FetchWorkload(ctx, resource.ReplaceType(catalog.WorkloadType, req.ID))
+	workload, err := dataFetcher.FetchWorkload(ctx, workloadID)
 	if err != nil {
 		rt.Logger.Error("error reading the associated workload", "error", err)
 		return err
@@ -131,6 +131,8 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		rt.Logger.Error("error fetching explicit destinations for this proxy", "error", err)
 		return err
 	}
+
+	rt.Logger.Trace("checking to see if tproxy is enabled and need to get implicit destinations", proxyCfg)
 
 	if proxyCfg.GetDynamicConfig() != nil &&
 		proxyCfg.DynamicConfig.Mode == pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT {

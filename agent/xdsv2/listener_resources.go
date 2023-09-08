@@ -664,6 +664,12 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 			return nil, fmt.Errorf("proxyState.Tls is required to generate router's transport socket")
 		}
 		om := ts.GetOutboundMesh()
+
+		// TODO(jm): had to set the workload identity to static-server-1 to match the proxyID
+		// Need to also figure out why proxyID needs to static-server-1 instead of static-server.
+		// possibly has to do with the values we are setting on the consul dataplane image.
+		pr.logger.Trace("getting leaf certificate", om.IdentityKey, pr.proxyState.LeafCertificates)
+
 		leaf, ok := pr.proxyState.LeafCertificates[om.IdentityKey]
 		if !ok {
 			return nil, fmt.Errorf("leaf %s not found in proxyState", om.IdentityKey)
@@ -674,7 +680,10 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 		}
 
 		// Create validation context
-		peerName := om.ValidationContext.TrustBundlePeerNameKey
+		pr.logger.Trace("getting trust bundle", om.ValidationContext.TrustBundlePeerNameKey, pr.proxyState.TrustBundles)
+
+		// TODO(jm): if this works, change this to where om.ValidationContext.TrustBundlePeerNameKey is set
+		peerName := "local" //om.ValidationContext.TrustBundlePeerNameKey
 		tb, ok := pr.proxyState.TrustBundles[peerName]
 		if !ok {
 			return nil, fmt.Errorf("failed to create transport socket: provided peer name does not exist in trust bundle map: %s", peerName)

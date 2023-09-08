@@ -33,7 +33,7 @@
             "protocol": "PROTOCOL_MESH"
          }
       },
-      "identity": "static-server",
+      "identity": "static-server-1",
       "node_name": "node-1"
    }
 }

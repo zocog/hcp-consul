@@ -22,7 +22,12 @@ import (
 func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *Builder {
 	if b.proxyCfg.GetDynamicConfig() != nil &&
 		b.proxyCfg.DynamicConfig.Mode == pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT {
-		b.addTransparentProxyOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
+		// TODO(jm): had to do this to get it to work.  Default elsewhere.
+		outboundPort := uint32(15001)
+		if b.proxyCfg.DynamicConfig.TransparentProxy != nil && b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort > 0 {
+			outboundPort = b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort
+		}
+		b.addTransparentProxyOutboundListener(outboundPort)
 	}
 
 	for _, destination := range destinations {

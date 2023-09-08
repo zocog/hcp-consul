@@ -1,0 +1,26 @@
+{
+   "id": {
+      "type": {
+         "group": "mesh",
+         "group_version": "v1alpha1",
+         "kind": "ProxyConfiguration"
+      },
+      "tenancy": {
+         "partition": "default",
+         "namespace": "default",
+         "peer_name": "local"
+      },
+      "name": "static-server-proxy-config"
+   },
+   "data": {
+      "@type": "hashicorp.consul.mesh.v1alpha1.ProxyConfiguration",
+      "workloads": {
+         "prefixes": [
+            "static-server-"
+         ]
+      },
+      "dynamic_config": {
+         "mode": 1
+      }
+   }
+}
