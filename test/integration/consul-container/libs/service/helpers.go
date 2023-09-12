@@ -38,8 +38,13 @@ type ServiceOpts struct {
 	Namespace string
 }
 
+type ContainerOpts struct {
+	Image string
+	Args  []string
+}
+
 // createAndRegisterStaticServerAndSidecar register the services and launch static-server containers
-func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, grpcPort int, svc *api.AgentServiceRegistration, containerArgs ...string) (Service, Service, error) {
+func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, grpcPort int, svc *api.AgentServiceRegistration, containerOpts *ContainerOpts) (Service, Service, error) {
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
 	var deferClean utils.ResettableDefer
@@ -50,7 +55,7 @@ func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, grpcPort int
 	}
 
 	// Create a service and proxy instance
-	serverService, err := NewExampleService(context.Background(), svc.ID, svc.Port, grpcPort, node, containerArgs...)
+	serverService, err := NewExampleService(context.Background(), svc.ID, svc.Port, grpcPort, node, containerOpts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -97,7 +102,7 @@ func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts 
 		},
 		Meta: serviceOpts.Meta,
 	}
-	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.GRPCPort, req, containerArgs...)
+	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.GRPCPort, req, &ContainerOpts{Args: containerArgs})
 }
 
 func CreateAndRegisterStaticServerAndSidecarWithChecks(node libcluster.Agent, serviceOpts *ServiceOpts) (Service, Service, error) {
@@ -122,7 +127,31 @@ func CreateAndRegisterStaticServerAndSidecarWithChecks(node libcluster.Agent, se
 		Meta: serviceOpts.Meta,
 	}
 
-	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.GRPCPort, req)
+	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.GRPCPort, req, nil)
+}
+
+func CreateAndRegisterStaticServerAndSidecarWithCustomContainer(node libcluster.Agent, serviceOpts *ServiceOpts, containerOpts *ContainerOpts) (Service, Service, error) {
+	// Register the static-server service and sidecar first to prevent race with sidecar
+	// trying to get xDS before it's ready
+	req := &api.AgentServiceRegistration{
+		Name: serviceOpts.Name,
+		ID:   serviceOpts.ID,
+		Port: serviceOpts.HTTPPort,
+		Connect: &api.AgentServiceConnect{
+			SidecarService: &api.AgentServiceRegistration{
+				Proxy: &api.AgentServiceConnectProxyConfig{},
+			},
+		},
+		Namespace: serviceOpts.Namespace,
+		Check: &api.AgentServiceCheck{
+			Name:     "Static Server Listening",
+			TCP:      fmt.Sprintf("127.0.0.1:%d", serviceOpts.HTTPPort),
+			Interval: "10s",
+			Status:   api.HealthPassing,
+		},
+		Meta: serviceOpts.Meta,
+	}
+	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.GRPCPort, req, containerOpts)
 }
 
 func CreateAndRegisterStaticClientSidecar(

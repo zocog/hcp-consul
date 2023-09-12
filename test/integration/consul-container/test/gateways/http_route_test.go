@@ -728,4 +728,179 @@ func TestHTTPRouteParentRefChange(t *testing.T) {
 	checkRouteError(t, address, gatewayOnePort, "", map[string]string{
 		"Host": "test.foo",
 	}, "")
+
+}
+
+func TestHTTPRouteRetryAndTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// infrastructure set up
+	listenerPort := 6018
+	serviceHTTPPort := 6019
+	serviceGRPCPort := 6020
+
+	serviceName := randomName("service", 16)
+	gatewayName := randomName("gw", 16)
+	routeName := randomName("route", 16)
+	path := "/"
+
+	clusterConfig := &libtopology.ClusterConfig{
+		NumServers: 1,
+		NumClients: 1,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:             "dc1",
+			InjectAutoEncryption:   true,
+			InjectGossipEncryption: true,
+			AllowHTTPAnyway:        true,
+		},
+		ExposedPorts: []int{
+			listenerPort,
+			serviceHTTPPort,
+			serviceGRPCPort,
+		},
+		ApplyDefaultProxySettings: true,
+	}
+
+	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
+	client := cluster.Agents[0].GetClient()
+
+	namespace := getNamespace()
+	if namespace != "" {
+		ns := &api.Namespace{Name: namespace}
+		_, _, err := client.Namespaces().Create(ns, nil)
+		require.NoError(t, err)
+	}
+
+	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecarWithCustomContainer(cluster.Agents[0], &libservice.ServiceOpts{
+		ID:        serviceName,
+		Name:      serviceName,
+		Namespace: namespace,
+		HTTPPort:  serviceHTTPPort,
+		GRPCPort:  serviceGRPCPort,
+	},
+		&libservice.ContainerOpts{
+			//service that will run with errors for us
+			Image: "/nicholasjackson/fake-service",
+			Env: [],
+
+		},
+	)
+	require.NoError(t, err)
+
+	// write config entries
+	proxyDefaults := &api.ProxyConfigEntry{
+		Kind: api.ProxyDefaults,
+		Name: api.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}
+
+	require.NoError(t, cluster.ConfigEntryWrite(proxyDefaults))
+
+	apiGateway := &api.APIGatewayConfigEntry{
+		Kind: "api-gateway",
+		Name: gatewayName,
+		Listeners: []api.APIGatewayListener{
+			{
+				Name:     "listener",
+				Port:     listenerPort,
+				Protocol: "http",
+			},
+		},
+		Namespace: namespace,
+	}
+
+	routeOne := &api.HTTPRouteConfigEntry{
+		Kind:      api.HTTPRoute,
+		Name:      routeName,
+		Namespace: namespace,
+		Parents: []api.ResourceReference{
+			{
+				Kind:      api.APIGateway,
+				Name:      gatewayName,
+				Namespace: namespace,
+			},
+		},
+		Hostnames: []string{
+			"test.foo",
+			"test.example",
+		},
+		Rules: []api.HTTPRouteRule{
+			{
+				Services: []api.HTTPService{
+					{
+						Name:      serviceName,
+						Namespace: namespace,
+					},
+				},
+				Matches: []api.HTTPMatch{
+					{
+						Path: api.HTTPPathMatch{
+							Match: api.HTTPPathMatchPrefix,
+							Value: path,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	require.NoError(t, cluster.ConfigEntryWrite(apiGateway))
+	require.NoError(t, cluster.ConfigEntryWrite(routeOne))
+
+	// create gateway service
+	gwCfg := libservice.GatewayConfig{
+		Name:      gatewayName,
+		Kind:      "api",
+		Namespace: namespace,
+	}
+	gatewayService, err := libservice.NewGatewayService(context.Background(), gwCfg, cluster.Agents[0], listenerPort)
+	require.NoError(t, err)
+	libassert.CatalogServiceExists(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
+
+	// make sure config entries have been properly created
+	checkGatewayConfigEntry(t, client, gatewayName, namespace)
+	t.Log("checking route one")
+	checkHTTPRouteConfigEntry(t, client, routeOneName, namespace)
+	checkHTTPRouteConfigEntry(t, client, routeTwoName, namespace)
+
+	// gateway resolves routes
+	gatewayPort, err := gatewayService.GetPort(listenerPort)
+	require.NoError(t, err)
+	fmt.Println("Gateway Port: ", gatewayPort)
+
+	// Same v2 path with and without header
+	checkRoute(t, gatewayPort, "/v2", map[string]string{
+		"Host": "test.foo",
+		"x-v2": "v2",
+	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 header and path"})
+	checkRoute(t, gatewayPort, "/v2", map[string]string{
+		"Host": "test.foo",
+	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 just path match"})
+
+	// //v1 path with the header
+	checkRoute(t, gatewayPort, "/check", map[string]string{
+		"Host": "test.foo",
+		"x-v2": "v2",
+	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 just header match"})
+
+	checkRoute(t, gatewayPort, "/v2/path/value", map[string]string{
+		"Host": "test.foo",
+		"x-v2": "v2",
+	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 v2 with path"})
+
+	// hit service 1 by hitting root path
+	checkRoute(t, gatewayPort, "", map[string]string{
+		"Host": "test.foo",
+	}, checkOptions{debug: false, statusCode: serviceOneResponseCode, testName: "service1 root prefix"})
+
+	// hit service 1 by hitting v2 path with v1 hostname
+	checkRoute(t, gatewayPort, "/v2", map[string]string{
+		"Host": "test.example",
+	}, checkOptions{debug: false, statusCode: serviceOneResponseCode, testName: "service1, v2 path with v2 hostname"})
 }

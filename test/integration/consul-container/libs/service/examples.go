@@ -125,7 +125,7 @@ func (c exampleContainer) GetStatus() (string, error) {
 	return state.Status, err
 }
 
-func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libcluster.Agent, containerArgs ...string) (Service, error) {
+func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libcluster.Agent, containerOpts *ContainerOpts) (Service, error) {
 	namePrefix := fmt.Sprintf("%s-service-example-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
 
@@ -139,17 +139,24 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 		grpcPortStr = strconv.Itoa(grpcPort)
 	)
 
-	command := []string{
-		"server",
-		"-http-port", httpPortStr,
-		"-grpc-port", grpcPortStr,
-		"-redirect-port", "-disabled",
+	command := []string{}
+	image := hashicorpDockerProxy + containerOpts.Image
+
+	if containerOpts == nil || containerOpts.Image == "" {
+		//default image behavior
+		command = []string{
+			"server",
+			"-http-port", httpPortStr,
+			"-grpc-port", grpcPortStr,
+			"-redirect-port", "-disabled",
+		}
+		image = hashicorpDockerProxy + "/fortio/fortio"
 	}
 
-	command = append(command, containerArgs...)
+	command = append(command, containerOpts.Args...)
 
 	req := testcontainers.ContainerRequest{
-		Image:      hashicorpDockerProxy + "/fortio/fortio",
+		Image:      image,
 		WaitingFor: wait.ForLog("").WithStartupTimeout(100 * time.Second),
 		AutoRemove: false,
 		Name:       containerName,
