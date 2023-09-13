@@ -140,7 +140,9 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 	)
 
 	command := []string{}
-	image := hashicorpDockerProxy + containerOpts.Image
+	//hashicorpDockerProxy +
+	image := containerOpts.Image
+	env := map[string]string{}
 
 	if containerOpts == nil || containerOpts.Image == "" {
 		//default image behavior
@@ -151,6 +153,9 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 			"-redirect-port", "-disabled",
 		}
 		image = hashicorpDockerProxy + "/fortio/fortio"
+		env = map[string]string{"FORTIO_NAME": name}
+	} else {
+		env = containerOpts.Env
 	}
 
 	command = append(command, containerOpts.Args...)
@@ -161,7 +166,7 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 		AutoRemove: false,
 		Name:       containerName,
 		Cmd:        command,
-		Env:        map[string]string{"FORTIO_NAME": name},
+		Env:        env,
 	}
 
 	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{httpPortStr, grpcPortStr})

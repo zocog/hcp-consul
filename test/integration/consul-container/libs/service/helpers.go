@@ -41,6 +41,7 @@ type ServiceOpts struct {
 type ContainerOpts struct {
 	Image string
 	Args  []string
+	Env   map[string]string
 }
 
 // createAndRegisterStaticServerAndSidecar register the services and launch static-server containers

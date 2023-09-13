@@ -206,9 +206,10 @@ func checkTCPRouteConfigEntry(t *testing.T, client *api.Client, routeName string
 }
 
 type checkOptions struct {
-	debug      bool
-	statusCode int
-	testName   string
+	debug        bool
+	statusCode   int
+	testName     string
+	expectedBody string
 }
 
 // checkRoute, customized version of libassert.RouteEchos to allow for headers/distinguishing between the server instances
@@ -263,8 +264,14 @@ func checkRoute(t *testing.T, port int, path string, headers map[string]string, 
 				return false
 			}
 		}
-		if !strings.Contains(string(body), "hello") {
-			t.Log("body does not contain 'hello'")
+
+		expectedBody := expected.expectedBody
+		if expectedBody == "" {
+			expectedBody = "hello"
+		}
+		if !strings.Contains(string(body), expectedBody) {
+			t.Log(string(body))
+			t.Log("body does not contain " + expectedBody)
 			return false
 		}
 

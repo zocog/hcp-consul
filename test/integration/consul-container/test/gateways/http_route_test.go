@@ -784,9 +784,10 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 	},
 		&libservice.ContainerOpts{
 			//service that will run with errors for us
-			Image: "/nicholasjackson/fake-service",
-			Env: [],
-
+			Image: "nicholasjackson/fake-service:v0.26.0",
+			Env: map[string]string{
+				"LISTEN_ADDR": fmt.Sprintf("0.0.0.0:%d", serviceHTTPPort),
+			},
 		},
 	)
 	require.NoError(t, err)
@@ -866,41 +867,16 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 	// make sure config entries have been properly created
 	checkGatewayConfigEntry(t, client, gatewayName, namespace)
 	t.Log("checking route one")
-	checkHTTPRouteConfigEntry(t, client, routeOneName, namespace)
-	checkHTTPRouteConfigEntry(t, client, routeTwoName, namespace)
+	checkHTTPRouteConfigEntry(t, client, routeName, namespace)
 
 	// gateway resolves routes
 	gatewayPort, err := gatewayService.GetPort(listenerPort)
 	require.NoError(t, err)
 	fmt.Println("Gateway Port: ", gatewayPort)
 
-	// Same v2 path with and without header
-	checkRoute(t, gatewayPort, "/v2", map[string]string{
-		"Host": "test.foo",
-		"x-v2": "v2",
-	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 header and path"})
-	checkRoute(t, gatewayPort, "/v2", map[string]string{
-		"Host": "test.foo",
-	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 just path match"})
-
-	// //v1 path with the header
-	checkRoute(t, gatewayPort, "/check", map[string]string{
-		"Host": "test.foo",
-		"x-v2": "v2",
-	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 just header match"})
-
-	checkRoute(t, gatewayPort, "/v2/path/value", map[string]string{
-		"Host": "test.foo",
-		"x-v2": "v2",
-	}, checkOptions{statusCode: serviceTwoResponseCode, testName: "service2 v2 with path"})
-
 	// hit service 1 by hitting root path
 	checkRoute(t, gatewayPort, "", map[string]string{
 		"Host": "test.foo",
-	}, checkOptions{debug: false, statusCode: serviceOneResponseCode, testName: "service1 root prefix"})
+	}, checkOptions{debug: false, statusCode: 200, testName: "service1 root prefix", expectedBody: "Hello World"})
 
-	// hit service 1 by hitting v2 path with v1 hostname
-	checkRoute(t, gatewayPort, "/v2", map[string]string{
-		"Host": "test.example",
-	}, checkOptions{debug: false, statusCode: serviceOneResponseCode, testName: "service1, v2 path with v2 hostname"})
 }
