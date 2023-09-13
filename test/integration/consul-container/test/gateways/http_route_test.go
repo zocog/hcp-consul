@@ -740,13 +740,18 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 
 	// infrastructure set up
 	listenerPort := 6018
-	serviceHTTPPort := 6019
-	serviceGRPCPort := 6020
+	retryServiceHTTPPort := 6019
+	retryServiceGRPCPort := 6020
+	timeoutServiceHTTPPort := 6021
+	timeoutServiceGRPCPort := 6022
 
-	serviceName := randomName("service", 16)
+	retryServiceName := randomName("service", 16)
 	gatewayName := randomName("gw", 16)
-	routeName := randomName("route", 16)
-	path := "/"
+	retryRouteName := randomName("route", 16)
+	timeoutServiceName := randomName("service", 16)
+	timeoutRouteName := randomName("route", 16)
+	retryPath := "/retry"
+	timeoutPath := "/timeout"
 
 	clusterConfig := &libtopology.ClusterConfig{
 		NumServers: 1,
@@ -759,8 +764,10 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 		},
 		ExposedPorts: []int{
 			listenerPort,
-			serviceHTTPPort,
-			serviceGRPCPort,
+			retryServiceGRPCPort,
+			retryServiceHTTPPort,
+			timeoutServiceGRPCPort,
+			timeoutServiceHTTPPort,
 		},
 		ApplyDefaultProxySettings: true,
 	}
@@ -776,17 +783,36 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 	}
 
 	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecarWithCustomContainer(cluster.Agents[0], &libservice.ServiceOpts{
-		ID:        serviceName,
-		Name:      serviceName,
+		ID:        retryServiceName,
+		Name:      retryServiceName,
 		Namespace: namespace,
-		HTTPPort:  serviceHTTPPort,
-		GRPCPort:  serviceGRPCPort,
+		HTTPPort:  retryServiceHTTPPort,
+		GRPCPort:  retryServiceGRPCPort,
 	},
 		&libservice.ContainerOpts{
 			//service that will run with errors for us
-			Image: "nicholasjackson/fake-service:v0.26.0",
+			Image: "/nicholasjackson/fake-service:v0.26.0",
 			Env: map[string]string{
-				"LISTEN_ADDR": fmt.Sprintf("0.0.0.0:%d", serviceHTTPPort),
+				"LISTEN_ADDR": fmt.Sprintf("0.0.0.0:%d", retryServiceHTTPPort),
+				"ERROR_RATE":  "0.75",
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	_, _, err = libservice.CreateAndRegisterStaticServerAndSidecarWithCustomContainer(cluster.Agents[0], &libservice.ServiceOpts{
+		ID:        timeoutServiceName,
+		Name:      timeoutServiceName,
+		Namespace: namespace,
+		HTTPPort:  timeoutServiceHTTPPort,
+		GRPCPort:  timeoutServiceGRPCPort,
+	},
+		&libservice.ContainerOpts{
+			//service that will run with errors for us
+			Image: "/nicholasjackson/fake-service:v0.26.0",
+			Env: map[string]string{
+				"LISTEN_ADDR": fmt.Sprintf("0.0.0.0:%d", timeoutServiceHTTPPort),
+				"ERROR_DELAY": "1m",
 			},
 		},
 	)
@@ -816,9 +842,47 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 		Namespace: namespace,
 	}
 
-	routeOne := &api.HTTPRouteConfigEntry{
+	retryRoute := &api.HTTPRouteConfigEntry{
 		Kind:      api.HTTPRoute,
-		Name:      routeName,
+		Name:      retryRouteName,
+		Namespace: namespace,
+		Parents: []api.ResourceReference{
+			{
+				Kind:      api.APIGateway,
+				Name:      gatewayName,
+				Namespace: namespace,
+			},
+		},
+		Hostnames: []string{
+			"test.foo",
+			"test.example",
+		},
+		Rules: []api.HTTPRouteRule{
+			{
+				Filters: api.HTTPFilters{
+					RetryFilter
+				},
+				Services: []api.HTTPService{
+					{
+						Name:      retryServiceName,
+						Namespace: namespace,
+					},
+				},
+				Matches: []api.HTTPMatch{
+					{
+						Path: api.HTTPPathMatch{
+							Match: api.HTTPPathMatchPrefix,
+							Value: retryPath,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	timeoutRoute := &api.HTTPRouteConfigEntry{
+		Kind:      api.HTTPRoute,
+		Name:      timeoutRouteName,
 		Namespace: namespace,
 		Parents: []api.ResourceReference{
 			{
@@ -835,7 +899,7 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 			{
 				Services: []api.HTTPService{
 					{
-						Name:      serviceName,
+						Name:      timeoutServiceName,
 						Namespace: namespace,
 					},
 				},
@@ -843,7 +907,7 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 					{
 						Path: api.HTTPPathMatch{
 							Match: api.HTTPPathMatchPrefix,
-							Value: path,
+							Value: timeoutPath,
 						},
 					},
 				},
@@ -852,7 +916,8 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 	}
 
 	require.NoError(t, cluster.ConfigEntryWrite(apiGateway))
-	require.NoError(t, cluster.ConfigEntryWrite(routeOne))
+	require.NoError(t, cluster.ConfigEntryWrite(timeoutRoute))
+	require.NoError(t, cluster.ConfigEntryWrite(retryRoute))
 
 	// create gateway service
 	gwCfg := libservice.GatewayConfig{
@@ -866,8 +931,11 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 
 	// make sure config entries have been properly created
 	checkGatewayConfigEntry(t, client, gatewayName, namespace)
-	t.Log("checking route one")
-	checkHTTPRouteConfigEntry(t, client, routeName, namespace)
+	t.Log("checking retry route")
+	checkHTTPRouteConfigEntry(t, client, retryRouteName, namespace)
+
+	t.Log("checking timeout route")
+	checkHTTPRouteConfigEntry(t, client, timeoutRouteName, namespace)
 
 	// gateway resolves routes
 	gatewayPort, err := gatewayService.GetPort(listenerPort)
@@ -875,8 +943,12 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 	fmt.Println("Gateway Port: ", gatewayPort)
 
 	// hit service 1 by hitting root path
-	checkRoute(t, gatewayPort, "", map[string]string{
+	checkRoute(t, gatewayPort, retryPath, map[string]string{
 		"Host": "test.foo",
-	}, checkOptions{debug: false, statusCode: 200, testName: "service1 root prefix", expectedBody: "Hello World"})
+	}, checkOptions{debug: false, statusCode: 200, testName: "retry should succeed cleanly", expectedBody: "Hello World"})
+
+	//checkRoute(t, gatewayPort, timeoutPath, map[string]string{
+	//	"Host": "test.foo",
+	//}, checkOptions{debug: false, statusCode: 200, testName: "timeout should timeout", expectedBody: "Hello World"})
 
 }

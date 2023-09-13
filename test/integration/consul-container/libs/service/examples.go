@@ -141,7 +141,7 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 
 	command := []string{}
 	//hashicorpDockerProxy +
-	image := containerOpts.Image
+	image := hashicorpDockerProxy + containerOpts.Image
 	env := map[string]string{}
 
 	if containerOpts == nil || containerOpts.Image == "" {
