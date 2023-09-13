@@ -155,7 +155,7 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 	endpointReferencesMap := proxyStateTemplate.Template.RequiredEndpoints
 	var endpointsInProxyStateTemplate []resource.ReferenceOrID
 	for xdsClusterName, endpointRef := range endpointReferencesMap {
-
+		fmt.Println("*********** xds controller: generating endpoints for", xdsClusterName, endpointRef)
 		// Step 1: Resolve the reference by looking up the ServiceEndpoints.
 		// serviceEndpoints will not be nil unless there is an error.
 		serviceEndpoints, err := getServiceEndpoints(ctx, rt, endpointRef.Id)
@@ -188,6 +188,7 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 		endpointsInProxyStateTemplate = append(endpointsInProxyStateTemplate, endpointResourceRef)
 
 	}
+	fmt.Println("******** generated proxy state", proxyStateTemplate.Template.ProxyState)
 
 	// Step 4: Track relationships between ProxyStateTemplates and ServiceEndpoints.
 	r.endpointsMapper.TrackItem(req.ID, endpointsInProxyStateTemplate)
