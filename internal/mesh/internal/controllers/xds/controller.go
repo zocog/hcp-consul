@@ -188,7 +188,6 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 		endpointsInProxyStateTemplate = append(endpointsInProxyStateTemplate, endpointResourceRef)
 
 	}
-	fmt.Println("******** generated proxy state", proxyStateTemplate.Template.ProxyState)
 
 	// Step 4: Track relationships between ProxyStateTemplates and ServiceEndpoints.
 	r.endpointsMapper.TrackItem(req.ID, endpointsInProxyStateTemplate)
@@ -297,6 +296,7 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 	// Now that the references have been resolved, push the computed proxy state to the updater.
 	computedProxyState := proxyStateTemplate.Template.ProxyState
 
+	fmt.Println("******** generated proxy state", proxyStateTemplate.Template.ProxyState)
 	err = r.updater.PushChange(req.ID, &proxytracker.ProxyState{ProxyState: computedProxyState})
 	if err != nil {
 		// Set the status.

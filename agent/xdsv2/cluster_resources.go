@@ -13,10 +13,11 @@ import (
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 )
 
 func (pr *ProxyResources) doesEnvoyClusterAlreadyExist(name string) bool {
@@ -344,5 +345,6 @@ func addEnvoyLBToCluster(dynamicConfig *pbproxystate.DynamicEndpointGroupConfig,
 
 // TODO(proxystate): In a future PR this will create clusters and add it to ProxyResources.proxyState
 func (pr *ProxyResources) makeEnvoyClusterFromL4Destination(name string) error {
+	fmt.Println("********* BAD CODEPATH")
 	return nil
 }
