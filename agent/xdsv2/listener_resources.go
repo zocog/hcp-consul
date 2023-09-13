@@ -553,6 +553,9 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 		return nil, nil
 	}
 	commonTLSContext := &envoy_tls_v3.CommonTlsContext{}
+	if ts.AlpnProtocols != nil {
+		commonTLSContext.AlpnProtocols = ts.AlpnProtocols
+	}
 
 	// Create connection TLS. Listeners should only look at inbound TLS.
 	switch ts.ConnectionTls.(type) {
