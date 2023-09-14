@@ -329,6 +329,7 @@ func leafResourceRef(workloadIdentity, namespace, partition string) *pbresource.
 		Tenancy: &pbresource.Tenancy{
 			Partition: partition,
 			Namespace: namespace,
+			PeerName:  "local",
 		},
 	}
 	return ref

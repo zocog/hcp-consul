@@ -60,7 +60,7 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 			Tenancy: &pbresource.Tenancy{
 				Namespace: req.Namespace,
 				Partition: req.Partition,
-				//PeerName:  "local",
+				PeerName:  "local",
 			},
 			Type: catalog.WorkloadType,
 		}
