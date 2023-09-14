@@ -18,25 +18,30 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	intermediateTypes "github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type Fetcher struct {
-	Client            pbresource.ResourceServiceClient
-	DestinationsCache *sidecarproxycache.DestinationsCache
-	ProxyCfgCache     *sidecarproxycache.ProxyConfigurationCache
+	Client              pbresource.ResourceServiceClient
+	DestinationsCache   *sidecarproxycache.DestinationsCache
+	ProxyCfgCache       *sidecarproxycache.ProxyConfigurationCache
+	ComputedRoutesCache *sidecarproxycache.ComputedRoutesCache
 }
 
-func New(client pbresource.ResourceServiceClient,
+func New(
+	client pbresource.ResourceServiceClient,
 	dCache *sidecarproxycache.DestinationsCache,
-	pcfgCache *sidecarproxycache.ProxyConfigurationCache) *Fetcher {
-
+	pcfgCache *sidecarproxycache.ProxyConfigurationCache,
+	computedRoutesCache *sidecarproxycache.ComputedRoutesCache,
+) *Fetcher {
 	return &Fetcher{
-		Client:            client,
-		DestinationsCache: dCache,
-		ProxyCfgCache:     pcfgCache,
+		Client:              client,
+		DestinationsCache:   dCache,
+		ProxyCfgCache:       pcfgCache,
+		ComputedRoutesCache: computedRoutesCache,
 	}
 }
 
@@ -76,7 +81,15 @@ func (f *Fetcher) FetchComputedRoutes(ctx context.Context, id *pbresource.ID) (*
 	if !types.IsComputedRoutesType(id.Type) {
 		return nil, fmt.Errorf("id must be a ComputedRoutes type")
 	}
-	return resource.GetDecodedResource[*pbmesh.ComputedRoutes](ctx, f.Client, id)
+
+	dec, err := resource.GetDecodedResource[*pbmesh.ComputedRoutes](ctx, f.Client, id)
+	if err != nil {
+		return nil, err
+	} else if dec == nil {
+		f.ComputedRoutesCache.UntrackComputedRoutes(id)
+	}
+
+	return dec, err
 }
 
 func (f *Fetcher) FetchExplicitDestinationsData(
@@ -199,20 +212,13 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 		for _, routeTarget := range d.ComputedPortRoutes.Targets {
 			targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
 
-			// Fetch Service.
-			targetSvc, err := f.FetchService(ctx, targetServiceID)
-			if err != nil {
-				return nil, statuses, err
-			}
-
 			// Fetch ServiceEndpoints.
 			se, err := f.FetchServiceEndpoints(ctx, resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID))
 			if err != nil {
 				return nil, statuses, err
 			}
 
-			if targetSvc != nil && se != nil {
-				routeTarget.Service = svc.Data
+			if se != nil {
 				routeTarget.ServiceEndpointsId = se.Resource.Id
 				routeTarget.ServiceEndpoints = se.Data
 
@@ -264,7 +270,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 	rsp, err := f.Client.List(ctx, &pbresource.ListRequest{
 		Type: types.ComputedRoutesType,
 		Tenancy: &pbresource.Tenancy{
-			Namespace: proxyID.Tenancy.Namespace,
+			Namespace: storage.Wildcard,
 			Partition: proxyID.Tenancy.Partition,
 			PeerName:  proxyID.Tenancy.PeerName,
 		},
@@ -295,10 +301,9 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 			// If service no longer exists, skip.
 			continue
 		}
-		s := svc // TODO(rb)
 
 		// If this proxy is a part of this service, ignore it.
-		if isPartOfService_NEW(resource.ReplaceType(catalog.WorkloadType, proxyID), s) {
+		if isPartOfService(resource.ReplaceType(catalog.WorkloadType, proxyID), svc) {
 			continue
 		}
 
@@ -316,25 +321,13 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 		}
 
 		// Fetch the resources that may show up duplicated.
-		var (
-			serviceMap   = make(map[resource.ReferenceKey]*types.DecodedService)
-			endpointsMap = make(map[resource.ReferenceKey]*types.DecodedServiceEndpoints)
-		)
+		endpointsMap := make(map[resource.ReferenceKey]*types.DecodedServiceEndpoints)
 		for _, portConfig := range computedRoutes.Data.PortedConfigs {
 			for _, routeTarget := range portConfig.Targets {
 				targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
-				svcRK := resource.NewReferenceKey(targetServiceID)
 
 				seID := resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID)
 				seRK := resource.NewReferenceKey(seID)
-
-				if _, ok := serviceMap[svcRK]; !ok {
-					svc, err := f.FetchService(ctx, targetServiceID)
-					if err != nil {
-						return nil, err
-					}
-					serviceMap[svcRK] = svc
-				}
 
 				if _, ok := endpointsMap[seRK]; !ok {
 					se, err := f.FetchServiceEndpoints(ctx, seID)
@@ -368,13 +361,9 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 				targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
 				seID := resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID)
 
-				// Fetch Service.
-				svc, svcOK := serviceMap[resource.NewReferenceKey(targetServiceID)]
 				// Fetch ServiceEndpoints.
-				se, seOK := endpointsMap[resource.NewReferenceKey(seID)]
-
-				if svcOK && seOK {
-					routeTarget.Service = svc.Data
+				se, ok := endpointsMap[resource.NewReferenceKey(seID)]
+				if ok {
 					routeTarget.ServiceEndpointsId = se.Resource.Id
 					routeTarget.ServiceEndpoints = se.Data
 
@@ -500,22 +489,7 @@ func updateStatusCondition(
 	}
 }
 
-// Deprecated: see isPartOfService_NEW
-func isPartOfService(workloadID *pbresource.ID, endpoints *pbcatalog.ServiceEndpoints) bool {
-	// convert IDs to refs so that we can compare without UIDs.
-	workloadRef := resource.Reference(workloadID, "")
-	for _, ep := range endpoints.Endpoints {
-		if ep.TargetRef != nil {
-			targetRef := resource.Reference(ep.TargetRef, "")
-			if resource.EqualReference(workloadRef, targetRef) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func isPartOfService_NEW(workloadID *pbresource.ID, svc *types.DecodedService) bool {
+func isPartOfService(workloadID *pbresource.ID, svc *types.DecodedService) bool {
 	if !resource.EqualTenancy(workloadID.GetTenancy(), svc.Resource.Id.GetTenancy()) {
 		return false
 	}
