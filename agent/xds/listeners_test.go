@@ -63,12 +63,14 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 					}
 				}, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "splitter-with-resolver-redirect",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", enterprise, nil, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tcp-chain",
@@ -90,6 +92,7 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 					},
 				)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-http2-chain",
@@ -104,6 +107,7 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 					},
 				)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-grpc-chain",
@@ -118,6 +122,7 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 					},
 				)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-chain-external-sni",
@@ -131,6 +136,7 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", enterprise, nil, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
@@ -204,6 +210,7 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 					},
 				)
 			},
+			alsoRunTestForV2: false,
 		},
 	}
 }
