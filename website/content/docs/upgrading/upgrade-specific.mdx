@@ -14,166 +14,6 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
-## Consul 1.17.x
-#### Audit Log naming changes (Enterprise)
-Prior to Consul 1.17.0, audit logs contained timestamps on both the original log file names as well as rotated log file names.
-After Consul 1.17.0, only timestamps will be included in rotated log file names.
-
-## Consul 1.16.x
-
-#### Known issues
-
-Service mesh in Consul versions 1.16.0 and 1.16.1 may have issues when a snapshot restore is performed and the servers are hosting xDS streams.
-When this bug triggers, it causes Envoy to incorrectly populate upstream endpoints. To prevent this issue, service mesh users who run agent-less workloads should upgrade Consul to v1.16.2 or later.
-
-#### API health endpoints return different status code
-
-Consul versions 1.16.0+ now return an error 403 "Permission denied" status
-whenever the `/v1/health/connect/` and `/v1/health/ingress/` endpoints are
-queried with insufficient ACL `service:read` privileges.
-
-In Consul versions older than 1.16.0, the service health API did not return an explicit error when given a token with invalid permissions. Instead, it returned an empty list with a success status code.
-
-Before upgrading, ensure that all of your applications can handle this new API behavior properly. An update is not required unless you have a custom application that is querying one of these API endpoints directly.
-
-#### Remove deprecated service-defaults peer upstream override behavior
-
-When configuring a service defaults configuration entry, the [`UpstreamConfig.Overrides` configuration](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides)
-does not apply to peer upstreams unless the [`Peer`](/consul/docs/connect/config-entries/service-defaults#upstreamconfig-overrides-peer) field is explicitly provided.
-This change removes the backward-compatibility behavior introduced in Consul 1.15.x. Refer to the [upgrade instructions for 1.15.x](#service-defaults-overrides-for-upstream-peered-services) for more information.
-
-## Consul 1.15.x
-
-#### Service mesh compatibility ((#service-mesh-compatibility-1-15))
-
-Upgrade to **Consul version 1.15.2 or later**.
-
-Consul versions 1.15.0 - 1.15.1 contain a race condition that can cause
-some service instances to lose their ability to communicate in the mesh after
-[72 hours (LeafCertTTL)](/consul/docs/connect/ca/consul#leafcertttl)
-due to a problem with leaf certificate rotation.
-
-This bug is fixed in Consul versions 1.15.2 and newer.
-
-#### Removing configuration options
-
-The `connect.enable_serverless_plugin` configuration option was removed. Lambda integration is now enabled by default.
-
-#### Deprecating authentication via token query parameter
-
-Providing a Consul ACL token in API requests using the `token` query parameter is deprecated and will be removed in Consul 1.17.
-Instead, you should provide the token through the `X-Consul-Token` header or with the Bearer scheme in the authorization header as described in the [API authentication documentation](/consul/api-docs/api-structure#authentication).
-
-Check whether you are using a `token` query parameter by searching your Consul agent logs for the message:
-
-```shell-session hideClipboard
-$ This request used the token query parameter which is deprecated and will be removed in Consul 1.17
-```
-
-Deprecated authentication using the `token` query parameter:
-
-```shell-session
-$ curl \
-    http://127.0.0.1:8500/v1/agent/members?token=<consul token>
-```
-
-Recommended authentication method:
-
-```shell-session
-$ curl \
-    --header "X-Consul-Token: <consul token>" \
-    http://127.0.0.1:8500/v1/agent/members
-```
-
-#### Lambda Configuration
-
-Instead of configuring Lambda functions in the `Meta` field of `service-defaults` configuration entries, configure them with the `EnvoyExtensions` field.
-
-Before Consul v1.15:
-
-   <CodeBlockConfig filename="lambda-service-defaults.hcl">
-
-   ```hcl
-   Kind = "service-defaults"
-   Name = "<SERVICE_NAME>"
-   Protocol  = "http"
-   Meta = {
-     "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled" = "true"
-   }
-   ```
-
-   </CodeBlockConfig>
-
-In Consul v1.15 and higher:
-
-   <CodeBlockConfig filename="lambda-service-defaults.hcl">
-
-   ```hcl
-   Kind = "service-defaults"
-   Name = "<SERVICE_NAME>"
-   Protocol  = "http"
-   EnvoyExtensions = [
-     {
-       "Name": "builtin/aws/lambda",
-       "Arguments": {
-         "Region": "us-east-2",
-         "ARN": "<INSERT ARN HERE>",
-         "PayloadPassthrough": true
-       }
-     }
-   ]
-   ```
-
-   </CodeBlockConfig>
-
-#### `service-defaults` Overrides for Upstream Peered Services
-
-In Consul 1.14.x, `service-defaults` upstream [`overrides`](/consul/docs/connect/config-entries/service-defaults#overrides) apply to both local and peered services as long as the `name` field matches.
-Consul 1.15.0 is backward compatible with 1.14 if the [`peer`](/consul/docs/connect/config-entries/service-defaults#peer) is not set in any override.
-We recommend converting any upstream peer service overrides as a 1.15.x post-upgrade step.
-
-Before Consul v1.15:
-
-   <CodeBlockConfig>
-
-   ```hcl
-   Kind = "service-defaults"
-   Name = "<SERVICE_NAME>"
-   Protocol  = "http"
-   UpstreamConfig = {
-     Overrides = [
-       {
-          Name = foo      # Applies to local `foo` and any peered service `foo`
-       }
-     ]
-   }
-   ```
-
-   </CodeBlockConfig>
-
-In Consul v1.15 and higher:
-
-   <CodeBlockConfig>
-
-   ```hcl
-   Kind = "service-defaults"
-   Name = "<SERVICE_NAME>"
-   Protocol  = "http"
-   UpstreamConfig = {
-     Overrides = [
-       {
-          Name = foo  # Applies to local service `foo`
-       },
-       {
-          Name = foo  # Applies to `foo` imported from peered cluster `bar`
-          Peer = bar
-       }
-     ]
-   }
-   ```
-
-   </CodeBlockConfig>
-
 ## Consul 1.14.x
 
 ### Service Mesh Compatibility
@@ -196,6 +36,14 @@ to use TLS for contacting the HTTP API, it will also incorrectly enable TLS for 
 Users should not upgrade to 1.14.0 if they are using plaintext gRPC connections in
 conjunction with TLS-encrypted HTTP APIs.
 
+#### Vault Enterprise as CA ((#vault-enterprise-as-ca-1-14))
+Using Vault as CA with Consul version 1.14.10 will fail to initialize the CA if [`namespace`](/consul/docs/connect/ca/vault#namespace) is set
+but [`intermediate_pki_namespace`](/consul/docs/connect/ca/vault#intermediatepkinamespace) or [`root_pki_namespace`](/consul/docs/connect/ca/vault#rootpkinamespace)
+are empty. This is a bug which will be fixed in a future version.
+
+To work around this issue, users must explicitly set [`intermediate_pki_namespace`](/consul/docs/connect/ca/vault#intermediatepkinamespace) and
+[`root_pki_namespace`](/consul/docs/connect/ca/vault#rootpkinamespace) to the same value as [`namespace`](/consul/docs/connect/ca/vault#namespace).
+Set your configuration by calling [set-config](/consul/commands/connect/ca#set-config) then use [get-config](/consul/commands/connect/ca#get-config) to check.
 
 #### Changes to gRPC TLS configuration
 
