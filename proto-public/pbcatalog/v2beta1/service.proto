@@ -8,6 +8,7 @@ package hashicorp.consul.catalog.v2beta1;
 import "pbcatalog/v2beta1/protocol.proto";
 import "pbcatalog/v2beta1/selector.proto";
 import "pbresource/annotations.proto";
+import "pbresource/resource.proto";
 
 message Service {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
@@ -21,6 +22,9 @@ message Service {
   // virtual_ips is a list of virtual IPs for this service. This is useful when you need to set
   // an IP from an external system (like Kubernetes). This can be an IPv4 or IPv6 string.
   repeated string virtual_ips = 3;
+
+  // owner_ref indicates a higher-order resource -- such as a gateway -- of which this Service is a component
+  optional hashicorp.consul.resource.Reference owner_ref = 4;
 }
 
 message ServicePort {
