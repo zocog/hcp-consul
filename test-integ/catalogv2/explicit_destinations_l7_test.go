@@ -61,6 +61,24 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 			v2ClusterPrefix := clusterPrefix(u.PortName, v2ID, u.Cluster)
 
 			switch u.PortName {
+			case "grpc":
+				// we expect 2 clusters, one for each leg of the split
+				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
+				asserter.UpstreamEndpointStatus(t, svc, v2ClusterPrefix+".", "HEALTHY", 1)
+
+				asserter.GRPCServicePing(t, svc, u.LocalPort)
+
+				// // Both should be possible.
+				// v1Expect := fmt.Sprintf("%s::%s", cluster.Name, v1ID.String())
+				// v2Expect := fmt.Sprintf("%s::%s", cluster.Name, v2ID.String())
+
+				// got := make(map[string]int)
+				// asserter.FortioFetch2FortioNameCallback(t, svc, u, 100, func(_ *retry.R, name string) {
+				// 	got[name]++
+				// }, func(r *retry.R) {
+				// 	assertTrafficSplit(r, got, map[string]int{v1Expect: 10, v2Expect: 90}, 2)
+				// })
+
 			case "http":
 				// we expect 2 clusters, one for each leg of the split
 				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
@@ -164,7 +182,6 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 				newServiceID("static-server-v1"),
 				topology.NodeVersionV2,
 				func(svc *topology.Service) {
-					delete(svc.Ports, "grpc") // v2 mode turns this on, so turn it off
 					svc.Meta = map[string]string{
 						"version": "v1",
 					}
@@ -185,7 +202,6 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 				newServiceID("static-server-v2"),
 				topology.NodeVersionV2,
 				func(svc *topology.Service) {
-					delete(svc.Ports, "grpc") // v2 mode turns this on, so turn it off
 					svc.Meta = map[string]string{
 						"version": "v2",
 					}
@@ -206,7 +222,6 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 				newServiceID("static-client"),
 				topology.NodeVersionV2,
 				func(svc *topology.Service) {
-					delete(svc.Ports, "grpc") // v2 mode turns this on, so turn it off
 					svc.Upstreams = []*topology.Upstream{
 						{
 							ID:           newServiceID("static-server"),
@@ -220,13 +235,18 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 							LocalAddress: "0.0.0.0", // needed for an assertion
 							LocalPort:    5001,
 						},
+						{
+							ID:           newServiceID("static-server"),
+							PortName:     "grpc",
+							LocalAddress: "0.0.0.0", // needed for an assertion
+							LocalPort:    5002,
+						},
 					}
 				},
 			),
 		},
 	}
 
-	// static-server-v2.default.dc1.internal.f6823a6f-84f8-eec5-22cb-849f78d0bdd8.consul
 	v1TrafficPerms := sprawltest.MustSetResourceData(t, &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    pbauth.TrafficPermissionsType,
@@ -358,6 +378,46 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 			}},
 		}},
 	})
+	grpcServerRoute := sprawltest.MustSetResourceData(t, &pbresource.Resource{
+		Id: &pbresource.ID{
+			Type:    pbmesh.GRPCRouteType,
+			Name:    "static-server-grpc-route",
+			Tenancy: tenancy,
+		},
+	}, &pbmesh.GRPCRoute{
+		ParentRefs: []*pbmesh.ParentReference{{
+			Ref: &pbresource.Reference{
+				Type:    pbcatalog.ServiceType,
+				Name:    "static-server",
+				Tenancy: tenancy,
+			},
+			Port: "grpc",
+		}},
+		Rules: []*pbmesh.GRPCRouteRule{{
+			BackendRefs: []*pbmesh.GRPCBackendRef{
+				{
+					BackendRef: &pbmesh.BackendReference{
+						Ref: &pbresource.Reference{
+							Type:    pbcatalog.ServiceType,
+							Name:    "static-server-v1",
+							Tenancy: tenancy,
+						},
+					},
+					Weight: 10,
+				},
+				{
+					BackendRef: &pbmesh.BackendReference{
+						Ref: &pbresource.Reference{
+							Type:    pbcatalog.ServiceType,
+							Name:    "static-server-v2",
+							Tenancy: tenancy,
+						},
+					},
+					Weight: 90,
+				},
+			},
+		}},
+	})
 
 	cluster.Nodes = append(cluster.Nodes,
 		clientNode,
@@ -371,5 +431,6 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		v2TrafficPerms,
 		httpServerRoute,
 		httpAltServerRoute,
+		grpcServerRoute,
 	)
 }

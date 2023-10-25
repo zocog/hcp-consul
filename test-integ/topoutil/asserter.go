@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"fortio.org/fortio/fgrpc"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -98,6 +99,28 @@ func (a *Asserter) UpstreamEndpointStatus(
 
 	client := a.mustGetHTTPClient(t, node.Cluster)
 	libassert.AssertUpstreamEndpointStatusWithClient(t, client, addr, clusterName, healthStatus, count)
+}
+
+func (a *Asserter) GRPCServicePing(
+	t *testing.T,
+	service *topology.Service,
+	port int,
+) {
+	t.Helper()
+	require.True(t, port > 0)
+
+	node := service.Node
+	ip := node.LocalAddress()
+
+	exposedPort := node.ExposedPort(port)
+	require.True(t, exposedPort > 0)
+
+	addr := fmt.Sprintf("%s:%d", ip, exposedPort)
+
+	const delay = 5 * time.Millisecond
+
+	_, err := fgrpc.PingClientCall("grpc://"+addr, 1, "test payload", delay, nil, nil)
+	require.NoError(t, err)
 }
 
 // HTTPServiceEchoes verifies that a post to the given ip/port combination
