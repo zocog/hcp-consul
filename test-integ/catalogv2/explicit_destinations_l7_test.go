@@ -305,6 +305,10 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 				Protocol:   pbcatalog.Protocol_PROTOCOL_TCP, // TODO
 			},
 			{
+				TargetPort: "grpc",
+				Protocol:   pbcatalog.Protocol_PROTOCOL_TCP, // TODO
+			},
+			{
 				TargetPort: "mesh",
 				Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
 			},

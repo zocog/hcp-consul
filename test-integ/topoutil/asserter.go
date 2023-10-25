@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"fortio.org/fortio/fgrpc"
+	"fortio.org/fortio/fhttp"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -119,7 +120,7 @@ func (a *Asserter) GRPCServicePing(
 
 	const delay = 5 * time.Millisecond
 
-	_, err := fgrpc.PingClientCall("grpc://"+addr, 1, "test payload", delay, nil, nil)
+	_, err := fgrpc.PingClientCall("grpc://"+addr, 1, "test payload", delay, &fhttp.TLSOptions{Insecure: true}, nil)
 	require.NoError(t, err)
 }
 
