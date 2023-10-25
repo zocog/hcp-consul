@@ -278,7 +278,7 @@ func (a *Asserter) FortioFetch2HeaderEcho(t *testing.T, fortioSvc *topology.Serv
 
 	var (
 		node   = fortioSvc.Node
-		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioSvc.PortOrDefault("http"))
+		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioSvc.PortOrDefault(upstream.PortName))
 		client = a.mustGetHTTPClient(t, node.Cluster)
 	)
 
@@ -304,7 +304,7 @@ func (a *Asserter) FortioFetch2FortioName(
 
 	var (
 		node   = fortioSvc.Node
-		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioSvc.PortOrDefault("http"))
+		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioSvc.PortOrDefault(upstream.PortName))
 		client = a.mustGetHTTPClient(t, node.Cluster)
 	)
 
@@ -321,6 +321,39 @@ func (a *Asserter) FortioFetch2FortioName(
 		require.GreaterOrEqual(r, len(m), 2)
 		// TODO: dedupe from NewFortioService
 		require.Equal(r, fmt.Sprintf("%s::%s", clusterName, sid.String()), m[1])
+	})
+}
+
+func (a *Asserter) FortioFetch2FortioNameCallback(
+	t *testing.T,
+	fortioSvc *topology.Service,
+	upstream *topology.Upstream,
+	count int,
+	attemptFn func(r *retry.R, remoteName string),
+	checkFn func(r *retry.R),
+) {
+	t.Helper()
+
+	var (
+		node   = fortioSvc.Node
+		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioSvc.PortOrDefault(upstream.PortName))
+		client = a.mustGetHTTPClient(t, node.Cluster)
+	)
+
+	var fortioNameRE = regexp.MustCompile(("\nFORTIO_NAME=(.+)\n"))
+	path := "/debug?env=dump"
+
+	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
+		for i := 0; i < count; i++ {
+			body, res := a.fortioFetch2Upstream(r, client, addr, upstream, path)
+
+			require.Equal(r, http.StatusOK, res.StatusCode)
+
+			m := fortioNameRE.FindStringSubmatch(string(body))
+			require.GreaterOrEqual(r, len(m), 2)
+			attemptFn(r, m[1])
+		}
+		checkFn(r)
 	})
 }
 

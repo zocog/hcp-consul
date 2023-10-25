@@ -11,10 +11,12 @@ import (
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"
 	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/test-integ/topoutil"
 )
@@ -51,20 +53,72 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 				u   = ship.Upstream
 			)
 
-			// we expect 2 clusters, one for each leg of the split
 			v1ID := ship.Upstream.ID
 			v1ID.Name = "static-server-v1"
-			v1ClusterPrefix := clusterPrefix("http", v1ID, u.Cluster)
-			asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
+			v1ClusterPrefix := clusterPrefix(u.PortName, v1ID, u.Cluster)
 
 			v2ID := ship.Upstream.ID
 			v2ID.Name = "static-server-v2"
-			v2ClusterPrefix := clusterPrefix("http", v2ID, u.Cluster)
-			asserter.UpstreamEndpointStatus(t, svc, v2ClusterPrefix+".", "HEALTHY", 1)
+			v2ClusterPrefix := clusterPrefix(u.PortName, v2ID, u.Cluster)
 
-			asserter.HTTPServiceEchoes(t, svc, u.LocalPort, "")
-			asserter.FortioFetch2FortioName(t, svc, u, cluster.Name, u.ID)
+			switch u.PortName {
+			case "http":
+				// we expect 2 clusters, one for each leg of the split
+				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
+				asserter.UpstreamEndpointStatus(t, svc, v2ClusterPrefix+".", "HEALTHY", 1)
+
+				asserter.HTTPServiceEchoes(t, svc, u.LocalPort, "")
+
+				// Both should be possible.
+				v1Expect := fmt.Sprintf("%s::%s", cluster.Name, v1ID.String())
+				v2Expect := fmt.Sprintf("%s::%s", cluster.Name, v2ID.String())
+
+				got := make(map[string]int)
+				asserter.FortioFetch2FortioNameCallback(t, svc, u, 100, func(_ *retry.R, name string) {
+					got[name]++
+				}, func(r *retry.R) {
+					assertTrafficSplit(r, got, map[string]int{
+						v1Expect: 50,
+						v2Expect: 50,
+					}, 2)
+					// require.Len(r, got, 2)
+					// v1Count, v1Exist := got[v1Expect]
+					// v2Count, v2Exist := got[v2Expect]
+					// require.True(r, v1Exist)
+					// require.True(r, v2Exist)
+
+					// diff := v1Count - v2Count
+					// if diff < 0 {
+					// 	diff = -diff
+					// }
+					// pct := diff // 100 * abs(a-b) / 100
+
+					// // Acceptable fudge error is +/-2
+					// require.True(r, pct <= 2, "split was not 50/50: v1=%d v2=%d", v1Count, v2Count)
+				})
+			case "http-alt":
+				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
+
+				asserter.HTTPServiceEchoes(t, svc, u.LocalPort, "")
+
+				// Only v1 is possible.
+				asserter.FortioFetch2FortioName(t, svc, u, cluster.Name, v1ID)
+			default:
+				t.Fatalf("unexpected port name: %s", u.PortName)
+			}
 		})
+	}
+}
+
+func assertTrafficSplit(t require.TestingT, nameCounts map[string]int, expect map[string]int, epsilon int) {
+	require.Len(t, nameCounts, len(expect))
+	for name, expectCount := range expect {
+		gotCount, ok := nameCounts[name]
+		require.True(t, ok)
+		require.InEpsilon(t, expectCount, gotCount, float64(epsilon),
+			"expected %q side of split to have %d requests not %d (e=%d)",
+			name, expectCount, gotCount, epsilon,
+		)
 	}
 }
 
@@ -145,7 +199,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 						"version": "v1",
 					}
 					// svc.V2Services = []string{"static-server"}
-					svc.WorkloadIdentity = "static-server"
+					svc.WorkloadIdentity = "static-server-v1"
 				},
 			),
 		},
@@ -166,7 +220,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 						"version": "v2",
 					}
 					// svc.V2Services = []string{"static-server"}
-					svc.WorkloadIdentity = "static-server"
+					svc.WorkloadIdentity = "static-server-v2"
 				},
 			),
 		},
@@ -182,8 +236,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 				newServiceID("static-client"),
 				topology.NodeVersionV2,
 				func(svc *topology.Service) {
-					delete(svc.Ports, "grpc")     // v2 mode turns this on, so turn it off
-					delete(svc.Ports, "http-alt") // v2 mode turns this on, so turn it off
+					delete(svc.Ports, "grpc") // v2 mode turns this on, so turn it off
 					svc.Upstreams = []*topology.Upstream{
 						{
 							ID:           newServiceID("static-server"),
@@ -203,10 +256,11 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		},
 	}
 
+	// static-server-v2.default.dc1.internal.f6823a6f-84f8-eec5-22cb-849f78d0bdd8.consul
 	v1TrafficPerms := sprawltest.MustSetResourceData(t, &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    pbauth.TrafficPermissionsType,
-			Name:    "static-server-v1",
+			Name:    "static-server-v1-perms",
 			Tenancy: tenancy,
 		},
 	}, &pbauth.TrafficPermissions{
@@ -224,7 +278,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 	v2TrafficPerms := sprawltest.MustSetResourceData(t, &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    pbauth.TrafficPermissionsType,
-			Name:    "static-server-v2",
+			Name:    "static-server-v2-perms",
 			Tenancy: tenancy,
 		},
 	}, &pbauth.TrafficPermissions{
@@ -267,26 +321,23 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		},
 	})
 
-	serverRoute := sprawltest.MustSetResourceData(t, &pbresource.Resource{
+	httpServerRoute := sprawltest.MustSetResourceData(t, &pbresource.Resource{
 		Id: &pbresource.ID{
-			// Type:    pbmesh.HTTPRouteType,
-			Type:    pbmesh.TCPRouteType,
+			Type:    pbmesh.HTTPRouteType,
 			Name:    "static-server-http-route",
 			Tenancy: tenancy,
 		},
-		// }, &pbmesh.HTTPRoute{
-	}, &pbmesh.TCPRoute{
+	}, &pbmesh.HTTPRoute{
 		ParentRefs: []*pbmesh.ParentReference{{
 			Ref: &pbresource.Reference{
 				Type:    pbcatalog.ServiceType,
 				Name:    "static-server",
 				Tenancy: tenancy,
 			},
+			Port: "http",
 		}},
-		// Rules: []*pbmesh.HTTPRouteRule{{
-		Rules: []*pbmesh.TCPRouteRule{{
-			// BackendRefs: []*pbmesh.HTTPBackendRef{
-			BackendRefs: []*pbmesh.TCPBackendRef{
+		Rules: []*pbmesh.HTTPRouteRule{{
+			BackendRefs: []*pbmesh.HTTPBackendRef{
 				{
 					BackendRef: &pbmesh.BackendReference{
 						Ref: &pbresource.Reference{
@@ -296,22 +347,6 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 						},
 					},
 					Weight: 50,
-					// Filters: []*pbmesh.HTTPRouteFilter{{
-					// 	RequestHeaderModifier: &pbmesh.HTTPHeaderFilter{
-					// 		Set: []*pbmesh.HTTPHeader{{
-					// 			Name:  "x-split-leg",
-					// 			Value: "v1",
-					// 		}},
-					// 		Remove: []string{"x-bad-req"},
-					// 	},
-					// 	ResponseHeaderModifier: &pbmesh.HTTPHeaderFilter{
-					// 		Add: []*pbmesh.HTTPHeader{{
-					// 			Name:  "x-svc-version",
-					// 			Value: "v1",
-					// 		}},
-					// 		Remove: []string{"x-bad-resp"},
-					// 	},
-					// }},
 				},
 				{
 					BackendRef: &pbmesh.BackendReference{
@@ -322,24 +357,35 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 						},
 					},
 					Weight: 50,
-					// Filters: []*pbmesh.HTTPRouteFilter{{
-					// 	RequestHeaderModifier: &pbmesh.HTTPHeaderFilter{
-					// 		Set: []*pbmesh.HTTPHeader{{
-					// 			Name:  "x-split-leg",
-					// 			Value: "v2",
-					// 		}},
-					// 		Remove: []string{"x-bad-req"},
-					// 	},
-					// 	ResponseHeaderModifier: &pbmesh.HTTPHeaderFilter{
-					// 		Add: []*pbmesh.HTTPHeader{{
-					// 			Name:  "x-svc-version",
-					// 			Value: "v2",
-					// 		}},
-					// 		Remove: []string{"x-bad-resp"},
-					// 	},
-					// }},
 				},
 			},
+		}},
+	})
+	httpAltServerRoute := sprawltest.MustSetResourceData(t, &pbresource.Resource{
+		Id: &pbresource.ID{
+			Type:    pbmesh.HTTPRouteType,
+			Name:    "static-server-http-alt-route",
+			Tenancy: tenancy,
+		},
+	}, &pbmesh.HTTPRoute{
+		ParentRefs: []*pbmesh.ParentReference{{
+			Ref: &pbresource.Reference{
+				Type:    pbcatalog.ServiceType,
+				Name:    "static-server",
+				Tenancy: tenancy,
+			},
+			Port: "http-alt",
+		}},
+		Rules: []*pbmesh.HTTPRouteRule{{
+			BackendRefs: []*pbmesh.HTTPBackendRef{{
+				BackendRef: &pbmesh.BackendReference{
+					Ref: &pbresource.Reference{
+						Type:    pbcatalog.ServiceType,
+						Name:    "static-server-v1",
+						Tenancy: tenancy,
+					},
+				},
+			}},
 		}},
 	})
 
@@ -353,6 +399,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		staticServerService,
 		v1TrafficPerms,
 		v2TrafficPerms,
-		serverRoute,
+		httpServerRoute,
+		httpAltServerRoute,
 	)
 }
