@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/test-integ/topoutil"
 )
@@ -77,24 +76,7 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 				asserter.FortioFetch2FortioNameCallback(t, svc, u, 100, func(_ *retry.R, name string) {
 					got[name]++
 				}, func(r *retry.R) {
-					assertTrafficSplit(r, got, map[string]int{
-						v1Expect: 50,
-						v2Expect: 50,
-					}, 2)
-					// require.Len(r, got, 2)
-					// v1Count, v1Exist := got[v1Expect]
-					// v2Count, v2Exist := got[v2Expect]
-					// require.True(r, v1Exist)
-					// require.True(r, v2Exist)
-
-					// diff := v1Count - v2Count
-					// if diff < 0 {
-					// 	diff = -diff
-					// }
-					// pct := diff // 100 * abs(a-b) / 100
-
-					// // Acceptable fudge error is +/-2
-					// require.True(r, pct <= 2, "split was not 50/50: v1=%d v2=%d", v1Count, v2Count)
+					assertTrafficSplit(r, got, map[string]int{v1Expect: 10, v2Expect: 90}, 2)
 				})
 			case "http-alt":
 				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
@@ -107,18 +89,6 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 				t.Fatalf("unexpected port name: %s", u.PortName)
 			}
 		})
-	}
-}
-
-func assertTrafficSplit(t require.TestingT, nameCounts map[string]int, expect map[string]int, epsilon int) {
-	require.Len(t, nameCounts, len(expect))
-	for name, expectCount := range expect {
-		gotCount, ok := nameCounts[name]
-		require.True(t, ok)
-		require.InEpsilon(t, expectCount, gotCount, float64(epsilon),
-			"expected %q side of split to have %d requests not %d (e=%d)",
-			name, expectCount, gotCount, epsilon,
-		)
 	}
 }
 
@@ -346,7 +316,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 							Tenancy: tenancy,
 						},
 					},
-					Weight: 50,
+					Weight: 10,
 				},
 				{
 					BackendRef: &pbmesh.BackendReference{
@@ -356,7 +326,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 							Tenancy: tenancy,
 						},
 					},
-					Weight: 50,
+					Weight: 90,
 				},
 			},
 		}},

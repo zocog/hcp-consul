@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/stretchr/testify/require"
 )
 
 func clusterPrefixForUpstream(u *topology.Upstream) string {
@@ -26,5 +27,17 @@ func clusterPrefix(port string, svcID topology.ServiceID, cluster string) string
 		return strings.Join([]string{port, svcID.Name, svcID.Namespace, cluster, "internal"}, ".")
 	} else {
 		return strings.Join([]string{port, svcID.Name, svcID.Namespace, svcID.Partition, cluster, "internal-v1"}, ".")
+	}
+}
+
+func assertTrafficSplit(t require.TestingT, nameCounts map[string]int, expect map[string]int, epsilon int) {
+	require.Len(t, nameCounts, len(expect))
+	for name, expectCount := range expect {
+		gotCount, ok := nameCounts[name]
+		require.True(t, ok)
+		require.InEpsilon(t, expectCount, gotCount, float64(epsilon),
+			"expected %q side of split to have %d requests not %d (e=%d)",
+			name, expectCount, gotCount, epsilon,
+		)
 	}
 }
