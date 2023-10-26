@@ -4,6 +4,7 @@
 package topoutil
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 	"time"
 
 	"fortio.org/fortio/fgrpc"
-	"fortio.org/fortio/fhttp"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -22,6 +22,8 @@ import (
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // Asserter is a utility to help in reducing boilerplate in invoking test
@@ -111,17 +113,43 @@ func (a *Asserter) GRPCServicePing(
 	require.True(t, port > 0)
 
 	node := service.Node
-	ip := node.LocalAddress()
 
+	// We can't use the forward proxy for gRPC yet, so use the exposed port on localhost instead.
 	exposedPort := node.ExposedPort(port)
 	require.True(t, exposedPort > 0)
 
-	addr := fmt.Sprintf("%s:%d", ip, exposedPort)
+	addr := fmt.Sprintf("%s:%d", "127.0.0.1", exposedPort)
 
 	const delay = 5 * time.Millisecond
 
-	_, err := fgrpc.PingClientCall("grpc://"+addr, 1, "test payload", delay, &fhttp.TLSOptions{Insecure: true}, nil)
-	require.NoError(t, err)
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		err := sendFortioGRPCPing(context.Background(), addr)
+		require.NoError(r, err)
+	})
+}
+
+func sendFortioGRPCPing(ctx context.Context, serverAddr string) error {
+	conn, err := grpc.DialContext(ctx, serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	client := fgrpc.NewPingServerClient(conn)
+
+	reqCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	_, err = client.Ping(reqCtx, &fgrpc.PingMessage{Payload: "test-message"})
+	if err != nil {
+		return fmt.Errorf("grpc error from Ping: %w", err)
+	}
+
+	return nil
 }
 
 // HTTPServiceEchoes verifies that a post to the given ip/port combination
