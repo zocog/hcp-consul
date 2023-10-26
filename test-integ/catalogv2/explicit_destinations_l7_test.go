@@ -298,15 +298,15 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		Ports: []*pbcatalog.ServicePort{
 			{
 				TargetPort: "http",
-				Protocol:   pbcatalog.Protocol_PROTOCOL_TCP, // TODO
+				Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
 			},
 			{
 				TargetPort: "http-alt",
-				Protocol:   pbcatalog.Protocol_PROTOCOL_TCP, // TODO
+				Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP2,
 			},
 			{
 				TargetPort: "grpc",
-				Protocol:   pbcatalog.Protocol_PROTOCOL_TCP, // TODO
+				Protocol:   pbcatalog.Protocol_PROTOCOL_GRPC,
 			},
 			{
 				TargetPort: "mesh",
