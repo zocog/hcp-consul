@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -104,6 +105,50 @@ func (a *Asserter) UpstreamEndpointStatus(
 	libassert.AssertUpstreamEndpointStatusWithClient(t, client, addr, clusterName, healthStatus, count)
 }
 
+func (a *Asserter) TCPServiceProbe(
+	t *testing.T,
+	service *topology.Service,
+	port int,
+) {
+	t.Helper()
+	require.True(t, port > 0)
+
+	node := service.Node
+
+	// We can't use the forward proxy for plain TCP yet, so use the exposed port on localhost instead.
+	exposedPort := node.ExposedPort(port)
+	require.True(t, exposedPort > 0)
+
+	addr := fmt.Sprintf("%s:%d", "127.0.0.1", exposedPort)
+
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		err := testFortioTCPSocket(context.Background(), addr)
+		require.NoError(r, err)
+	})
+}
+
+func testFortioTCPSocket(ctx context.Context, serverAddr string) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	d := net.Dialer{
+		Timeout:   5 * time.Second,
+		KeepAlive: 250 * time.Millisecond,
+	}
+
+	conn, err := d.DialContext(ctx, "tcp", serverAddr)
+	if err != nil {
+		return fmt.Errorf("tcp error dialing: %w", err)
+	}
+	_ = conn.Close()
+
+	return nil
+}
+
 func (a *Asserter) GRPCServicePing(
 	t *testing.T,
 	service *topology.Service,
@@ -120,8 +165,6 @@ func (a *Asserter) GRPCServicePing(
 
 	addr := fmt.Sprintf("%s:%d", "127.0.0.1", exposedPort)
 
-	const delay = 5 * time.Millisecond
-
 	failer := func() *retry.Timer {
 		return &retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
 	}
@@ -133,6 +176,9 @@ func (a *Asserter) GRPCServicePing(
 }
 
 func sendFortioGRPCPing(ctx context.Context, serverAddr string) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
 	conn, err := grpc.DialContext(ctx, serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return err
@@ -141,10 +187,7 @@ func sendFortioGRPCPing(ctx context.Context, serverAddr string) error {
 
 	client := fgrpc.NewPingServerClient(conn)
 
-	reqCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	defer cancel()
-
-	_, err = client.Ping(reqCtx, &fgrpc.PingMessage{Payload: "test-message"})
+	_, err = client.Ping(ctx, &fgrpc.PingMessage{Payload: "test-message"})
 	if err != nil {
 		return fmt.Errorf("grpc error from Ping: %w", err)
 	}

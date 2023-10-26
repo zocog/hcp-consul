@@ -20,6 +20,7 @@ func NewFortioServiceWithDefaults(
 	const (
 		httpPort  = 8080
 		grpcPort  = 8079
+		tcpPort   = 8078
 		adminPort = 19000
 	)
 	sid.Normalize()
@@ -36,15 +37,17 @@ func NewFortioServiceWithDefaults(
 			"server",
 			"-http-port", strconv.Itoa(httpPort),
 			"-grpc-port", strconv.Itoa(grpcPort),
+			"-tcp-port", strconv.Itoa(tcpPort),
 			"-redirect-port", "-disabled",
 		},
 	}
 
 	if nodeVersion == topology.NodeVersionV2 {
 		svc.Ports = map[string]*topology.Port{
-			"http":     {Number: httpPort, Protocol: "http"},
-			"http-alt": {Number: httpPort, Protocol: "http2"},
-			"grpc":     {Number: grpcPort, Protocol: "grpc"},
+			"http":  {Number: httpPort, Protocol: "http"},
+			"http2": {Number: httpPort, Protocol: "http2"},
+			"grpc":  {Number: grpcPort, Protocol: "grpc"},
+			"tcp":   {Number: tcpPort, Protocol: "tcp"},
 		}
 	} else {
 		svc.Port = httpPort

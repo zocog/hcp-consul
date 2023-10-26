@@ -61,6 +61,24 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 			v2ClusterPrefix := clusterPrefix(u.PortName, v2ID, u.Cluster)
 
 			switch u.PortName {
+			case "tcp":
+				// we expect 2 clusters, one for each leg of the split
+				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
+				asserter.UpstreamEndpointStatus(t, svc, v2ClusterPrefix+".", "HEALTHY", 1)
+
+				asserter.TCPServiceProbe(t, svc, u.LocalPort)
+
+				// // Both should be possible.
+				// v1Expect := fmt.Sprintf("%s::%s", cluster.Name, v1ID.String())
+				// v2Expect := fmt.Sprintf("%s::%s", cluster.Name, v2ID.String())
+
+				// got := make(map[string]int)
+				// asserter.FortioFetch2FortioNameCallback(t, svc, u, 100, func(_ *retry.R, name string) {
+				// 	got[name]++
+				// }, func(r *retry.R) {
+				// 	assertTrafficSplit(r, got, map[string]int{v1Expect: 10, v2Expect: 90}, 2)
+				// })
+
 			case "grpc":
 				// we expect 2 clusters, one for each leg of the split
 				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
@@ -96,7 +114,7 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 				}, func(r *retry.R) {
 					assertTrafficSplit(r, got, map[string]int{v1Expect: 10, v2Expect: 90}, 2)
 				})
-			case "http-alt":
+			case "http2":
 				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
 
 				asserter.HTTPServiceEchoes(t, svc, u.LocalPort, "")
@@ -231,7 +249,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 						},
 						{
 							ID:           newServiceID("static-server"),
-							PortName:     "http-alt",
+							PortName:     "http2",
 							LocalAddress: "0.0.0.0", // needed for an assertion
 							LocalPort:    5001,
 						},
@@ -240,6 +258,12 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 							PortName:     "grpc",
 							LocalAddress: "0.0.0.0", // needed for an assertion
 							LocalPort:    5002,
+						},
+						{
+							ID:           newServiceID("static-server"),
+							PortName:     "tcp",
+							LocalAddress: "0.0.0.0", // needed for an assertion
+							LocalPort:    5003,
 						},
 					}
 				},
@@ -301,12 +325,16 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 				Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
 			},
 			{
-				TargetPort: "http-alt",
+				TargetPort: "http2",
 				Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP2,
 			},
 			{
 				TargetPort: "grpc",
 				Protocol:   pbcatalog.Protocol_PROTOCOL_GRPC,
+			},
+			{
+				TargetPort: "tcp",
+				Protocol:   pbcatalog.Protocol_PROTOCOL_TCP,
 			},
 			{
 				TargetPort: "mesh",
@@ -355,10 +383,10 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 			},
 		}},
 	})
-	httpAltServerRoute := sprawltest.MustSetResourceData(t, &pbresource.Resource{
+	http2ServerRoute := sprawltest.MustSetResourceData(t, &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    pbmesh.HTTPRouteType,
-			Name:    "static-server-http-alt-route",
+			Name:    "static-server-http2-route",
 			Tenancy: tenancy,
 		},
 	}, &pbmesh.HTTPRoute{
@@ -368,7 +396,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 				Name:    "static-server",
 				Tenancy: tenancy,
 			},
-			Port: "http-alt",
+			Port: "http2",
 		}},
 		Rules: []*pbmesh.HTTPRouteRule{{
 			BackendRefs: []*pbmesh.HTTPBackendRef{{
@@ -422,6 +450,46 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 			},
 		}},
 	})
+	tcpServerRoute := sprawltest.MustSetResourceData(t, &pbresource.Resource{
+		Id: &pbresource.ID{
+			Type:    pbmesh.TCPRouteType,
+			Name:    "static-server-tcp-route",
+			Tenancy: tenancy,
+		},
+	}, &pbmesh.TCPRoute{
+		ParentRefs: []*pbmesh.ParentReference{{
+			Ref: &pbresource.Reference{
+				Type:    pbcatalog.ServiceType,
+				Name:    "static-server",
+				Tenancy: tenancy,
+			},
+			Port: "tcp",
+		}},
+		Rules: []*pbmesh.TCPRouteRule{{
+			BackendRefs: []*pbmesh.TCPBackendRef{
+				{
+					BackendRef: &pbmesh.BackendReference{
+						Ref: &pbresource.Reference{
+							Type:    pbcatalog.ServiceType,
+							Name:    "static-server-v1",
+							Tenancy: tenancy,
+						},
+					},
+					Weight: 10,
+				},
+				{
+					BackendRef: &pbmesh.BackendReference{
+						Ref: &pbresource.Reference{
+							Type:    pbcatalog.ServiceType,
+							Name:    "static-server-v2",
+							Tenancy: tenancy,
+						},
+					},
+					Weight: 90,
+				},
+			},
+		}},
+	})
 
 	cluster.Nodes = append(cluster.Nodes,
 		clientNode,
@@ -434,7 +502,8 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		v1TrafficPerms,
 		v2TrafficPerms,
 		httpServerRoute,
-		httpAltServerRoute,
+		http2ServerRoute,
+		tcpServerRoute,
 		grpcServerRoute,
 	)
 }
