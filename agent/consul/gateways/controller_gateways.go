@@ -688,7 +688,10 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 
 			if httpRoute, ok := route.(*structs.HTTPRouteConfigEntry); ok {
 				var jwtErrors map[structs.ResourceReference]error
-				didBind, jwtErrors = g.validateJWTForRoute(httpRoute)
+				hasJWTErrors, jwtErrors := g.validateJWTForRoute(httpRoute)
+				if hasJWTErrors {
+					didBind = false
+				}
 				for ref, err := range jwtErrors {
 					errors[ref] = err
 				}
