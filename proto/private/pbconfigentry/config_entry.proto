@@ -982,7 +982,7 @@ message RetryFilter {
   uint32 NumRetries = 1;
   repeated string RetryOn = 2;
   repeated uint32 RetryOnStatusCodes = 3;
-  optional bool RetryOnConnectFailure = 4;
+  bool RetryOnConnectFailure = 4;
 }
 
 // mog annotation:
