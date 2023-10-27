@@ -10,6 +10,139 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// CARoot represents a root CA certificate that is trusted.
+type CARoot struct {
+	// ID is a globally unique ID (UUID) representing this CA chain. It is
+	// calculated from the SHA1 of the primary CA certificate.
+	ID string
+
+	// Name is a human-friendly name for this CA root. This value is
+	// opaque to Consul and is not used for anything internally.
+	Name string
+
+	// SerialNumber is the x509 serial number of the primary CA certificate.
+	SerialNumber uint64
+
+	// SigningKeyID is the connect.HexString encoded id of the public key that
+	// corresponds to the private key used to sign leaf certificates in the
+	// local datacenter.
+	//
+	// The value comes from x509.Certificate.SubjectKeyId of the local leaf
+	// signing cert.
+	//
+	// See https://www.rfc-editor.org/rfc/rfc3280#section-4.2.1.1 for more detail.
+	SigningKeyID string
+
+	// ExternalTrustDomain is the trust domain this root was generated under. It
+	// is usually empty implying "the current cluster trust-domain". It is set
+	// only in the case that a cluster changes trust domain and then all old roots
+	// that are still trusted have the old trust domain set here.
+	//
+	// We currently DON'T validate these trust domains explicitly anywhere, see
+	// IndexedRoots.TrustDomain doc. We retain this information for debugging and
+	// future flexibility.
+	ExternalTrustDomain string
+
+	// NotBefore is the x509.Certificate.NotBefore value of the primary CA
+	// certificate. This value should generally be a time in the past.
+	NotBefore time.Time
+	// NotAfter is the  x509.Certificate.NotAfter value of the primary CA
+	// certificate. This is the time when the certificate will expire.
+	NotAfter time.Time
+
+	// RootCert is the PEM-encoded public certificate for the root CA. The
+	// certificate is the same for all federated clusters.
+	RootCert string
+
+	// IntermediateCerts is a list of PEM-encoded intermediate certs to
+	// attach to any leaf certs signed by this CA. The list may include a
+	// certificate cross-signed by an old root CA, any subordinate CAs below the
+	// root CA, and the intermediate CA used to sign leaf certificates in the
+	// local Datacenter.
+	//
+	// If the provider which created this root uses an intermediate to sign
+	// leaf certificates (Vault provider), or this is a secondary Datacenter then
+	// the intermediate used to sign leaf certificates will be the last in the
+	// list.
+	IntermediateCerts []string
+
+	// SigningCert is the PEM-encoded signing certificate and SigningKey
+	// is the PEM-encoded private key for the signing certificate. These
+	// may actually be empty if the CA plugin in use manages these for us.
+	SigningCert string `json:",omitempty"`
+	SigningKey  string `json:",omitempty"`
+
+	// Active is true if this is the current active CA. This must only
+	// be true for exactly one CA. For any method that modifies roots in the
+	// state store, tests should be written to verify that multiple roots
+	// cannot be active.
+	Active bool
+
+	// RotatedOutAt is the time at which this CA was removed from the state.
+	// This will only be set on roots that have been rotated out from being the
+	// active root.
+	RotatedOutAt time.Time `json:"-"`
+
+	// PrivateKeyType is the type of the private key used to sign certificates. It
+	// may be "rsa" or "ec". This is provided as a convenience to avoid parsing
+	// the public key to from the certificate to infer the type.
+	PrivateKeyType string
+
+	// PrivateKeyBits is the length of the private key used to sign certificates.
+	// This is provided as a convenience to avoid parsing the public key from the
+	// certificate to infer the type.
+	PrivateKeyBits int
+
+	CreateIndex uint64
+	ModifyIndex uint64
+}
+
+func (c *CARoot) Clone() *CARoot {
+	if c == nil {
+		return nil
+	}
+
+	newCopy := *c
+	newCopy.IntermediateCerts = cloneStringSlice(c.IntermediateCerts)
+	return &newCopy
+}
+
+func cloneStringSlice(s []string) []string {
+	if len(s) == 0 {
+		return nil
+	}
+	out := make([]string, len(s))
+	copy(out, s)
+	return out
+}
+
+// DeepCopy generates a deep copy of *CARoot
+func (o *CARoot) DeepCopy() *CARoot {
+	var cp CARoot = *o
+	if o.IntermediateCerts != nil {
+		cp.IntermediateCerts = make([]string, len(o.IntermediateCerts))
+		copy(cp.IntermediateCerts, o.IntermediateCerts)
+	}
+	return &cp
+}
+
+// CARoots is a list of CARoot structures.
+type CARoots []*CARoot
+
+// Active returns the single CARoot that is marked as active, or nil if there
+// is no active root (ex: when they are no roots).
+func (c CARoots) Active() *CARoot {
+	if c == nil {
+		return nil
+	}
+	for _, r := range c {
+		if r.Active {
+			return r
+		}
+	}
+	return nil
+}
+
 // CAConfig is the structure for the Connect CA configuration.
 type CAConfig struct {
 	// Provider is the CA provider implementation to use.
@@ -85,27 +218,28 @@ type CARootList struct {
 	Roots        []*CARoot
 }
 
-// CARoot represents a root CA certificate that is trusted.
-type CARoot struct {
-	// ID is a globally unique ID (UUID) representing this CA root.
-	ID string
-
-	// Name is a human-friendly name for this CA root. This value is
-	// opaque to Consul and is not used for anything internally.
-	Name string
-
-	// RootCertPEM is the PEM-encoded public certificate.
-	RootCertPEM string `json:"RootCert"`
-
-	// Active is true if this is the current active CA. This must only
-	// be true for exactly one CA. For any method that modifies roots in the
-	// state store, tests should be written to verify that multiple roots
-	// cannot be active.
-	Active bool
-
-	CreateIndex uint64
-	ModifyIndex uint64
-}
+// TODO(dans): remove me
+//// CARoot represents a root CA certificate that is trusted.
+//type CARoot struct {
+//	// ID is a globally unique ID (UUID) representing this CA root.
+//	ID string
+//
+//	// Name is a human-friendly name for this CA root. This value is
+//	// opaque to Consul and is not used for anything internally.
+//	Name string
+//
+//	// RootCertPEM is the PEM-encoded public certificate.
+//	RootCertPEM string `json:"RootCert"`
+//
+//	// Active is true if this is the current active CA. This must only
+//	// be true for exactly one CA. For any method that modifies roots in the
+//	// state store, tests should be written to verify that multiple roots
+//	// cannot be active.
+//	Active bool
+//
+//	CreateIndex uint64
+//	ModifyIndex uint64
+//}
 
 // LeafCert is a certificate that has been issued by a Connect CA.
 type LeafCert struct {
