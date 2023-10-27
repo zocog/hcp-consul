@@ -37,6 +37,7 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/blockingquery"
@@ -73,6 +74,7 @@ import (
 	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	hcpctl "github.com/hashicorp/consul/internal/hcp"
 	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/resource"
@@ -580,6 +582,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	})
 
 	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
+		// Likely needs to create a client from cloudlink config so it can be started after creation
 		Client:   flat.HCP.Client,
 		StatusFn: s.hcpServerStatus(flat),
 		Logger:   logger.Named("hcp_manager"),
@@ -904,9 +907,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	// Start the metrics handlers.
 	go s.updateMetrics()
 
-	// Now we are setup, configure the HCP manager
-	go s.hcpManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
-
 	err = s.runEnterpriseRateLimiterConfigEntryController()
 	if err != nil {
 		return nil, err
@@ -935,6 +935,10 @@ func isV1CatalogRequest(rpcName string) bool {
 }
 
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
+	hcpctl.RegisterControllers(s.controllerManager, hcpctl.ControllerDependencies{
+		Manager: s.hcpManager,
+	})
+
 	// When not enabled, the v1 tenancy bridge is used by default.
 	if s.useV2Tenancy {
 		tenancy.RegisterControllers(s.controllerManager)
