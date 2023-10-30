@@ -4,8 +4,15 @@
 package catalogv2
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strconv"
 	"testing"
+	"time"
 
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -16,6 +23,10 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"
 	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection/grpc_reflection_v1"
 
 	"github.com/hashicorp/consul/test-integ/topoutil"
 )
@@ -84,7 +95,7 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
 				asserter.UpstreamEndpointStatus(t, svc, v2ClusterPrefix+".", "HEALTHY", 1)
 
-				asserter.GRPCServicePing(t, svc, u.LocalPort)
+				makeGRPCCallToBlankspaceApp(t, svc, u.LocalPort)
 
 				// // Both should be possible.
 				// v1Expect := fmt.Sprintf("%s::%s", cluster.Name, v1ID.String())
@@ -109,7 +120,7 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 				v2Expect := fmt.Sprintf("%s::%s", cluster.Name, v2ID.String())
 
 				got := make(map[string]int)
-				asserter.FortioFetch2FortioNameCallback(t, svc, u, 100, func(_ *retry.R, name string) {
+				makeHTTPCallToBlankspaceAppCallback(t, asserter, svc, u, 100, func(_ *retry.R, name string) {
 					got[name]++
 				}, func(r *retry.R) {
 					assertTrafficSplit(r, got, map[string]int{v1Expect: 10, v2Expect: 90}, 2)
@@ -120,7 +131,7 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 				asserter.HTTPServiceEchoes(t, svc, u.LocalPort, "")
 
 				// Only v1 is possible.
-				asserter.FortioFetch2FortioName(t, svc, u, cluster.Name, v1ID)
+				makeHTTPCallToBlankspaceApp(t, asserter, svc, u, cluster.Name, v1ID)
 			default:
 				t.Fatalf("unexpected port name: %s", u.PortName)
 			}
@@ -166,6 +177,50 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) NewConfig(t *testing.
 	}
 }
 
+func newBlankspaceServiceWithDefaults(
+	cluster string,
+	sid topology.ServiceID,
+	nodeVersion topology.NodeVersion,
+	mut func(s *topology.Service),
+) *topology.Service {
+	const (
+		httpPort  = 8080
+		grpcPort  = 8079
+		tcpPort   = 8078
+		adminPort = 19000
+	)
+	sid.Normalize()
+
+	svc := &topology.Service{
+		ID:             sid,
+		Image:          "rboyer/blankspace",
+		EnvoyAdminPort: adminPort,
+		CheckTCP:       "127.0.0.1:" + strconv.Itoa(httpPort),
+		Command: []string{
+			"-name", cluster + "::" + sid.String(),
+			"-http-port", strconv.Itoa(httpPort),
+			"-grpc-port", strconv.Itoa(grpcPort),
+			"-tcp-port", strconv.Itoa(tcpPort),
+		},
+	}
+
+	if nodeVersion == topology.NodeVersionV2 {
+		svc.Ports = map[string]*topology.Port{
+			"http":  {Number: httpPort, Protocol: "http"},
+			"http2": {Number: httpPort, Protocol: "http2"},
+			"grpc":  {Number: grpcPort, Protocol: "grpc"},
+			"tcp":   {Number: tcpPort, Protocol: "tcp"},
+		}
+	} else {
+		svc.Port = httpPort
+	}
+
+	if mut != nil {
+		mut(svc)
+	}
+	return svc
+}
+
 func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNodes(
 	t *testing.T,
 	cluster *topology.Cluster,
@@ -195,7 +250,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		Partition: partition,
 		Name:      nodeName(),
 		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
+			newBlankspaceServiceWithDefaults(
 				clusterName,
 				newServiceID("static-server-v1"),
 				topology.NodeVersionV2,
@@ -215,7 +270,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		Partition: partition,
 		Name:      nodeName(),
 		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
+			newBlankspaceServiceWithDefaults(
 				clusterName,
 				newServiceID("static-server-v2"),
 				topology.NodeVersionV2,
@@ -235,7 +290,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		Partition: partition,
 		Name:      nodeName(),
 		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
+			newBlankspaceServiceWithDefaults(
 				clusterName,
 				newServiceID("static-client"),
 				topology.NodeVersionV2,
@@ -506,4 +561,204 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		tcpServerRoute,
 		grpcServerRoute,
 	)
+}
+
+func makeHTTPCallToBlankspaceApp(
+	t *testing.T,
+	a *topoutil.Asserter,
+	service *topology.Service,
+	upstream *topology.Upstream,
+	clusterName string,
+	sid topology.ServiceID,
+) {
+	t.Helper()
+
+	var (
+		node   = service.Node
+		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), service.PortOrDefault(upstream.PortName))
+		client = a.MustGetHTTPClient(t, node.Cluster)
+	)
+
+	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
+		body, res := blankspaceFetchUpstream(r, client, addr, upstream, "/")
+
+		require.Equal(r, http.StatusOK, res.StatusCode)
+
+		var v struct {
+			Name string
+		}
+		require.NoError(r, json.Unmarshal(body, &v))
+		require.Equal(r, fmt.Sprintf("%s::%s", clusterName, sid.String()), v.Name)
+	})
+}
+
+func makeHTTPCallToBlankspaceAppCallback(
+	t *testing.T,
+	a *topoutil.Asserter,
+	service *topology.Service,
+	upstream *topology.Upstream,
+	count int,
+	attemptFn func(r *retry.R, remoteName string),
+	checkFn func(r *retry.R),
+) {
+	t.Helper()
+
+	var (
+		node   = service.Node
+		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), service.PortOrDefault(upstream.PortName))
+		client = a.MustGetHTTPClient(t, node.Cluster)
+	)
+
+	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
+		for i := 0; i < count; i++ {
+			body, res := blankspaceFetchUpstream(r, client, addr, upstream, "/")
+
+			require.Equal(r, http.StatusOK, res.StatusCode)
+
+			var v struct {
+				Name string
+			}
+			require.NoError(r, json.Unmarshal(body, &v))
+			attemptFn(r, v.Name)
+		}
+		checkFn(r)
+	})
+}
+
+type testingT interface {
+	require.TestingT
+	Helper()
+}
+
+// does a fortio /fetch2 to the given fortio service, targetting the given upstream. Returns
+// the body, and response with response.Body already Closed.
+//
+// We treat 400, 503, and 504s as retryable errors
+func blankspaceFetchUpstream(
+	t testingT,
+	client *http.Client,
+	addr string,
+	upstream *topology.Upstream,
+	path string,
+) (body []byte, res *http.Response) {
+	t.Helper()
+
+	var actualURL string
+	if upstream.Implied {
+		actualURL = fmt.Sprintf("http://%s--%s--%s.virtual.consul:%d/%s",
+			upstream.ID.Name,
+			upstream.ID.Namespace,
+			upstream.ID.Partition,
+			upstream.VirtualPort,
+			path,
+		)
+	} else {
+		actualURL = fmt.Sprintf("http://localhost:%d/%s", upstream.LocalPort, path)
+	}
+
+	url := fmt.Sprintf("http://%s/fetch?url=%s", addr,
+		url.QueryEscape(actualURL),
+	)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	require.NoError(t, err)
+
+	res, err = client.Do(req)
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	// not sure when these happen, suspect it's when the mesh gateway in the peer is not yet ready
+	require.NotEqual(t, http.StatusServiceUnavailable, res.StatusCode)
+	require.NotEqual(t, http.StatusGatewayTimeout, res.StatusCode)
+	// not sure when this happens, suspect it's when envoy hasn't configured the local upstream yet
+	require.NotEqual(t, http.StatusBadRequest, res.StatusCode)
+	body, err = io.ReadAll(res.Body)
+	require.NoError(t, err)
+
+	return body, res
+}
+
+func makeGRPCCallToBlankspaceApp(
+	t *testing.T,
+	service *topology.Service,
+	port int,
+) {
+	t.Helper()
+	require.True(t, port > 0)
+
+	node := service.Node
+
+	// We can't use the forward proxy for gRPC yet, so use the exposed port on localhost instead.
+	exposedPort := node.ExposedPort(port)
+	require.True(t, exposedPort > 0)
+
+	addr := fmt.Sprintf("%s:%d", "127.0.0.1", exposedPort)
+
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		err := sendFortioGRPCPing(context.Background(), addr)
+		require.NoError(r, err)
+	})
+}
+
+func sendFortioGRPCPing(ctx context.Context, serverAddr string) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	conn, err := grpc.DialContext(ctx, serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	desc := dynamicpbkj
+
+	// conn.Invoke(ctx,  "/blankspace.Server/Describe", in, out, opts...)
+	// Invoke(ctx context.Context, method string, args any, reply any, opts ...CallOption) error
+	client := grpc_reflection_v1.NewServerReflectionClient(conn)
+	dynamicpb.Message
+
+	// func testFileByFilenameTransitiveClosure(t *testing.T, stream v1reflectiongrpc.ServerReflection_ServerReflectionInfoClient, expectClosure bool) {
+	// filename := "reflection/grpc_testing/proto2_ext2.proto"
+	// if err := stream.Send(&v1reflectionpb.ServerReflectionRequest{
+	// 	MessageRequest: &v1reflectionpb.ServerReflectionRequest_FileByFilename{
+	// 		FileByFilename: filename,
+	// 	},
+	// }); err != nil {
+	// 	t.Fatalf("failed to send request: %v", err)
+	// }
+	// r, err := stream.Recv()
+	// if err != nil {
+	// 	// io.EOF is not ok.
+	// 	t.Fatalf("failed to recv response: %v", err)
+	// }
+	// switch r.MessageResponse.(type) {
+	// case *v1reflectionpb.ServerReflectionResponse_FileDescriptorResponse:
+	// 	if !reflect.DeepEqual(r.GetFileDescriptorResponse().FileDescriptorProto[0], fdProto2Ext2Byte) {
+	// 		t.Errorf("FileByFilename(%v)\nreceived: %q,\nwant: %q", filename, r.GetFileDescriptorResponse().FileDescriptorProto[0], fdProto2Ext2Byte)
+	// 	}
+	// 	if expectClosure {
+	// 		if len(r.GetFileDescriptorResponse().FileDescriptorProto) != 2 {
+	// 			t.Errorf("FileByFilename(%v) returned %v file descriptors, expected 2", filename, len(r.GetFileDescriptorResponse().FileDescriptorProto))
+	// 		} else if !reflect.DeepEqual(r.GetFileDescriptorResponse().FileDescriptorProto[1], fdProto2Byte) {
+	// 			t.Errorf("FileByFilename(%v)\nreceived: %q,\nwant: %q", filename, r.GetFileDescriptorResponse().FileDescriptorProto[1], fdProto2Byte)
+	// 		}
+	// 	} else if len(r.GetFileDescriptorResponse().FileDescriptorProto) != 1 {
+	// 		t.Errorf("FileByFilename(%v) returned %v file descriptors, expected 1", filename, len(r.GetFileDescriptorResponse().FileDescriptorProto))
+	// 	}
+	// default:
+	// 	t.Errorf("FileByFilename(%v) = %v, want type <ServerReflectionResponse_FileDescriptorResponse>", filename, r.MessageResponse)
+	// }
+
+	stream, err := client.ServerReflectionInfo(ctx, )
+	if err != nil {
+		return fmt.Errorf("grpc error from Ping: %w", err)
+	}
+
+	if err := stream.Send(&grpc_reflection_v1.ServerReflectionRequest{})
+
+	return nil
 }
