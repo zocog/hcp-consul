@@ -5,9 +5,11 @@ package catalogv2
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -23,10 +25,11 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"
 	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/rboyer/blankspace/blankpb"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/reflection/grpc_reflection_v1"
 
 	"github.com/hashicorp/consul/test-integ/topoutil"
 )
@@ -95,32 +98,28 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
 				asserter.UpstreamEndpointStatus(t, svc, v2ClusterPrefix+".", "HEALTHY", 1)
 
-				makeGRPCCallToBlankspaceApp(t, svc, u.LocalPort)
+				// Both should be possible.
+				v1Expect := fmt.Sprintf("%s::%s", cluster.Name, v1ID.String())
+				v2Expect := fmt.Sprintf("%s::%s", cluster.Name, v2ID.String())
 
-				// // Both should be possible.
-				// v1Expect := fmt.Sprintf("%s::%s", cluster.Name, v1ID.String())
-				// v2Expect := fmt.Sprintf("%s::%s", cluster.Name, v2ID.String())
-
-				// got := make(map[string]int)
-				// asserter.FortioFetch2FortioNameCallback(t, svc, u, 100, func(_ *retry.R, name string) {
-				// 	got[name]++
-				// }, func(r *retry.R) {
-				// 	assertTrafficSplit(r, got, map[string]int{v1Expect: 10, v2Expect: 90}, 2)
-				// })
+				got := make(map[string]int)
+				makeGRPCCallToBlankspaceAppCallback(t, svc, u.LocalPort, 100, func(_ *retry.R, name string) {
+					got[name]++
+				}, func(r *retry.R) {
+					assertTrafficSplit(r, got, map[string]int{v1Expect: 10, v2Expect: 90}, 2)
+				})
 
 			case "http":
 				// we expect 2 clusters, one for each leg of the split
 				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
 				asserter.UpstreamEndpointStatus(t, svc, v2ClusterPrefix+".", "HEALTHY", 1)
 
-				asserter.HTTPServiceEchoes(t, svc, u.LocalPort, "")
-
 				// Both should be possible.
 				v1Expect := fmt.Sprintf("%s::%s", cluster.Name, v1ID.String())
 				v2Expect := fmt.Sprintf("%s::%s", cluster.Name, v2ID.String())
 
 				got := make(map[string]int)
-				makeHTTPCallToBlankspaceAppCallback(t, asserter, svc, u, 100, func(_ *retry.R, name string) {
+				makeHTTPCallToBlankspaceAppCallback(t, asserter, svc, u, false, 100, func(_ *retry.R, name string) {
 					got[name]++
 				}, func(r *retry.R) {
 					assertTrafficSplit(r, got, map[string]int{v1Expect: 10, v2Expect: 90}, 2)
@@ -128,10 +127,8 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 			case "http2":
 				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
 
-				asserter.HTTPServiceEchoes(t, svc, u.LocalPort, "")
-
 				// Only v1 is possible.
-				makeHTTPCallToBlankspaceApp(t, asserter, svc, u, cluster.Name, v1ID)
+				makeHTTPCallToBlankspaceApp(t, asserter, svc, u, true, cluster.Name, v1ID)
 			default:
 				t.Fatalf("unexpected port name: %s", u.PortName)
 			}
@@ -198,9 +195,9 @@ func newBlankspaceServiceWithDefaults(
 		CheckTCP:       "127.0.0.1:" + strconv.Itoa(httpPort),
 		Command: []string{
 			"-name", cluster + "::" + sid.String(),
-			"-http-port", strconv.Itoa(httpPort),
-			"-grpc-port", strconv.Itoa(grpcPort),
-			"-tcp-port", strconv.Itoa(tcpPort),
+			"-http-addr", fmt.Sprintf(":%d", httpPort),
+			"-grpc-addr", fmt.Sprintf(":%d", grpcPort),
+			"-tcp-addr", fmt.Sprintf(":%d", tcpPort),
 		},
 	}
 
@@ -568,28 +565,15 @@ func makeHTTPCallToBlankspaceApp(
 	a *topoutil.Asserter,
 	service *topology.Service,
 	upstream *topology.Upstream,
+	useHTTP2 bool,
 	clusterName string,
 	sid topology.ServiceID,
 ) {
 	t.Helper()
 
-	var (
-		node   = service.Node
-		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), service.PortOrDefault(upstream.PortName))
-		client = a.MustGetHTTPClient(t, node.Cluster)
-	)
-
-	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
-		body, res := blankspaceFetchUpstream(r, client, addr, upstream, "/")
-
-		require.Equal(r, http.StatusOK, res.StatusCode)
-
-		var v struct {
-			Name string
-		}
-		require.NoError(r, json.Unmarshal(body, &v))
-		require.Equal(r, fmt.Sprintf("%s::%s", clusterName, sid.String()), v.Name)
-	})
+	makeHTTPCallToBlankspaceAppCallback(t, a, service, upstream, useHTTP2, 1, func(r *retry.R, remoteName string) {
+		require.Equal(r, fmt.Sprintf("%s::%s", clusterName, sid.String()), remoteName)
+	}, func(r *retry.R) {})
 }
 
 func makeHTTPCallToBlankspaceAppCallback(
@@ -597,6 +581,7 @@ func makeHTTPCallToBlankspaceAppCallback(
 	a *topoutil.Asserter,
 	service *topology.Service,
 	upstream *topology.Upstream,
+	useHTTP2 bool,
 	count int,
 	attemptFn func(r *retry.R, remoteName string),
 	checkFn func(r *retry.R),
@@ -609,17 +594,79 @@ func makeHTTPCallToBlankspaceAppCallback(
 		client = a.MustGetHTTPClient(t, node.Cluster)
 	)
 
+	if useHTTP2 {
+		// Shallow copy, and swap the transport
+		client2 := *client
+		client = &client2
+		client.Transport = &http2.Transport{
+			AllowHTTP: true,
+			DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+				var d net.Dialer
+				return d.DialContext(ctx, network, addr)
+			},
+		}
+	}
+
 	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
 		for i := 0; i < count; i++ {
 			body, res := blankspaceFetchUpstream(r, client, addr, upstream, "/")
 
 			require.Equal(r, http.StatusOK, res.StatusCode)
+			if useHTTP2 {
+				require.True(r, res.ProtoMajor > 1, "should be using http > 1.x not %d", res.ProtoMajor)
+			}
 
 			var v struct {
 				Name string
 			}
 			require.NoError(r, json.Unmarshal(body, &v))
 			attemptFn(r, v.Name)
+		}
+		checkFn(r)
+	})
+}
+
+func makeGRPCCallToBlankspaceApp(
+	t *testing.T,
+	service *topology.Service,
+	port int,
+	clusterName string,
+	sid topology.ServiceID,
+) {
+	t.Helper()
+	makeGRPCCallToBlankspaceAppCallback(t, service, port, 1, func(r *retry.R, remoteName string) {
+		require.Equal(r, fmt.Sprintf("%s::%s", clusterName, sid.String()), remoteName)
+	}, func(r *retry.R) {})
+}
+
+func makeGRPCCallToBlankspaceAppCallback(
+	t *testing.T,
+	service *topology.Service,
+	port int,
+	count int,
+	attemptFn func(r *retry.R, remoteName string),
+	checkFn func(r *retry.R),
+) {
+	t.Helper()
+	require.True(t, port > 0)
+
+	node := service.Node
+
+	// We can't use the forward proxy for gRPC yet, so use the exposed port on localhost instead.
+	exposedPort := node.ExposedPort(port)
+	require.True(t, exposedPort > 0)
+
+	addr := fmt.Sprintf("%s:%d", "127.0.0.1", exposedPort)
+
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		for i := 0; i < count; i++ {
+			name, err := sendBlankspaceGRPCPing(context.Background(), addr)
+			require.NoError(r, err)
+			attemptFn(r, name)
 		}
 		checkFn(r)
 	})
@@ -678,87 +725,22 @@ func blankspaceFetchUpstream(
 	return body, res
 }
 
-func makeGRPCCallToBlankspaceApp(
-	t *testing.T,
-	service *topology.Service,
-	port int,
-) {
-	t.Helper()
-	require.True(t, port > 0)
-
-	node := service.Node
-
-	// We can't use the forward proxy for gRPC yet, so use the exposed port on localhost instead.
-	exposedPort := node.ExposedPort(port)
-	require.True(t, exposedPort > 0)
-
-	addr := fmt.Sprintf("%s:%d", "127.0.0.1", exposedPort)
-
-	failer := func() *retry.Timer {
-		return &retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
-	}
-
-	retry.RunWith(failer(), t, func(r *retry.R) {
-		err := sendFortioGRPCPing(context.Background(), addr)
-		require.NoError(r, err)
-	})
-}
-
-func sendFortioGRPCPing(ctx context.Context, serverAddr string) error {
+func sendBlankspaceGRPCPing(ctx context.Context, serverAddr string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
 	conn, err := grpc.DialContext(ctx, serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer conn.Close()
 
-	desc := dynamicpbkj
+	client := blankpb.NewServerClient(conn)
 
-	// conn.Invoke(ctx,  "/blankspace.Server/Describe", in, out, opts...)
-	// Invoke(ctx context.Context, method string, args any, reply any, opts ...CallOption) error
-	client := grpc_reflection_v1.NewServerReflectionClient(conn)
-	dynamicpb.Message
-
-	// func testFileByFilenameTransitiveClosure(t *testing.T, stream v1reflectiongrpc.ServerReflection_ServerReflectionInfoClient, expectClosure bool) {
-	// filename := "reflection/grpc_testing/proto2_ext2.proto"
-	// if err := stream.Send(&v1reflectionpb.ServerReflectionRequest{
-	// 	MessageRequest: &v1reflectionpb.ServerReflectionRequest_FileByFilename{
-	// 		FileByFilename: filename,
-	// 	},
-	// }); err != nil {
-	// 	t.Fatalf("failed to send request: %v", err)
-	// }
-	// r, err := stream.Recv()
-	// if err != nil {
-	// 	// io.EOF is not ok.
-	// 	t.Fatalf("failed to recv response: %v", err)
-	// }
-	// switch r.MessageResponse.(type) {
-	// case *v1reflectionpb.ServerReflectionResponse_FileDescriptorResponse:
-	// 	if !reflect.DeepEqual(r.GetFileDescriptorResponse().FileDescriptorProto[0], fdProto2Ext2Byte) {
-	// 		t.Errorf("FileByFilename(%v)\nreceived: %q,\nwant: %q", filename, r.GetFileDescriptorResponse().FileDescriptorProto[0], fdProto2Ext2Byte)
-	// 	}
-	// 	if expectClosure {
-	// 		if len(r.GetFileDescriptorResponse().FileDescriptorProto) != 2 {
-	// 			t.Errorf("FileByFilename(%v) returned %v file descriptors, expected 2", filename, len(r.GetFileDescriptorResponse().FileDescriptorProto))
-	// 		} else if !reflect.DeepEqual(r.GetFileDescriptorResponse().FileDescriptorProto[1], fdProto2Byte) {
-	// 			t.Errorf("FileByFilename(%v)\nreceived: %q,\nwant: %q", filename, r.GetFileDescriptorResponse().FileDescriptorProto[1], fdProto2Byte)
-	// 		}
-	// 	} else if len(r.GetFileDescriptorResponse().FileDescriptorProto) != 1 {
-	// 		t.Errorf("FileByFilename(%v) returned %v file descriptors, expected 1", filename, len(r.GetFileDescriptorResponse().FileDescriptorProto))
-	// 	}
-	// default:
-	// 	t.Errorf("FileByFilename(%v) = %v, want type <ServerReflectionResponse_FileDescriptorResponse>", filename, r.MessageResponse)
-	// }
-
-	stream, err := client.ServerReflectionInfo(ctx, )
+	resp, err := client.Describe(ctx, &blankpb.DescribeRequest{})
 	if err != nil {
-		return fmt.Errorf("grpc error from Ping: %w", err)
+		return "", fmt.Errorf("grpc error from Describe: %w", err)
 	}
 
-	if err := stream.Send(&grpc_reflection_v1.ServerReflectionRequest{})
-
-	return nil
+	return resp.GetName(), nil
 }
