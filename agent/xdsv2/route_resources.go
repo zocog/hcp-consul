@@ -239,12 +239,12 @@ func (pr *ProxyResources) addEnvoyClustersAndEndpointsToEnvoyResources(clusterNa
 	for name, cluster := range clusters {
 
 		pr.envoyResources[xdscommon.ClusterType][name] = cluster
-	}
 
-	if clusterName != xdscommon.LocalAppClusterName {
-		if endpointList, ok := pr.proxyState.Endpoints[clusterName]; ok {
-			protoEndpoint := makeEnvoyClusterLoadAssignment(clusterName, endpointList.Endpoints)
-			pr.envoyResources[xdscommon.EndpointType][clusterName] = protoEndpoint
+		if name != xdscommon.LocalAppClusterName {
+			if endpointList, ok := pr.proxyState.Endpoints[name]; ok {
+				protoEndpoint := makeEnvoyClusterLoadAssignment(name, endpointList.Endpoints)
+				pr.envoyResources[xdscommon.EndpointType][name] = protoEndpoint
+			}
 		}
 	}
 }

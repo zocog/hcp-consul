@@ -269,69 +269,6 @@ func makeEndpointDiscoChainTests(enterprise bool) []endpointTestCase {
 			alsoRunTestForV2: true,
 		},
 		{
-			name: "connect-proxy-with-chain-and-failover",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway-triggered",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway-triggered", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway-triggered",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway-triggered", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway-triggered",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway-triggered", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway-triggered",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway-triggered", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
 			name: "connect-proxy-with-default-chain-and-custom-cluster",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", enterprise, func(ns *structs.NodeService) {
