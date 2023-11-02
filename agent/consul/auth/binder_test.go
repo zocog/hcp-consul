@@ -34,6 +34,68 @@ func TestBindings_None(t *testing.T) {
 	require.False(t, b.None())
 }
 
+func TestBinder_Policy_Success(t *testing.T) {
+	store := testStateStore(t)
+	binder := &Binder{store: store}
+
+	authMethod := &structs.ACLAuthMethod{
+		Name: "test-auth-method",
+		Type: "testing",
+	}
+	require.NoError(t, store.ACLAuthMethodSet(0, authMethod))
+
+	targetPolicy := &structs.ACLPolicy{
+		ID:   generateID(t),
+		Name: "foo-policy",
+	}
+	require.NoError(t, store.ACLPolicySet(0, targetPolicy))
+
+	otherPolicy := &structs.ACLPolicy{
+		ID:   generateID(t),
+		Name: "not-my-policy",
+	}
+	require.NoError(t, store.ACLPolicySet(0, otherPolicy))
+
+	bindingRules := structs.ACLBindingRules{
+		{
+			ID:         generateID(t),
+			Selector:   "role==engineer",
+			BindType:   structs.BindingRuleBindTypePolicy,
+			BindName:   "${editor}-policy",
+			AuthMethod: authMethod.Name,
+		},
+		{
+			ID:         generateID(t),
+			Selector:   "role==engineer",
+			BindType:   structs.BindingRuleBindTypePolicy,
+			BindName:   "this-policy-does-not-exist",
+			AuthMethod: authMethod.Name,
+		},
+		{
+			ID:         generateID(t),
+			Selector:   "language==js",
+			BindType:   structs.BindingRuleBindTypePolicy,
+			BindName:   otherPolicy.Name,
+			AuthMethod: authMethod.Name,
+		},
+	}
+	require.NoError(t, store.ACLBindingRuleBatchSet(0, bindingRules))
+
+	result, err := binder.Bind(&structs.ACLAuthMethod{}, &authmethod.Identity{
+		SelectableFields: map[string]string{
+			"role":     "engineer",
+			"language": "go",
+		},
+		ProjectedVars: map[string]string{
+			"editor": "foo",
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, []structs.ACLTokenPolicyLink{
+		{ID: targetPolicy.ID, Name: targetPolicy.Name},
+	}, result.Policies)
+}
+
 func TestBinder_Roles_Success(t *testing.T) {
 	store := testStateStore(t)
 	binder := &Binder{store: store}
@@ -111,6 +173,32 @@ func TestBinder_Roles_NameValidation(t *testing.T) {
 			ID:         generateID(t),
 			Selector:   "",
 			BindType:   structs.BindingRuleBindTypeRole,
+			BindName:   "INVALID!",
+			AuthMethod: authMethod.Name,
+		},
+	}
+	require.NoError(t, store.ACLBindingRuleBatchSet(0, bindingRules))
+
+	_, err := binder.Bind(&structs.ACLAuthMethod{}, &authmethod.Identity{})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid bind name")
+}
+
+func TestBinder_Policy_NameValidation(t *testing.T) {
+	store := testStateStore(t)
+	binder := &Binder{store: store}
+
+	authMethod := &structs.ACLAuthMethod{
+		Name: "test-auth-method",
+		Type: "testing",
+	}
+	require.NoError(t, store.ACLAuthMethodSet(0, authMethod))
+
+	bindingRules := structs.ACLBindingRules{
+		{
+			ID:         generateID(t),
+			Selector:   "",
+			BindType:   structs.BindingRuleBindTypePolicy,
 			BindName:   "INVALID!",
 			AuthMethod: authMethod.Name,
 		},
@@ -288,15 +376,21 @@ func Test_IsValidBindingRule(t *testing.T) {
 		{"leading dash",
 			"role", "-name", nil, "", false},
 		{"leading dash",
+			"policy", "-name", nil, "", false},
+		{"leading dash",
 			"service", "-name", nil, "", true},
 		{"trailing dash",
 			"role", "name-", nil, "", false},
+		{"trailing dash",
+			"policy", "name-", nil, "", false},
 		{"trailing dash",
 			"service", "name-", nil, "", true},
 		{"inner dash",
 			"both", "name-end", nil, "", false},
 		{"upper case",
 			"role", "NAME", nil, "", false},
+		{"upper case",
+			"policy", "NAME", nil, "", false},
 		{"upper case",
 			"service", "NAME", nil, "", true},
 		// valid HIL, valid name

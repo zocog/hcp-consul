@@ -4540,6 +4540,11 @@ func TestACLEndpoint_Login(t *testing.T) {
 		"fake-node",
 		"default", "mynode", "jkl101",
 	)
+	testauth.InstallSessionToken(
+		testSessionID,
+		"fake-policy", // 1 rule (policy)
+		"default", "mypolicy", "jkl012",
+	)
 
 	method, err := upsertTestAuthMethod(codec, TestDefaultInitialManagementToken, "dc1", testSessionID)
 	require.NoError(t, err)
@@ -4584,6 +4589,15 @@ func TestACLEndpoint_Login(t *testing.T) {
 		"serviceaccount.namespace==default and serviceaccount.name==mynode",
 		structs.BindingRuleBindTypeNode,
 		"${serviceaccount.name}",
+	)
+	require.NoError(t, err)
+
+	// policy rule
+	_, err = upsertTestBindingRule(
+		codec, TestDefaultInitialManagementToken, "dc1", method.Name,
+		"serviceaccount.namespace==default and serviceaccount.name==mypolicy",
+		structs.BindingRuleBindTypePolicy,
+		"method-${serviceaccount.name}",
 	)
 	require.NoError(t, err)
 

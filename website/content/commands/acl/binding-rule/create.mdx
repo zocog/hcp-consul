@@ -30,7 +30,7 @@ Usage: `consul acl binding-rule create [options] [args]`
 - `-bind-name=<string>` - Name to bind on match. Can use `${var}`
   interpolation. This flag is required.
 
-- `-bind-type=<string>` - Type of binding to perform (`"service"` or `"role"`).
+- `-bind-type=<string>` - Type of binding to perform (`"service"`, `"policy"`, or `"role"`).
 
 - `-description=<string>` - A description of the binding rule.
 
@@ -88,5 +88,21 @@ AuthMethod:   minikube
 Description:  just vault role
 BindType:     role
 BindName:     vault
+Selector:     serviceaccount.namespace==default and serviceaccount.name==vault
+```
+
+Create a new binding rule that binds to a service:
+
+```shell-session
+$ consul acl binding-rule create -method 'nomad' \
+    -description 'gets policy for nomad job' \
+    -bind-type 'policy' \
+    -bind-name 'nomad-${nomad.jobname}' \
+    -selector 'nomad.jobname==billing-app'
+ID:           e21ae868-7b13-a230-0235-f8e83510642c
+AuthMethod:   nomad
+Description:  gets policy for nomad job
+BindType:     role
+BindName:     nomad-billing-app
 Selector:     serviceaccount.namespace==default and serviceaccount.name==vault
 ```
