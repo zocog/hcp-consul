@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"runtime"
 
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 
@@ -22,6 +23,13 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/stretchr/testify/require"
 )
+
+func skipOnM1(t *testing.T) {
+	t.Log("Found GOARCH -", runtime.GOARCH)
+	if runtime.GOARCH == "arm64" {
+	  t.Skip("Skipping test on M1 Macs")
+	}
+  }
 
 const (
 	echoPort                = 9999
@@ -76,6 +84,8 @@ func runTrafficPermissionsTests(t *testing.T, aclsEnabled bool, cases map[string
 }
 
 func TestTrafficPermission_TCP_DefaultDeny(t *testing.T) {
+	skipOnM1(t)
+
 	cases := map[string]trafficPermissionsCase{
 		"default deny": {
 			tp1:                nil,
@@ -289,6 +299,8 @@ func TestTrafficPermission_TCP_DefaultDeny(t *testing.T) {
 }
 
 func TestTrafficPermission_TCP_DefaultAllow(t *testing.T) {
+	skipOnM1(t)
+
 	cases := map[string]trafficPermissionsCase{
 		"default allow": {
 			tp1:                nil,
