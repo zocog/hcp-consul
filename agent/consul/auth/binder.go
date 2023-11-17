@@ -45,7 +45,7 @@ type Bindings struct {
 	Roles             []structs.ACLTokenRoleLink
 	ServiceIdentities []*structs.ACLServiceIdentity
 	NodeIdentities    []*structs.ACLNodeIdentity
-	Policies    	  []structs.ACLTokenPolicyLink
+	Policies          []structs.ACLTokenPolicyLink
 	TemplatedPolicies structs.ACLTemplatedPolicies
 	EnterpriseMeta    acl.EnterpriseMeta
 }
@@ -135,7 +135,7 @@ func (b *Binder) Bind(authMethod *structs.ACLAuthMethod, verifiedIdentity *authm
 
 			if policy != nil {
 				bindings.Policies = append(bindings.Policies, structs.ACLTokenPolicyLink{
-					ID: policy.ID,
+					ID:   policy.ID,
 					Name: policy.Name,
 				})
 			}
@@ -204,7 +204,7 @@ func IsValidBindingRule(bindType, bindName string, bindVars *structs.ACLTemplate
 			return fmt.Errorf("failed to validate bindType %q: %w", bindType, err)
 		}
 	default:
-		return fmt.Errorf("Invalid Binding Rule: unknown BindType %q", bindType)
+		return fmt.Errorf("invalid Binding Rule: unknown BindType %q", bindType)
 	}
 
 	return nil
