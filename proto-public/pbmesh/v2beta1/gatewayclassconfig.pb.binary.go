@@ -36,3 +36,13 @@ func (msg *Deployment) MarshalBinary() ([]byte, error) {
 func (msg *Deployment) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *ResourceRequirements) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *ResourceRequirements) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}

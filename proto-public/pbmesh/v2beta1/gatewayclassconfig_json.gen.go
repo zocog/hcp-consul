@@ -38,6 +38,17 @@ func (this *Deployment) UnmarshalJSON(b []byte) error {
 	return GatewayclassconfigUnmarshaler.Unmarshal(b, this)
 }
 
+// MarshalJSON is a custom marshaler for ResourceRequirements
+func (this *ResourceRequirements) MarshalJSON() ([]byte, error) {
+	str, err := GatewayclassconfigMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for ResourceRequirements
+func (this *ResourceRequirements) UnmarshalJSON(b []byte) error {
+	return GatewayclassconfigUnmarshaler.Unmarshal(b, this)
+}
+
 var (
 	GatewayclassconfigMarshaler   = &protojson.MarshalOptions{}
 	GatewayclassconfigUnmarshaler = &protojson.UnmarshalOptions{DiscardUnknown: false}

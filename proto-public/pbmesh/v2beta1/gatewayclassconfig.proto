@@ -6,6 +6,7 @@ syntax = "proto3";
 package hashicorp.consul.mesh.v2beta1;
 
 import "k8s.io/api/core/v1/generated.proto";
+import "k8s.io/apimachinery/pkg/api/resource/generated.proto";
 import "pbresource/annotations.proto";
 
 // This is a Resource type.
@@ -51,5 +52,20 @@ message Deployment {
   // Max allowed number of gateway instances
   optional uint32 max_instances = 3;
   // Resources defines the resource requirements for the gateway.
-  k8s.io.api.core.v1.ResourceRequirements resources = 4;
+  ResourceRequirements resources = 4;
+}
+
+// ResourceRequirements describes the compute resource requirements.
+message ResourceRequirements {
+  // Limits describes the maximum amount of compute resources allowed.
+  // More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+  // +optional
+  map<string, k8s.io.apimachinery.pkg.api.resource.Quantity> limits = 1;
+
+  // Requests describes the minimum amount of compute resources required.
+  // If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+  // otherwise to an implementation-defined value.
+  // More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+  // +optional
+  map<string, k8s.io.apimachinery.pkg.api.resource.Quantity> requests = 2;
 }
