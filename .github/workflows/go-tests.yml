@@ -498,12 +498,6 @@ jobs:
     steps:
       - name: evaluate upstream job results
         run: |
-          # if failure (not cancelled), notify Slack
-          if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure)\"'; then
-            printf "Tests failed, notifying Slack"
-            echo "FAILED_TESTS=true" >> $GITHUB_ENV
-          fi
-          
           # exit 1 if failure or cancelled result for any upstream job
           # this ensures that we fail the PR check regardless of cancellation, rather than skip-passing it
           # see https://docs.github.com/en/actions/using-jobs/using-conditions-to-control-job-execution#overview
@@ -511,14 +505,20 @@ jobs:
             printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
             exit 1
           fi
-      - name: Set Slack commit message summary
-        # avoid duplicating branch filter logic below and enable easier message content debugging
-        # always() ensures this runs even if the test eval step exits 1
-        if: always()
-        run: echo "COMMIT_MESSAGE_SUMMARY=$(echo ${{ github.event.head_commit.message }} | head -n 1)" >> $GITHUB_ENV
+      - name: Set failure Slack commit message summary
+        # failure() ensures this runs even if the test eval step exits 1
+        if: failure()
+        run: |
+          # if failure (not cancelled), notify Slack
+          if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure)\"'; then
+            printf "Tests failed, notifying Slack"
+            echo "FAILED_TESTS=true" >> $GITHUB_ENV
+            echo "COMMIT_MESSAGE_SUMMARY=$(echo ${{ github.event.head_commit.message }} | head -n 1)" >> $GITHUB_ENV
+          fi
       - name: Notify Slack
-        # always() ensures this runs even if the test eval step exits 1
-        if: ${{ always() && env.FAILED_TESTS == 'true' && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/')) }}
+        # failure() ensures this runs even if the test eval step exits 1
+        # FAILED_TESTS must also be checked to avoid running this step on cancellation due to the summary check above
+        if: ${{ failure() && env.FAILED_TESTS == 'true' && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/')) }}
         id: slack
         uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
         with:
