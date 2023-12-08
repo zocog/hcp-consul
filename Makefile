@@ -370,6 +370,21 @@ test-deployer-setup: dev-docker
 
 .PHONY: test-deployer
 test-deployer: test-deployer-setup ## Run deployer-based integration tests (skipping peering_commontopo).
+ifeq ("$(GOTESTSUM_PATH)","")
+	@cd ./test-integ && \
+		NOLOGBUFFER=1 \
+		TEST_LOG_LEVEL=debug \
+		DEPLOYER_CONSUL_DATAPLANE_IMAGE=$(DEPLOYER_CONSUL_DATAPLANE_IMAGE) \
+		go test \
+		-tags "$(GOTAGS)" \
+		-timeout=20m \
+		-json \
+		$(shell sh -c "cd test-integ ; go list -tags \"$(GOTAGS)\" ./... | grep -v peering_commontopo") \
+		--target-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--target-version local \
+		--latest-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--latest-version latest
+else
 	@cd ./test-integ && \
 		NOLOGBUFFER=1 \
 		TEST_LOG_LEVEL=debug \
@@ -388,6 +403,7 @@ test-deployer: test-deployer-setup ## Run deployer-based integration tests (skip
 		--target-version local \
 		--latest-image $(CONSUL_COMPAT_TEST_IMAGE) \
 		--latest-version latest
+endif
 
 .PHONY: test-deployer-peering
 test-deployer-peering: test-deployer-setup ## Run deployer-based integration tests (just peering_commontopo).
