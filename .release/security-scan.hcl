@@ -14,7 +14,7 @@
 
 container {
 	dependencies = true
-	alpine_secdb = false
+	alpine_secdb = true
 
 	secrets {
 		all = true
@@ -24,8 +24,8 @@ container {
 binary {
 	go_modules   = true
 	osv          = true
-	oss_index    = true
-	nvd          = true
+	# We can't enable npm for binary targets today because we don't yet embed the relevant file
+	# (yarn.lock) in the Consul binary. This is something we may investigate in the future.
 	
 	secrets {
 		all = true
