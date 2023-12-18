@@ -13,6 +13,7 @@
 # See `security-scanner` docs or run with `--help` for scan target syntax.
 
 container {
+	local_daemon = true
 	dependencies = true
 	alpine_secdb = true
 
