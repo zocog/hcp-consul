@@ -75,8 +75,6 @@ jobs:
         uses: ./security-scanner
         with:
           repository: "$PWD"
-          cache-build: true
-          cache-go-modules: false
           # See scan.hcl at repository root for config.
 
       - name: SARIF Output

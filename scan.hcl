@@ -16,9 +16,8 @@
 
 repository {
   go_modules   = true
+  npm          = true
   osv          = true
-  oss_index    = true
-  nvd          = true
 
   secrets {
     all = true
