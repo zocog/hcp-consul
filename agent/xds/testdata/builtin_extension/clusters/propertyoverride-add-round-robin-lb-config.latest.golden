@@ -15,9 +15,11 @@
           "resourceApiVersion": "V3"
         }
       },
+      "leastRequestLbConfig": {
+        "choiceCount": 5
+      },
       "name": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "outlierDetection": {},
-      "roundRobinLbConfig": {},
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
@@ -60,9 +62,11 @@
           "resourceApiVersion": "V3"
         }
       },
+      "leastRequestLbConfig": {
+        "choiceCount": 5
+      },
       "name": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
       "outlierDetection": {},
-      "roundRobinLbConfig": {},
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
