@@ -1099,7 +1099,11 @@ func (a *Agent) listenAndServeV2DNS() error {
 	if a.baseDeps.UseV2Resources() {
 		a.catalogDataFetcher = discovery.NewV2DataFetcher(a.config)
 	} else {
-		a.catalogDataFetcher = discovery.NewV1DataFetcher(a.config)
+		a.catalogDataFetcher = discovery.NewV1DataFetcher(a.config,
+			a.RPC,
+			a.rpcClientHealth.ServiceNodes,
+			a.getTokenFunc(),
+			a.logger.Named("v1-dns-data-fetcher"))
 	}
 
 	// Generate a Query Processor with the appropriate data fetcher
