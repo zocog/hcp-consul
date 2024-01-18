@@ -130,25 +130,25 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	// This covers any incoming requests from inside my parition to services outside my partition
 	meshGateways, err := dataFetcher.FetchMeshGateways(ctx)
 
-	tenancyMatches := func(t1, t2 *pbresource.Tenancy) bool {
-		switch {
-		case t1 == nil || t2 == nil:
-			return false
-		case t1.PeerName != t2.PeerName:
-			return false
-		case t1.Partition != t2.Partition:
-			return false
-		default:
-			return true
-		}
-	}
+	//tenancyMatches := func(t1, t2 *pbresource.Tenancy) bool {
+	//	switch {
+	//	case t1 == nil || t2 == nil:
+	//		return false
+	//	case t1.PeerName != t2.PeerName:
+	//		return false
+	//	case t1.Partition != t2.Partition:
+	//		return false
+	//	default:
+	//		return true
+	//	}
+	//}
 
 	var remoteMeshGateways []*pbresource.ID
 	for _, meshGateway := range meshGateways {
 		// If this is the mesh gateway in my local partition + datacenter, skip
-		if !tenancyMatches(meshGateway.Id.Tenancy, req.ID.Tenancy) {
-			remoteMeshGateways = append(remoteMeshGateways, meshGateway.Id)
-		}
+		//if !tenancyMatches(meshGateway.Id.Tenancy, req.ID.Tenancy) {
+		remoteMeshGateways = append(remoteMeshGateways, meshGateway.Id)
+		//}
 	}
 
 	trustDomain, err := r.getTrustDomain()
