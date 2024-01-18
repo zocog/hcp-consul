@@ -129,6 +129,9 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	// This covers any incoming requests from inside my parition to services outside my partition
 	meshGateways, err := dataFetcher.FetchMeshGateways(ctx)
+	if err != nil {
+		rt.Logger.Warn("error reading the associated mesh gateways", "error", err)
+	}
 
 	//tenancyMatches := func(t1, t2 *pbresource.Tenancy) bool {
 	//	switch {
