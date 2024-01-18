@@ -268,6 +268,10 @@ func (b *proxyStateTemplateBuilder) routes() map[string]*pbproxystate.Route {
 func (b *proxyStateTemplateBuilder) Build() *meshv2beta1.ProxyStateTemplate {
 	return &meshv2beta1.ProxyStateTemplate{
 		ProxyState: &meshv2beta1.ProxyState{
+			AccessLogs: &pbproxystate.AccessLogs{
+				Enabled: true,
+				Type:    pbproxystate.LogSinkType_LOG_SINK_TYPE_STDOUT,
+			},
 			Identity:  b.identity(),
 			Listeners: b.listeners(),
 			Endpoints: b.endpoints(),
