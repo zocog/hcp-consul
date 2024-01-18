@@ -123,6 +123,7 @@ func (b *proxyStateTemplateBuilder) routers() []*pbproxystate.Router {
 		return routers
 	}
 
+	// Routers handling incoming traffic from another partition
 	for _, exportedService := range b.exportedServices.Data.Services {
 		serviceID := resource.IDFromReference(exportedService.TargetRef)
 		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
@@ -154,6 +155,37 @@ func (b *proxyStateTemplateBuilder) routers() []*pbproxystate.Router {
 				})
 			}
 		}
+	}
+
+	// Routers handling incoming traffic from the local partition
+	for _, remoteGatewayID := range b.remoteGatewayIDs {
+		serviceID := resource.ReplaceType(pbcatalog.ServiceType, remoteGatewayID)
+		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
+		if err != nil {
+			b.logger.Trace("error reading exported service", "error", err)
+			continue
+		} else if service == nil {
+			b.logger.Trace("service does not exist, skipping router", "service", serviceID)
+			continue
+		}
+
+		routers = append(routers, &pbproxystate.Router{
+			Match: &pbproxystate.Match{
+				ServerNames: []string{
+					fmt.Sprintf("*.%s", b.clusterNameForRemoteGateway(remoteGatewayID)),
+				},
+			},
+			Destination: &pbproxystate.Router_L4{
+				L4: &pbproxystate.L4Destination{
+					Destination: &pbproxystate.L4Destination_Cluster{
+						Cluster: &pbproxystate.DestinationCluster{
+							Name: b.clusterNameForRemoteGateway(remoteGatewayID),
+						},
+					},
+					StatPrefix: "prefix",
+				},
+			},
+		})
 	}
 
 	return routers
@@ -207,18 +239,16 @@ func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster 
 			continue
 		}
 
-		for _, port := range service.Data.Ports {
-			clusterName := b.clusterNameForRemoteGateway(remoteGatewayID, port.TargetPort)
-			clusters[clusterName] = &pbproxystate.Cluster{
-				Name:     clusterName,
-				Protocol: pbproxystate.Protocol_PROTOCOL_TCP, // TODO
-				Group: &pbproxystate.Cluster_EndpointGroup{
-					EndpointGroup: &pbproxystate.EndpointGroup{
-						Group: &pbproxystate.EndpointGroup_Dynamic{},
-					},
+		clusterName := b.clusterNameForRemoteGateway(remoteGatewayID)
+		clusters[clusterName] = &pbproxystate.Cluster{
+			Name:     clusterName,
+			Protocol: pbproxystate.Protocol_PROTOCOL_TCP, // TODO
+			Group: &pbproxystate.Cluster_EndpointGroup{
+				EndpointGroup: &pbproxystate.EndpointGroup{
+					Group: &pbproxystate.EndpointGroup_Dynamic{},
 				},
-				AltStatName: "prefix",
-			}
+			},
+			AltStatName: "prefix",
 		}
 	}
 
@@ -294,7 +324,7 @@ func (b *proxyStateTemplateBuilder) requiredEndpoints() map[string]*pbproxystate
 		}
 
 		for _, port := range service.Data.Ports {
-			clusterName := b.clusterNameForRemoteGateway(remoteGatewayID, port.TargetPort)
+			clusterName := b.clusterNameForRemoteGateway(remoteGatewayID)
 			requiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
 				Id:   resource.ReplaceType(pbcatalog.ServiceEndpointsType, serviceID),
 				Port: port.TargetPort,
@@ -305,7 +335,9 @@ func (b *proxyStateTemplateBuilder) requiredEndpoints() map[string]*pbproxystate
 	return requiredEndpoints
 }
 
-// clusterNameForExportedService generates a cluster name for a giv
+// clusterNameForExportedService generates a cluster name for a given service
+// that is being exported from the local partition to a remote partition. This
+// partition may reside in the same datacenter or in a remote datacenter.
 func (b *proxyStateTemplateBuilder) clusterNameForExportedService(serviceRef *pbresource.Reference, consumer *pbmulticluster.ComputedExportedServiceConsumer, port string) string {
 	return fmt.Sprintf("%s.%s", port, b.sniForExportedService(serviceRef, consumer))
 }
@@ -321,8 +353,11 @@ func (b *proxyStateTemplateBuilder) sniForExportedService(serviceRef *pbresource
 	}
 }
 
-func (b *proxyStateTemplateBuilder) clusterNameForRemoteGateway(remoteGatewayID *pbresource.ID, port string) string {
-	return fmt.Sprintf("*.%s", connect.GatewaySNI(remoteGatewayID.Tenancy.PeerName, remoteGatewayID.Tenancy.Partition, b.trustDomain))
+// clusterNameForRemoteGateway generates a cluster name for a given remote mesh
+// gateway. This will be used to route traffic from the local partition to the mesh
+// gateway for a remote partition.
+func (b *proxyStateTemplateBuilder) clusterNameForRemoteGateway(remoteGatewayID *pbresource.ID) string {
+	return connect.GatewaySNI(remoteGatewayID.Tenancy.PeerName, remoteGatewayID.Tenancy.Partition, b.trustDomain)
 }
 
 func alpnProtocol(portName string) string {
