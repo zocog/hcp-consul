@@ -29,15 +29,17 @@ type proxyStateTemplateBuilder struct {
 	exportedServices *types.DecodedComputedExportedServices
 	logger           hclog.Logger
 	trustDomain      string
+	remoteGatewayIDs []*pbresource.ID
 }
 
-func NewProxyStateTemplateBuilder(workload *types.DecodedWorkload, exportedServices *types.DecodedComputedExportedServices, logger hclog.Logger, dataFetcher *fetcher.Fetcher, dc, trustDomain string) *proxyStateTemplateBuilder {
+func NewProxyStateTemplateBuilder(workload *types.DecodedWorkload, exportedServices *types.DecodedComputedExportedServices, logger hclog.Logger, dataFetcher *fetcher.Fetcher, dc, trustDomain string, remoteMeshGateways []*pbresource.ID) *proxyStateTemplateBuilder {
 	return &proxyStateTemplateBuilder{
 		workload:         workload,
 		dataFetcher:      dataFetcher,
 		dc:               dc,
 		exportedServices: exportedServices,
 		logger:           logger,
+		remoteGatewayIDs: remoteMeshGateways,
 		trustDomain:      trustDomain,
 	}
 }

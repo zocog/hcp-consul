@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
+	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
@@ -119,14 +120,34 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Type: pbmulticluster.ComputedExportedServicesType,
 	}
 
-	exportedServices, err := dataFetcher.FetchExportedServices(ctx, exportedServicesID)
-	if err != nil || exportedServices == nil {
-		if err != nil {
-			rt.Logger.Error("error reading the associated exported services", "error", err)
-		}
+	// This covers any incoming requests from outside my partition to services inside my partition
+	exportedServices, err := dataFetcher.FetchComputedExportedServices(ctx, exportedServicesID)
+	if err != nil {
+		rt.Logger.Error("error reading the associated exported services", "error", err)
+		exportedServices = &types.DecodedComputedExportedServices{}
+	}
 
-		if exportedServices == nil {
-			rt.Logger.Error("exported services was nil")
+	// This covers any incoming requests from inside my parition to services outside my partition
+	meshGateways, err := dataFetcher.FetchMeshGateways(ctx)
+
+	tenancyMatches := func(t1, t2 *pbresource.Tenancy) bool {
+		switch {
+		case t1 == nil || t2 == nil:
+			return false
+		case t1.PeerName != t2.PeerName:
+			return false
+		case t1.Partition != t2.Partition:
+			return false
+		default:
+			return true
+		}
+	}
+
+	var remoteMeshGateways []*pbresource.ID
+	for _, meshGateway := range meshGateways {
+		// If this is the mesh gateway in my local partition + datacenter, skip
+		if !tenancyMatches(meshGateway.Id.Tenancy, req.ID.Tenancy) {
+			remoteMeshGateways = append(remoteMeshGateways, meshGateway.Id)
 		}
 	}
 
@@ -136,7 +157,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return err
 	}
 
-	newPST := builder.NewProxyStateTemplateBuilder(workload, exportedServices, rt.Logger, dataFetcher, r.dc, trustDomain).Build()
+	newPST := builder.NewProxyStateTemplateBuilder(workload, exportedServices, rt.Logger, dataFetcher, r.dc, trustDomain, remoteMeshGateways).Build()
 
 	proxyTemplateData, err := anypb.New(newPST)
 	if err != nil {
