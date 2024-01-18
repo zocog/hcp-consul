@@ -139,13 +139,13 @@ func (b *proxyStateTemplateBuilder) routers() []*pbproxystate.Router {
 				routers = append(routers, &pbproxystate.Router{
 					Match: &pbproxystate.Match{
 						AlpnProtocols: []string{alpnProtocol(port.TargetPort)},
-						ServerNames:   []string{b.sni(exportedService.TargetRef, consumer)},
+						ServerNames:   []string{b.sniForExportedService(exportedService.TargetRef, consumer)},
 					},
 					Destination: &pbproxystate.Router_L4{
 						L4: &pbproxystate.L4Destination{
 							Destination: &pbproxystate.L4Destination_Cluster{
 								Cluster: &pbproxystate.DestinationCluster{
-									Name: b.clusterName(exportedService.TargetRef, consumer, port.TargetPort),
+									Name: b.clusterNameForExportedService(exportedService.TargetRef, consumer, port.TargetPort),
 								},
 							},
 							StatPrefix: "prefix",
@@ -166,6 +166,7 @@ func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster 
 		return clusters
 	}
 
+	// Clusters handling incoming traffic from another partition
 	for _, exportedService := range b.exportedServices.Data.Services {
 		serviceID := resource.IDFromReference(exportedService.TargetRef)
 		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
@@ -179,7 +180,7 @@ func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster 
 
 		for _, port := range service.Data.Ports {
 			for _, consumer := range exportedService.Consumers {
-				clusterName := b.clusterName(exportedService.TargetRef, consumer, port.TargetPort)
+				clusterName := b.clusterNameForExportedService(exportedService.TargetRef, consumer, port.TargetPort)
 				clusters[clusterName] = &pbproxystate.Cluster{
 					Name:     clusterName,
 					Protocol: pbproxystate.Protocol_PROTOCOL_TCP, // TODO
@@ -190,6 +191,33 @@ func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster 
 					},
 					AltStatName: "prefix",
 				}
+			}
+		}
+	}
+
+	// Clusters handling incoming traffic from the local partition
+	for _, remoteGatewayID := range b.remoteGatewayIDs {
+		serviceID := resource.ReplaceType(pbcatalog.ServiceType, remoteGatewayID)
+		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
+		if err != nil {
+			b.logger.Trace("error reading exported service", "error", err)
+			continue
+		} else if service == nil {
+			b.logger.Trace("service does not exist, skipping router", "service", serviceID)
+			continue
+		}
+
+		for _, port := range service.Data.Ports {
+			clusterName := b.clusterNameForRemoteGateway(remoteGatewayID, port.TargetPort)
+			clusters[clusterName] = &pbproxystate.Cluster{
+				Name:     clusterName,
+				Protocol: pbproxystate.Protocol_PROTOCOL_TCP, // TODO
+				Group: &pbproxystate.Cluster_EndpointGroup{
+					EndpointGroup: &pbproxystate.EndpointGroup{
+						Group: &pbproxystate.EndpointGroup_Dynamic{},
+					},
+				},
+				AltStatName: "prefix",
 			}
 		}
 	}
@@ -226,11 +254,11 @@ func (b *proxyStateTemplateBuilder) Build() *meshv2beta1.ProxyStateTemplate {
 // and adds a pbproxystate.EndpointRef to be hydrated for each cluster.
 func (b *proxyStateTemplateBuilder) requiredEndpoints() map[string]*pbproxystate.EndpointRef {
 	requiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
-
 	if b.exportedServices == nil {
 		return requiredEndpoints
 	}
 
+	// Endpoints for clusters handling incoming traffic from another partition
 	for _, exportedService := range b.exportedServices.Data.Services {
 		serviceID := resource.IDFromReference(exportedService.TargetRef)
 		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
@@ -244,7 +272,7 @@ func (b *proxyStateTemplateBuilder) requiredEndpoints() map[string]*pbproxystate
 
 		for _, port := range service.Data.Ports {
 			for _, consumer := range exportedService.Consumers {
-				clusterName := b.clusterName(exportedService.TargetRef, consumer, port.TargetPort)
+				clusterName := b.clusterNameForExportedService(exportedService.TargetRef, consumer, port.TargetPort)
 				requiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
 					Id:   resource.ReplaceType(pbcatalog.ServiceEndpointsType, serviceID),
 					Port: port.TargetPort,
@@ -253,14 +281,36 @@ func (b *proxyStateTemplateBuilder) requiredEndpoints() map[string]*pbproxystate
 		}
 	}
 
+	// Endpoints for clusters handling incoming traffic from the local partition
+	for _, remoteGatewayID := range b.remoteGatewayIDs {
+		serviceID := resource.ReplaceType(pbcatalog.ServiceType, remoteGatewayID)
+		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
+		if err != nil {
+			b.logger.Trace("error reading exported service", "error", err)
+			continue
+		} else if service == nil {
+			b.logger.Trace("service does not exist, skipping router", "service", serviceID)
+			continue
+		}
+
+		for _, port := range service.Data.Ports {
+			clusterName := b.clusterNameForRemoteGateway(remoteGatewayID, port.TargetPort)
+			requiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
+				Id:   resource.ReplaceType(pbcatalog.ServiceEndpointsType, serviceID),
+				Port: port.TargetPort,
+			}
+		}
+	}
+
 	return requiredEndpoints
 }
 
-func (b *proxyStateTemplateBuilder) clusterName(serviceRef *pbresource.Reference, consumer *pbmulticluster.ComputedExportedServiceConsumer, port string) string {
-	return fmt.Sprintf("%s.%s", port, b.sni(serviceRef, consumer))
+// clusterNameForExportedService generates a cluster name for a giv
+func (b *proxyStateTemplateBuilder) clusterNameForExportedService(serviceRef *pbresource.Reference, consumer *pbmulticluster.ComputedExportedServiceConsumer, port string) string {
+	return fmt.Sprintf("%s.%s", port, b.sniForExportedService(serviceRef, consumer))
 }
 
-func (b *proxyStateTemplateBuilder) sni(serviceRef *pbresource.Reference, consumer *pbmulticluster.ComputedExportedServiceConsumer) string {
+func (b *proxyStateTemplateBuilder) sniForExportedService(serviceRef *pbresource.Reference, consumer *pbmulticluster.ComputedExportedServiceConsumer) string {
 	switch tConsumer := consumer.Tenancy.(type) {
 	case *pbmulticluster.ComputedExportedServiceConsumer_Partition:
 		return connect.ServiceSNI(serviceRef.Name, "", serviceRef.Tenancy.Namespace, tConsumer.Partition, b.dc, b.trustDomain)
@@ -269,6 +319,10 @@ func (b *proxyStateTemplateBuilder) sni(serviceRef *pbresource.Reference, consum
 	default:
 		return ""
 	}
+}
+
+func (b *proxyStateTemplateBuilder) clusterNameForRemoteGateway(remoteGatewayID *pbresource.ID, port string) string {
+	return fmt.Sprintf("*.%s", connect.GatewaySNI(remoteGatewayID.Tenancy.PeerName, remoteGatewayID.Tenancy.Partition, b.trustDomain))
 }
 
 func alpnProtocol(portName string) string {
