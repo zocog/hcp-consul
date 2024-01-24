@@ -65,8 +65,15 @@ func (b *proxyStateTemplateBuilder) listeners() []*pbproxystate.Listener {
 	// if the address defines no ports we assume the intention is to bind to all
 	// ports on the workload
 	if len(address.Ports) == 0 {
-		for _, workloadPort := range b.workload.Data.Ports {
-			listeners = append(listeners, b.buildListener(address, workloadPort.Port))
+		for portName, workloadPort := range b.workload.Data.Ports {
+			switch portName {
+			case "mesh":
+				listeners = append(listeners, b.meshListener(address, workloadPort.Port))
+			case "wan":
+				listeners = append(listeners, b.wanListener(address, workloadPort.Port))
+			default:
+				continue
+			}
 		}
 		return listeners
 	}
@@ -78,16 +85,38 @@ func (b *proxyStateTemplateBuilder) listeners() []*pbproxystate.Listener {
 			continue
 		}
 
-		listeners = append(listeners, b.buildListener(address, workloadPort.Port))
+		switch portName {
+		case "mesh":
+			listeners = append(listeners, b.meshListener(address, workloadPort.Port))
+		case "wan":
+			listeners = append(listeners, b.wanListener(address, workloadPort.Port))
+		default:
+			continue
+		}
 	}
 
 	return listeners
 }
 
-func (b *proxyStateTemplateBuilder) buildListener(address *pbcatalog.WorkloadAddress, port uint32) *pbproxystate.Listener {
+// meshListener constructs a pbproxystate.Listener that receives outgoing
+// traffic from the local partition where the mesh gateway mode is "local". This
+// traffic will be sent to a mesh gateway in a remote partition.
+func (b *proxyStateTemplateBuilder) meshListener(address *pbcatalog.WorkloadAddress, port uint32) *pbproxystate.Listener {
+	return b.listener(address, port, pbproxystate.Direction_DIRECTION_OUTBOUND, b.meshRouters())
+}
+
+// wanListener constructs a pbproxystate.Listener that receives incoming
+// traffic from the public internet, either from a mesh gateway in a remote partition
+// where the mesh gateway mode is "local" or from a service in a remote partition
+// where the mesh gateway mode is "remote".
+func (b *proxyStateTemplateBuilder) wanListener(address *pbcatalog.WorkloadAddress, port uint32) *pbproxystate.Listener {
+	return b.listener(address, port, pbproxystate.Direction_DIRECTION_INBOUND, b.wanRouters())
+}
+
+func (b *proxyStateTemplateBuilder) listener(address *pbcatalog.WorkloadAddress, port uint32, direction pbproxystate.Direction, routers []*pbproxystate.Router) *pbproxystate.Listener {
 	return &pbproxystate.Listener{
 		Name:      xdscommon.PublicListenerName,
-		Direction: pbproxystate.Direction_DIRECTION_INBOUND,
+		Direction: direction,
 		BindAddress: &pbproxystate.Listener_HostPort{
 			HostPort: &pbproxystate.HostPortAddress{
 				Host: address.Host,
@@ -109,21 +138,61 @@ func (b *proxyStateTemplateBuilder) buildListener(address *pbcatalog.WorkloadAdd
 				},
 			},
 		},
-		Routers: b.routers(),
+		Routers: routers,
 	}
 }
 
-// routers loops through the ports and consumers for each exported service and generates
-// a pbproxystate.Router matching the SNI to the target cluster. The target port name
-// will be included in the ALPN. The targeted cluster will marry this port name with the SNI.
-func (b *proxyStateTemplateBuilder) routers() []*pbproxystate.Router {
+// meshRouters loops through the list of mesh gateways in other partitions and generates
+// a pbproxystate.Router matching the partition + datacenter of the SNI to the target
+// cluster. Traffic flowing through this router originates in the local partition where
+// the mesh gateway mode is "local".
+func (b *proxyStateTemplateBuilder) meshRouters() []*pbproxystate.Router {
+	var routers []*pbproxystate.Router
+
+	for _, remoteGatewayID := range b.remoteGatewayIDs {
+		serviceID := resource.ReplaceType(pbcatalog.ServiceType, remoteGatewayID)
+		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
+		if err != nil {
+			b.logger.Trace("error reading exported service", "error", err)
+			continue
+		} else if service == nil {
+			b.logger.Trace("service does not exist, skipping router", "service", serviceID)
+			continue
+		}
+
+		routers = append(routers, &pbproxystate.Router{
+			Match: &pbproxystate.Match{
+				ServerNames: []string{
+					fmt.Sprintf("*.%s", b.clusterNameForRemoteGateway(remoteGatewayID)),
+				},
+			},
+			Destination: &pbproxystate.Router_L4{
+				L4: &pbproxystate.L4Destination{
+					Destination: &pbproxystate.L4Destination_Cluster{
+						Cluster: &pbproxystate.DestinationCluster{
+							Name: b.clusterNameForRemoteGateway(remoteGatewayID),
+						},
+					},
+					StatPrefix: "prefix",
+				},
+			},
+		})
+	}
+
+	return routers
+}
+
+// wanRouters loops through the ports and consumers for each exported service and generates
+// a pbproxystate.Router matching the SNI to the target cluster. Traffic flowing through this
+// router originates from a mesh gateway in a remote partition where the mesh gateway mode is
+// "local" or from a service in a remote partition where the mesh gateway mode is "remote".
+func (b *proxyStateTemplateBuilder) wanRouters() []*pbproxystate.Router {
 	var routers []*pbproxystate.Router
 
 	if b.exportedServices == nil {
 		return routers
 	}
 
-	// Routers handling incoming traffic from another partition
 	for _, exportedService := range b.exportedServices.Data.Services {
 		serviceID := resource.IDFromReference(exportedService.TargetRef)
 		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
@@ -155,37 +224,6 @@ func (b *proxyStateTemplateBuilder) routers() []*pbproxystate.Router {
 				})
 			}
 		}
-	}
-
-	// Routers handling incoming traffic from the local partition
-	for _, remoteGatewayID := range b.remoteGatewayIDs {
-		serviceID := resource.ReplaceType(pbcatalog.ServiceType, remoteGatewayID)
-		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
-		if err != nil {
-			b.logger.Trace("error reading exported service", "error", err)
-			continue
-		} else if service == nil {
-			b.logger.Trace("service does not exist, skipping router", "service", serviceID)
-			continue
-		}
-
-		routers = append(routers, &pbproxystate.Router{
-			Match: &pbproxystate.Match{
-				ServerNames: []string{
-					fmt.Sprintf("*.%s", b.clusterNameForRemoteGateway(remoteGatewayID)),
-				},
-			},
-			Destination: &pbproxystate.Router_L4{
-				L4: &pbproxystate.L4Destination{
-					Destination: &pbproxystate.L4Destination_Cluster{
-						Cluster: &pbproxystate.DestinationCluster{
-							Name: b.clusterNameForRemoteGateway(remoteGatewayID),
-						},
-					},
-					StatPrefix: "prefix",
-				},
-			},
-		})
 	}
 
 	return routers
