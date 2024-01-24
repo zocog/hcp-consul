@@ -1,0 +1,33 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{#let @list (env "CONSUL_HCP_URL") as |SNL hcpUrl|}}
+    {{#if this.accessedFromHcp}}
+        <SNL.BackLink
+            @text={{t "components.hashicorp-consul.side-nav.hcp"}}
+            @href={{hcpUrl}}
+            @isHrefExternal={{true}}
+            data-test-back-to-hcp
+        />
+    {{else}}
+        {{#if this.hcpLinkStatus.shouldDisplayNavLinkItem}}
+            {{#if this.hcpLinkStatus.alreadyLinked}}
+                <SNL.Link
+                        @text="HCP Consul Central"
+                        @href={{this.hcpLink}}
+                        @isHrefExternal={{true}}
+                        data-test-linked-cluster-hcp-link
+                />
+            {{else}}
+                <SNL.Item>
+                    {{#if this.shouldDisplayNewBadge}}
+                        <Hds::Badge @text="New" @color="highlight"/>
+                    {{/if}}
+                    <Hds::Text::Display @size='200'>{{this.linkText}}</Hds::Text::Display>
+                </SNL.Item>
+            {{/if}}
+        {{/if}}
+    {{/if}}
+{{/let}}

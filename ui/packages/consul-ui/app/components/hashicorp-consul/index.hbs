@@ -122,7 +122,13 @@
           class='hds-side-nav-hide-when-minimized consul-side-nav__selector-group'
           as |SNL|
         >
-          <Consul::Hcp::Home @list={{SNL}} />
+            <SNL.BackLink
+                    @text={{t "components.hashicorp-consul.side-nav.hcp"}}
+                    @href={{hcpUrl}}
+                    @isHrefExternal={{true}}
+                    data-test-back-to-hcp
+            />
+            <HcpNavItem @list={{SNL}}/>
           <Consul::Datacenter::Selector
             @list={{SNL}}
             @dc={{@dc}}
