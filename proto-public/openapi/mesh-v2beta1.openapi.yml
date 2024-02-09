@@ -9,12 +9,12 @@ paths:
             summary: List mesh.v2beta1.ComputedExplicitDestinations resources
             operationId: list-ComputedExplicitDestinations
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -74,6 +74,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/ComputedExplicitDestinations/{name}:
         get:
             summary: Read mesh.v2beta1.ComputedExplicitDestinations resources
@@ -270,12 +275,12 @@ paths:
             summary: List mesh.v2beta1.ComputedProxyConfiguration resources
             operationId: list-ComputedProxyConfiguration
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -335,6 +340,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/ComputedProxyConfiguration/{name}:
         get:
             summary: Read mesh.v2beta1.ComputedProxyConfiguration resources
@@ -531,12 +541,12 @@ paths:
             summary: List mesh.v2beta1.ComputedRoutes resources
             operationId: list-ComputedRoutes
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -596,6 +606,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/ComputedRoutes/{name}:
         get:
             summary: Read mesh.v2beta1.ComputedRoutes resources
@@ -792,12 +807,12 @@ paths:
             summary: List mesh.v2beta1.DestinationPolicy resources
             operationId: list-DestinationPolicy
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -857,6 +872,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/DestinationPolicy/{name}:
         get:
             summary: Read mesh.v2beta1.DestinationPolicy resources
@@ -1053,12 +1073,12 @@ paths:
             summary: List mesh.v2beta1.Destinations resources
             operationId: list-Destinations
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -1118,6 +1138,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/Destinations/{name}:
         get:
             summary: Read mesh.v2beta1.Destinations resources
@@ -1314,12 +1339,12 @@ paths:
             summary: List mesh.v2beta1.DestinationsConfiguration resources
             operationId: list-DestinationsConfiguration
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -1379,6 +1404,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/DestinationsConfiguration/{name}:
         get:
             summary: Read mesh.v2beta1.DestinationsConfiguration resources
@@ -1575,12 +1605,12 @@ paths:
             summary: List mesh.v2beta1.GRPCRoute resources
             operationId: list-GRPCRoute
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -1640,6 +1670,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/GRPCRoute/{name}:
         get:
             summary: Read mesh.v2beta1.GRPCRoute resources
@@ -1898,6 +1933,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/GatewayClass/{name}:
         get:
             summary: Read mesh.v2beta1.GatewayClass resources
@@ -2153,6 +2193,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/GatewayClassConfig/{name}:
         get:
             summary: Read mesh.v2beta1.GatewayClassConfig resources
@@ -2346,12 +2391,12 @@ paths:
             summary: List mesh.v2beta1.HTTPRoute resources
             operationId: list-HTTPRoute
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -2411,6 +2456,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/HTTPRoute/{name}:
         get:
             summary: Read mesh.v2beta1.HTTPRoute resources
@@ -2669,6 +2719,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/MeshConfiguration/{name}:
         get:
             summary: Read mesh.v2beta1.MeshConfiguration resources
@@ -2925,6 +2980,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/MeshGateway/{name}:
         get:
             summary: Read mesh.v2beta1.MeshGateway resources
@@ -3119,12 +3179,12 @@ paths:
             summary: List mesh.v2beta1.ProxyConfiguration resources
             operationId: list-ProxyConfiguration
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -3184,6 +3244,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/ProxyConfiguration/{name}:
         get:
             summary: Read mesh.v2beta1.ProxyConfiguration resources
@@ -3380,12 +3445,12 @@ paths:
             summary: List mesh.v2beta1.ProxyStateTemplate resources
             operationId: list-ProxyStateTemplate
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -3445,6 +3510,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/ProxyStateTemplate/{name}:
         get:
             summary: Read mesh.v2beta1.ProxyStateTemplate resources
@@ -3641,12 +3711,12 @@ paths:
             summary: List mesh.v2beta1.TCPRoute resources
             operationId: list-TCPRoute
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -3706,6 +3776,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /mesh/v2beta1/TCPRoute/{name}:
         get:
             summary: Read mesh.v2beta1.TCPRoute resources

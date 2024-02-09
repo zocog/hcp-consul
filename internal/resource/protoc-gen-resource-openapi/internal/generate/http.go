@@ -234,6 +234,12 @@ func (g *generator) generatePathsForResource(rsc *resourceKind) map[string]types
 					},
 				},
 			},
+			Security: []map[string][]string{
+				{
+					"BearerAuth":        []string{"write:TrafficPermissions.destination"},
+					"ConsulTokenHeader": []string{"write:TrafficPermissions.destination"},
+				},
+			},
 		},
 	}
 

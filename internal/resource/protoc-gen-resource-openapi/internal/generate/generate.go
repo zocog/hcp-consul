@@ -5,6 +5,7 @@ package generate
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"google.golang.org/protobuf/compiler/protogen"
@@ -21,8 +22,20 @@ const (
 	baseResourceType = "hashicorp.consul.resource.Resource"
 )
 
+func log(msg string) {
+	f, err := os.OpenFile("/tmp/log1", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	msg = msg + "\n"
+	_, err = f.WriteString(msg)
+	if err != nil {
+		panic(err)
+	}
+	f.Close()
+}
+
 func Generate(files []*protogen.File) (map[string][]byte, error) {
+	os.Remove("/tmp/log1")
 	g := newGenerator()
+	log("running generator")
 	for _, f := range files {
 		if err := g.addMessagesFromFile(f); err != nil {
 			return nil, err
@@ -53,7 +66,10 @@ func (g *generator) addMessagesFromFile(f *protogen.File) error {
 	}
 
 	for _, m := range f.Messages {
+		name := "message fullname:" + string(m.Desc.FullName())
+		log(name)
 		if m.Desc.FullName() == baseResourceType {
+			log("base resource, calling get properties from message fields")
 			props, err := g.getPropertiesFromMessageFields(m)
 			if err != nil {
 				return err
@@ -64,6 +80,7 @@ func (g *generator) addMessagesFromFile(f *protogen.File) error {
 
 		ext := proto.GetExtension(m.Desc.Options(), pbresource.E_Spec).(*pbresource.ResourceTypeSpec)
 		if ext == nil || ext.DontMapHttp {
+			log("skipping message because ext is nil or dontmaphttp is true")
 			continue
 		}
 
@@ -73,6 +90,9 @@ func (g *generator) addMessagesFromFile(f *protogen.File) error {
 			return err
 		}
 
+		log("about to add to apis resource gvk:" + gvkString)
+
+		// Every message type is added to apis
 		g.apis.addResource(&resourceKind{
 			group:       rtype.Group,
 			version:     rtype.GroupVersion,
@@ -93,6 +113,7 @@ func (g *generator) addMessagesFromFile(f *protogen.File) error {
 func (g *generator) addMessage(m *protogen.Message) error {
 	name := string(m.Desc.FullName())
 	if _, found := g.schemas[name]; found {
+		log("already found, skipping adding message")
 		return nil
 	}
 
@@ -101,6 +122,8 @@ func (g *generator) addMessage(m *protogen.Message) error {
 		Description: string(m.Comments.Leading),
 	}
 
+	log("found new schema to add to schemas and dependencies:" + name)
+	log("schema description:" + string(m.Comments.Leading))
 	// need to add this into the map to prevent infinite recursion
 	g.schemas[name] = s
 	g.dependencies[name] = make([]string, 0)
@@ -111,7 +134,10 @@ func (g *generator) addMessage(m *protogen.Message) error {
 	}
 	s.Properties = props
 
+	// we probably don't do this much
 	for _, nestedMsg := range m.Messages {
+		// maybe just panic here so that make proto tells you not to do this
+
 		// maps will be handled in a way that the wire formats KV pair map
 		// entry type doesn't need to be present in the openapi spec. See
 		// the createMapFieldSchema method.
@@ -136,6 +162,11 @@ func (g *generator) addMessage(m *protogen.Message) error {
 	// TODO handle mutual exclusivity of oneof fields. The solution is probably to add to the description
 	// field which other fields it is exclusive with.
 
+	// see if openapi has support
+	//for _, nestedOneof := range m.Oneofs {
+	//
+	//}
+	// Do we need extensions? - nope
 	return nil
 }
 
@@ -143,6 +174,7 @@ func (g *generator) getPropertiesFromMessageFields(m *protogen.Message) (map[str
 	props := make(map[string]*types.Schema)
 	name := string(m.Desc.FullName())
 	for _, f := range m.Fields {
+		log("field:" + string(f.Desc.Name()))
 		fs, deps, err := g.createFieldSchema(f)
 		if err != nil {
 			return nil, err

@@ -72,6 +72,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /multicluster/v2beta1/ComputedExportedServices/{name}:
         get:
             summary: Read multicluster.v2beta1.ComputedExportedServices resources
@@ -266,12 +271,12 @@ paths:
             summary: List multicluster.v2beta1.ExportedServices resources
             operationId: list-ExportedServices
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -331,6 +336,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /multicluster/v2beta1/ExportedServices/{name}:
         get:
             summary: Read multicluster.v2beta1.ExportedServices resources
@@ -527,12 +537,12 @@ paths:
             summary: List multicluster.v2beta1.NamespaceExportedServices resources
             operationId: list-NamespaceExportedServices
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -592,6 +602,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /multicluster/v2beta1/NamespaceExportedServices/{name}:
         get:
             summary: Read multicluster.v2beta1.NamespaceExportedServices resources
@@ -851,6 +866,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /multicluster/v2beta1/PartitionExportedServices/{name}:
         get:
             summary: Read multicluster.v2beta1.PartitionExportedServices resources

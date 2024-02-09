@@ -9,12 +9,12 @@ paths:
             summary: List catalog.v2beta1.DNSPolicy resources
             operationId: list-DNSPolicy
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -74,6 +74,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /catalog/v2beta1/DNSPolicy/{name}:
         get:
             summary: Read catalog.v2beta1.DNSPolicy resources
@@ -270,12 +275,12 @@ paths:
             summary: List catalog.v2beta1.FailoverPolicy resources
             operationId: list-FailoverPolicy
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -335,6 +340,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /catalog/v2beta1/FailoverPolicy/{name}:
         get:
             summary: Read catalog.v2beta1.FailoverPolicy resources
@@ -531,12 +541,12 @@ paths:
             summary: List catalog.v2beta1.HealthChecks resources
             operationId: list-HealthChecks
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -596,6 +606,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /catalog/v2beta1/HealthChecks/{name}:
         get:
             summary: Read catalog.v2beta1.HealthChecks resources
@@ -792,12 +807,12 @@ paths:
             summary: List catalog.v2beta1.HealthStatus resources
             operationId: list-HealthStatus
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -857,6 +872,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /catalog/v2beta1/HealthStatus/{name}:
         get:
             summary: Read catalog.v2beta1.HealthStatus resources
@@ -1053,12 +1073,10 @@ paths:
             summary: List catalog.v2beta1.Node resources
             operationId: list-Node
             parameters:
-                - $ref: '#/components/parameters/name_prefix'
-                - $ref: '#/components/parameters/namespace'
-                - $ref: '#/components/parameters/ns'
-                - $ref: '#/components/parameters/partition'
                 - $ref: '#/components/parameters/peer'
                 - $ref: '#/components/parameters/consistent'
+                - $ref: '#/components/parameters/name_prefix'
+                - $ref: '#/components/parameters/partition'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -1118,6 +1136,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /catalog/v2beta1/Node/{name}:
         get:
             summary: Read catalog.v2beta1.Node resources
@@ -1306,20 +1329,280 @@ paths:
         parameters:
             - $ref: '#/components/parameters/peer'
             - $ref: '#/components/parameters/name'
-            - $ref: '#/components/parameters/namespace'
-            - $ref: '#/components/parameters/ns'
+            - $ref: '#/components/parameters/partition'
+    /catalog/v2beta1/NodeHealthStatus:
+        get:
+            summary: List catalog.v2beta1.NodeHealthStatus resources
+            operationId: list-NodeHealthStatus
+            parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
+                - $ref: '#/components/parameters/name_prefix'
+                - $ref: '#/components/parameters/partition'
+            responses:
+                "200":
+                    description: The listing was successful and the body contains the array of results.
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: '#/components/schemas/hashicorp.consul.catalog.v2beta1.NodeHealthStatus'
+                                        generation:
+                                            type: string
+                                            description: |
+                                                // Generation is incremented whenever the resource's content (i.e. not its
+                                                // status) is modified. You can think of it as being the "user version".
+                                                //
+                                                // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                                // can treat its timestamp component as the resource's modification time.
+                                        id:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                            description: |
+                                                // ID uniquely identifies the resource.
+                                        metadata:
+                                            type: object
+                                            additionalProperties:
+                                                type: string
+                                            description: |
+                                                // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                                // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                        owner:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                            description: |
+                                                // Owner (optionally) describes which resource "owns" this resource, it is
+                                                // immutable and can only be set on resource creation. Owned resources will
+                                                // be automatically deleted when their owner is deleted.
+                                        status:
+                                            type: object
+                                            additionalProperties:
+                                                $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                            description: |
+                                                // Status is used by controllers to communicate the result of attempting to
+                                                // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                                // with users and other controllers. Each status is identified by a unique key
+                                                // and should only ever be updated by one controller.
+                                                //
+                                                // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                                // so via the Write endpoint will result in an InvalidArgument error code.
+                                        version:
+                                            type: string
+                                            description: |
+                                                // Version is the low-level version identifier used by the storage backend
+                                                // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                                // modified in any way, including status updates.
+                                                //
+                                                // When calling the Write endpoint, providing a non-blank version will perform
+                                                // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                                // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
+    /catalog/v2beta1/NodeHealthStatus/{name}:
+        get:
+            summary: Read catalog.v2beta1.NodeHealthStatus resources
+            operationId: read-NodeHealthStatus.
+            parameters:
+                - $ref: '#/components/parameters/consistent'
+            responses:
+                "200":
+                    description: The read was successful and the body contains the result.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/hashicorp.consul.catalog.v2beta1.NodeHealthStatus'
+                                    generation:
+                                        type: string
+                                        description: |
+                                            // Generation is incremented whenever the resource's content (i.e. not its
+                                            // status) is modified. You can think of it as being the "user version".
+                                            //
+                                            // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                            // can treat its timestamp component as the resource's modification time.
+                                    id:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // ID uniquely identifies the resource.
+                                    metadata:
+                                        type: object
+                                        additionalProperties:
+                                            type: string
+                                        description: |
+                                            // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                            // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                    owner:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // Owner (optionally) describes which resource "owns" this resource, it is
+                                            // immutable and can only be set on resource creation. Owned resources will
+                                            // be automatically deleted when their owner is deleted.
+                                    status:
+                                        type: object
+                                        additionalProperties:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                        description: |
+                                            // Status is used by controllers to communicate the result of attempting to
+                                            // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                            // with users and other controllers. Each status is identified by a unique key
+                                            // and should only ever be updated by one controller.
+                                            //
+                                            // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                            // so via the Write endpoint will result in an InvalidArgument error code.
+                                    version:
+                                        type: string
+                                        description: |
+                                            // Version is the low-level version identifier used by the storage backend
+                                            // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                            // modified in any way, including status updates.
+                                            //
+                                            // When calling the Write endpoint, providing a non-blank version will perform
+                                            // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                            // if the given version doesn't match what is stored.
+        put:
+            summary: Write catalog.v2beta1.NodeHealthStatus resources
+            operationId: write-NodeHealthStatus
+            requestBody:
+                description: The catalog.v2beta1.NodeHealthStatus resource to be updated.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    $ref: '#/components/schemas/hashicorp.consul.catalog.v2beta1.NodeHealthStatus'
+                                generation:
+                                    type: string
+                                    description: |
+                                        // Generation is incremented whenever the resource's content (i.e. not its
+                                        // status) is modified. You can think of it as being the "user version".
+                                        //
+                                        // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                        // can treat its timestamp component as the resource's modification time.
+                                id:
+                                    $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                    description: |
+                                        // ID uniquely identifies the resource.
+                                metadata:
+                                    type: object
+                                    additionalProperties:
+                                        type: string
+                                    description: |
+                                        // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                        // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                owner:
+                                    $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                    description: |
+                                        // Owner (optionally) describes which resource "owns" this resource, it is
+                                        // immutable and can only be set on resource creation. Owned resources will
+                                        // be automatically deleted when their owner is deleted.
+                                status:
+                                    type: object
+                                    additionalProperties:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                    description: |
+                                        // Status is used by controllers to communicate the result of attempting to
+                                        // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                        // with users and other controllers. Each status is identified by a unique key
+                                        // and should only ever be updated by one controller.
+                                        //
+                                        // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                        // so via the Write endpoint will result in an InvalidArgument error code.
+                                version:
+                                    type: string
+                                    description: |
+                                        // Version is the low-level version identifier used by the storage backend
+                                        // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                        // modified in any way, including status updates.
+                                        //
+                                        // When calling the Write endpoint, providing a non-blank version will perform
+                                        // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                        // if the given version doesn't match what is stored.
+            responses:
+                "200":
+                    description: The write was successful and the body contains the result.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/hashicorp.consul.catalog.v2beta1.NodeHealthStatus'
+                                    generation:
+                                        type: string
+                                        description: |
+                                            // Generation is incremented whenever the resource's content (i.e. not its
+                                            // status) is modified. You can think of it as being the "user version".
+                                            //
+                                            // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                            // can treat its timestamp component as the resource's modification time.
+                                    id:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // ID uniquely identifies the resource.
+                                    metadata:
+                                        type: object
+                                        additionalProperties:
+                                            type: string
+                                        description: |
+                                            // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                            // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                    owner:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // Owner (optionally) describes which resource "owns" this resource, it is
+                                            // immutable and can only be set on resource creation. Owned resources will
+                                            // be automatically deleted when their owner is deleted.
+                                    status:
+                                        type: object
+                                        additionalProperties:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                        description: |
+                                            // Status is used by controllers to communicate the result of attempting to
+                                            // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                            // with users and other controllers. Each status is identified by a unique key
+                                            // and should only ever be updated by one controller.
+                                            //
+                                            // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                            // so via the Write endpoint will result in an InvalidArgument error code.
+                                    version:
+                                        type: string
+                                        description: |
+                                            // Version is the low-level version identifier used by the storage backend
+                                            // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                            // modified in any way, including status updates.
+                                            //
+                                            // When calling the Write endpoint, providing a non-blank version will perform
+                                            // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                            // if the given version doesn't match what is stored.
+        delete:
+            summary: Delete catalog.v2beta1.NodeHealthStatus resources
+            operationId: delete-NodeHealthStatus
+            responses:
+                "200":
+                    description: The delete was successful and the body contains the result.
+        parameters:
+            - $ref: '#/components/parameters/peer'
+            - $ref: '#/components/parameters/name'
             - $ref: '#/components/parameters/partition'
     /catalog/v2beta1/Service:
         get:
             summary: List catalog.v2beta1.Service resources
             operationId: list-Service
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -1379,6 +1662,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /catalog/v2beta1/Service/{name}:
         get:
             summary: Read catalog.v2beta1.Service resources
@@ -1575,12 +1863,12 @@ paths:
             summary: List catalog.v2beta1.ServiceEndpoints resources
             operationId: list-ServiceEndpoints
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -1640,6 +1928,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /catalog/v2beta1/ServiceEndpoints/{name}:
         get:
             summary: Read catalog.v2beta1.ServiceEndpoints resources
@@ -1836,12 +2129,12 @@ paths:
             summary: List catalog.v2beta1.VirtualIPs resources
             operationId: list-VirtualIPs
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -1901,6 +2194,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /catalog/v2beta1/VirtualIPs/{name}:
         get:
             summary: Read catalog.v2beta1.VirtualIPs resources
@@ -2097,12 +2395,12 @@ paths:
             summary: List catalog.v2beta1.Workload resources
             operationId: list-Workload
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -2162,6 +2460,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /catalog/v2beta1/Workload/{name}:
         get:
             summary: Read catalog.v2beta1.Workload resources
@@ -2558,7 +2861,7 @@ components:
                     description: |
                         // Type is the type of this health check, such as http, tcp, or kubernetes-readiness
             description: |4
-                 This resource will belong to a workload or a node and will have an ownership relationship.
+                 This resource will belong to a workload and will have an ownership relationship.
         hashicorp.consul.catalog.v2beta1.IP:
             type: object
             properties:
@@ -2602,6 +2905,27 @@ components:
                     type: string
                     description: |
                         // host can be an IP or DNS name.Í
+        hashicorp.consul.catalog.v2beta1.NodeHealthStatus:
+            type: object
+            properties:
+                description:
+                    type: string
+                    description: |
+                        // Description is the description for this status.
+                output:
+                    type: string
+                    description: |
+                        // Output is the output from running the check that resulted in this status
+                status:
+                    $ref: '#/components/schemas/hashicorp.consul.catalog.v2beta1.Health'
+                    description: |
+                        // Health is the status. This maps to existing health check statuses.
+                type:
+                    type: string
+                    description: |
+                        // Type is the type of this health check, such as http, tcp, or kubernetes-readiness
+            description: |4
+                 This resource will belong to a node and will have an ownership relationship.
         hashicorp.consul.catalog.v2beta1.OSServiceCheck:
             type: object
             properties:

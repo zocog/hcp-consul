@@ -9,12 +9,12 @@ paths:
             summary: List auth.v2beta1.ComputedTrafficPermissions resources
             operationId: list-ComputedTrafficPermissions
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -74,6 +74,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /auth/v2beta1/ComputedTrafficPermissions/{name}:
         get:
             summary: Read auth.v2beta1.ComputedTrafficPermissions resources
@@ -270,12 +275,12 @@ paths:
             summary: List auth.v2beta1.NamespaceTrafficPermissions resources
             operationId: list-NamespaceTrafficPermissions
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -335,6 +340,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /auth/v2beta1/NamespaceTrafficPermissions/{name}:
         get:
             summary: Read auth.v2beta1.NamespaceTrafficPermissions resources
@@ -594,6 +604,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /auth/v2beta1/PartitionTrafficPermissions/{name}:
         get:
             summary: Read auth.v2beta1.PartitionTrafficPermissions resources
@@ -788,12 +803,12 @@ paths:
             summary: List auth.v2beta1.TrafficPermissions resources
             operationId: list-TrafficPermissions
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -853,6 +868,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /auth/v2beta1/TrafficPermissions/{name}:
         get:
             summary: Read auth.v2beta1.TrafficPermissions resources
@@ -1049,12 +1069,12 @@ paths:
             summary: List auth.v2beta1.WorkloadIdentity resources
             operationId: list-WorkloadIdentity
             parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
                 - $ref: '#/components/parameters/name_prefix'
                 - $ref: '#/components/parameters/namespace'
                 - $ref: '#/components/parameters/ns'
                 - $ref: '#/components/parameters/partition'
-                - $ref: '#/components/parameters/peer'
-                - $ref: '#/components/parameters/consistent'
             responses:
                 "200":
                     description: The listing was successful and the body contains the array of results.
@@ -1114,6 +1134,12 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                    - write:TrafficPermissions.name
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /auth/v2beta1/WorkloadIdentity/{name}:
         get:
             summary: Read auth.v2beta1.WorkloadIdentity resources
@@ -1317,6 +1343,7 @@ components:
                  +kubebuilder:validation:Enum=ACTION_ALLOW;ACTION_DENY;ACTION_UNKNOWN
                  +kubebuilder:validation:Type=string
         hashicorp.consul.auth.v2beta1.ComputedTrafficPermissions:
+            description: blah blah
             type: object
             properties:
                 allow_permissions:

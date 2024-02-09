@@ -72,6 +72,11 @@ paths:
                                                 // When calling the Write endpoint, providing a non-blank version will perform
                                                 // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
                                                 // if the given version doesn't match what is stored.
+            security:
+                - BearerAuth:
+                    - write:TrafficPermissions.destination
+                  ConsulTokenHeader:
+                    - write:TrafficPermissions.destination
     /tenancy/v2beta1/Namespace/{name}:
         get:
             summary: Read tenancy.v2beta1.Namespace resources

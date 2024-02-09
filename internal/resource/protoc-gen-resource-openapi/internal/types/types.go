@@ -34,12 +34,13 @@ type Path struct {
 }
 
 type Operation struct {
-	Summary     string              `yaml:"summary,omitempty"`
-	Description string              `yaml:"description,omitempty"`
-	OperationID string              `yaml:"operationId"`
-	Parameters  []*Parameter        `yaml:"parameters,omitempty"`
-	RequestBody *RequestBody        `yaml:"requestBody,omitempty"`
-	Responses   map[string]Response `yaml:"responses"`
+	Summary     string                `yaml:"summary,omitempty"`
+	Description string                `yaml:"description,omitempty"`
+	OperationID string                `yaml:"operationId"`
+	Parameters  []*Parameter          `yaml:"parameters,omitempty"`
+	RequestBody *RequestBody          `yaml:"requestBody,omitempty"`
+	Responses   map[string]Response   `yaml:"responses"`
+	Security    []map[string][]string `yaml:"security,omitempty"`
 }
 
 type Parameter struct {
