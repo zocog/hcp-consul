@@ -24,8 +24,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// +kubebuilder:validation:Enum=ACTION_ALLOW;ACTION_DENY;ACTION_UNKNOWN
-// +kubebuilder:validation:Type=string
 type Action int32
 
 const (
@@ -75,6 +73,18 @@ func (Action) EnumDescriptor() ([]byte, []int) {
 	return file_pbauth_v2beta1_traffic_permissions_proto_rawDescGZIP(), []int{0}
 }
 
+// <!-- crd generation tags
+// +gen-crd:TrafficPermissions:groupName:auth.consul.hashicorp.com
+// +gen-crd:TrafficPermissions:version:v2beta1
+// +gen-crd:TrafficPermissions:annotations:helm.sh/resource-policy=keep
+// +gen-crd:TrafficPermissions:subresource:status
+// +gen-crd:TrafficPermissions:scope:Namespaced
+// that should apply these routes"
+// representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations.
+// Clients may not set this value. It is represented in RFC3339 form and is in UTC.
+// Populated by the system. Read-only. Null for lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata"
+// +gen-crd:TrafficPermissions:preserveUnknownFields:false
+// -->
 type TrafficPermissions struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

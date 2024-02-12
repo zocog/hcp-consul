@@ -31,9 +31,8 @@ type APIGateway struct {
 	unknownFields protoimpl.UnknownFields
 
 	// GatewayClassName is the name of the GatewayClass used by the APIGateway
-	GatewayClassName string `protobuf:"bytes,1,opt,name=gateway_class_name,json=gatewayClassName,proto3" json:"gateway_class_name,omitempty"`
-	// +kubebuilder:validation:MinItems=1
-	Listeners []*APIGatewayListener `protobuf:"bytes,2,rep,name=listeners,proto3" json:"listeners,omitempty"`
+	GatewayClassName string                `protobuf:"bytes,1,opt,name=gateway_class_name,json=gatewayClassName,proto3" json:"gateway_class_name,omitempty"`
+	Listeners        []*APIGatewayListener `protobuf:"bytes,2,rep,name=listeners,proto3" json:"listeners,omitempty"`
 }
 
 func (x *APIGateway) Reset() {
@@ -90,12 +89,9 @@ type APIGatewayListener struct {
 	// Name is the name of the listener in a given gateway. This must be
 	// unique within a gateway.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// +kubebuilder:validation:Maximum=65535
-	// +kubebuilder:validation:Minimum=0
 	Port uint32 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
 	// Protocol is the protocol that a listener should use, it must
 	// either be "http" or "tcp"
-	// +kubebuilder:validation≈ftg6:Enum=tcp,http
 	Protocol string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
 	// Hostname is the host name that a listener should be bound to, if
 	// unspecified, the listener accepts requests for all hostnames.

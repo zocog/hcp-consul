@@ -15,7 +15,6 @@ message APIGateway {
   // GatewayClassName is the name of the GatewayClass used by the APIGateway
   string gateway_class_name = 1;
 
-  // +kubebuilder:validation:MinItems=1
   repeated APIGatewayListener listeners = 2;
 }
 
@@ -24,13 +23,10 @@ message APIGatewayListener {
   // unique within a gateway.
   string name = 1;
 
-  // +kubebuilder:validation:Maximum=65535
-  // +kubebuilder:validation:Minimum=0
   uint32 port = 2;
 
   // Protocol is the protocol that a listener should use, it must
   // either be "http" or "tcp"
-  // +kubebuilder:validation≈ftg6:Enum=tcp,http
   string protocol = 3;
 
   // Hostname is the host name that a listener should be bound to, if

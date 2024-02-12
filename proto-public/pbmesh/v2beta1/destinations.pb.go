@@ -25,6 +25,20 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// This is the description of destinations.
+//
+// <!-- crd generation tags
+// +gen-crd:Destinations:groupName:mesh.consul.hashicorp.com
+// +gen-crd:Destinations:version:v2beta1
+// +gen-crd:Destinations:annotations:helm.sh/resource-policy=keep
+// +gen-crd:Destinations:subresource:status
+// +gen-crd:Destinations:scope:Namespaced
+// that should apply these routes"
+// representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations.
+// Clients may not set this value. It is represented in RFC3339 form and is in UTC.
+// Populated by the system. Read-only. Null for lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata"
+// +gen-crd:Destinations:preserveUnknownFields:false
+// -->
 type Destinations struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

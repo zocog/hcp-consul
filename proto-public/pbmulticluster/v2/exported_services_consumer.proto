@@ -5,9 +5,6 @@ syntax = "proto3";
 
 package hashicorp.consul.multicluster.v2;
 
-// +kubebuilder:validation:Type=object
-// +kubebuilder:validation:Schemaless
-// +kubebuilder:pruning:PreserveUnknownFields
 message ExportedServicesConsumer {
   oneof consumer_tenancy {
     string peer = 1;

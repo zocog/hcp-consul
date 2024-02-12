@@ -24,8 +24,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// +kubebuilder:validation:Enum=HEALTH_STATUS_UNKNOWN;HEALTH_STATUS_HEALTHY;HEALTH_STATUS_UNHEALTHY
-// +kubebuilder:validation:Type=string
 type HealthStatus int32
 
 const (

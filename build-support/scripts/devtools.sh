@@ -139,6 +139,8 @@ function proto_tools_install {
 
     install_local_protoc_generator "${SOURCE_DIR}/internal/resource/protoc-gen-deepcopy"
 
+    install_local_protoc_generator "${SOURCE_DIR}/internal/resource/protoc-gen-crd"
+
     return 0
 }
 

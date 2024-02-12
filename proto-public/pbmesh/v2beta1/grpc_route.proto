@@ -95,8 +95,6 @@ message GRPCMethodMatch {
   string method = 3;
 }
 
-// +kubebuilder:validation:Enum=GRPC_METHOD_MATCH_TYPE_UNSPECIFIED;GRPC_METHOD_MATCH_TYPE_EXACT;GRPC_METHOD_MATCH_TYPE_REGEX
-// +kubebuilder:validation:Type=string
 enum GRPCMethodMatchType {
   GRPC_METHOD_MATCH_TYPE_UNSPECIFIED = 0;
   GRPC_METHOD_MATCH_TYPE_EXACT = 1;

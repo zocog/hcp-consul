@@ -24,8 +24,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// +kubebuilder:validation:Enum=GRPC_METHOD_MATCH_TYPE_UNSPECIFIED;GRPC_METHOD_MATCH_TYPE_EXACT;GRPC_METHOD_MATCH_TYPE_REGEX
-// +kubebuilder:validation:Type=string
 type GRPCMethodMatchType int32
 
 const (

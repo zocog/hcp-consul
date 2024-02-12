@@ -12,7 +12,19 @@ import "pbmesh/v2beta1/expose.proto";
 import "pbmesh/v2beta1/routing.proto";
 import "pbresource/annotations.proto";
 
-// This is a Resource type.
+// <!-- crd generation tags
+// +gen-crd:ProxyConfiguration:groupName:mesh.consul.hashicorp.com
+// +gen-crd:ProxyConfiguration:version:v2beta1
+// +gen-crd:ProxyConfiguration:annotations:helm.sh/resource-policy=keep
+// +gen-crd:ProxyConfiguration:subresource:status
+// +gen-crd:ProxyConfiguration:scope:Namespaced
+// that should apply these routes"
+// representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations.
+// Clients may not set this value. It is represented in RFC3339 form and is in UTC.
+// Populated by the system. Read-only. Null for lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata"
+// +gen-crd:ProxyConfiguration:preserveUnknownFields:false
+// -->
+//
 message ProxyConfiguration {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 
@@ -31,9 +43,6 @@ message ProxyConfiguration {
   // deprecated: prevent usage when using v2 APIs directly.
   // needed for backwards compatibility
   //
-  // +kubebuilder:validation:Type=object
-  // +kubebuilder:validation:Schemaless
-  // +kubebuilder:pruning:PreserveUnknownFields
   google.protobuf.Struct opaque_config = 4 [deprecated = true];
 }
 
@@ -101,8 +110,6 @@ message BootstrapConfig {
   string telemetry_collector_bind_socket_dir = 14;
 }
 
-// +kubebuilder:validation:Enum=PROXY_MODE_DEFAULT;PROXY_MODE_TRANSPARENT;PROXY_MODE_DIRECT
-// +kubebuilder:validation:Type=string
 enum ProxyMode {
   // ProxyModeDefault represents no specific mode and should
   // be used to indicate that a different layer of the configuration
@@ -141,8 +148,6 @@ message AccessLogsConfig {
   string text_format = 6;
 }
 
-// +kubebuilder:validation:Enum=LOG_SINK_TYPE_DEFAULT;LOG_SINK_TYPE_FILE;LOG_SINK_TYPE_STDERR;LOG_SINK_TYPE_STDOUT
-// +kubebuilder:validation:Type=string
 enum LogSinkType {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   LOG_SINK_TYPE_DEFAULT = 0;
@@ -155,16 +160,11 @@ enum LogSinkType {
 message EnvoyExtension {
   string name = 1;
   bool required = 2;
-  // +kubebuilder:validation:Type=object
-  // +kubebuilder:validation:Schemaless
-  // +kubebuilder:pruning:PreserveUnknownFields
   google.protobuf.Struct arguments = 3;
   string consul_version = 4;
   string envoy_version = 5;
 }
 
-// +kubebuilder:validation:Enum=MUTUAL_TLS_MODE_DEFAULT;MUTUAL_TLS_MODE_STRICT;MUTUAL_TLS_MODE_PERMISSIVE
-// +kubebuilder:validation:Type=string
 enum MutualTLSMode {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   MUTUAL_TLS_MODE_DEFAULT = 0;

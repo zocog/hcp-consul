@@ -34,6 +34,9 @@ plugins:
   - name: deepcopy
     out: .
     opt: paths=source_relative
+  - name: crd
+    out: .
+    strategy: all
   - name: json-shim
     out: .
     opt: paths=source_relative

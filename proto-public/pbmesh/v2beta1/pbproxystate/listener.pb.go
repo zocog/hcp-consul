@@ -24,8 +24,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// +kubebuilder:validation:Enum=DIRECTION_UNSPECIFIED;DIRECTION_INBOUND;DIRECTION_OUTBOUND
-// +kubebuilder:validation:Type=string
 type Direction int32
 
 const (
@@ -76,8 +74,6 @@ func (Direction) EnumDescriptor() ([]byte, []int) {
 	return file_pbmesh_v2beta1_pbproxystate_listener_proto_rawDescGZIP(), []int{0}
 }
 
-// +kubebuilder:validation:Enum=BALANCE_CONNECTIONS_DEFAULT;BALANCE_CONNECTIONS_EXACT
-// +kubebuilder:validation:Type=string
 type BalanceConnections int32
 
 const (
@@ -126,9 +122,6 @@ func (BalanceConnections) EnumDescriptor() ([]byte, []int) {
 }
 
 // Capabilities map to proxy functionality to enable. These enable tproxy, l7 protocol/alpn inspection, or l4 sni/alpn inspection.
-//
-// +kubebuilder:validation:Enum=CAPABILITY_TRANSPARENT;CAPABILITY_L7_PROTOCOL_INSPECTION;CAPABILITY_L4_TLS_INSPECTION
-// +kubebuilder:validation:Type=string
 type Capability int32
 
 const (
@@ -179,8 +172,6 @@ func (Capability) EnumDescriptor() ([]byte, []int) {
 	return file_pbmesh_v2beta1_pbproxystate_listener_proto_rawDescGZIP(), []int{2}
 }
 
-// +kubebuilder:validation:Enum=XFCC_POLICY_SANITIZE;XFCC_POLICY_FORWARD_ONLY;XFCC_POLICY_APPEND_FORWARD;XFCC_POLICY_SANITIZE_SET;XFCC_POLICY_ALWAYS_FORWARD_ONLY
-// +kubebuilder:validation:Type=string
 type XFCCPolicy int32
 
 const (
@@ -246,8 +237,6 @@ func (XFCCPolicy) EnumDescriptor() ([]byte, []int) {
 	return file_pbmesh_v2beta1_pbproxystate_listener_proto_rawDescGZIP(), []int{3}
 }
 
-// +kubebuilder:validation:Enum=L7_PROTOCOL_HTTP;L7_PROTOCOL_HTTP2;L7_PROTOCOL_GRPC
-// +kubebuilder:validation:Type=string
 type L7Protocol int32
 
 const (

@@ -31,9 +31,8 @@ type MeshGateway struct {
 	unknownFields protoimpl.UnknownFields
 
 	// GatewayClassName is the name of the GatewayClass used by the MeshGateway
-	GatewayClassName string `protobuf:"bytes,1,opt,name=gateway_class_name,json=gatewayClassName,proto3" json:"gateway_class_name,omitempty"`
-	// +kubebuilder:validation:MinItems=1
-	Listeners []*MeshGatewayListener `protobuf:"bytes,2,rep,name=listeners,proto3" json:"listeners,omitempty"`
+	GatewayClassName string                 `protobuf:"bytes,1,opt,name=gateway_class_name,json=gatewayClassName,proto3" json:"gateway_class_name,omitempty"`
+	Listeners        []*MeshGatewayListener `protobuf:"bytes,2,rep,name=listeners,proto3" json:"listeners,omitempty"`
 	// Selection of workloads to be configured as mesh gateways
 	Workloads *v2beta1.WorkloadSelector `protobuf:"bytes,3,opt,name=workloads,proto3" json:"workloads,omitempty"`
 }
@@ -96,11 +95,8 @@ type MeshGatewayListener struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// +kubebuilder:validation:Maximum=65535
-	// +kubebuilder:validation:Minimum=0
-	Port uint32 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	// +kubebuilder:validation:Enum=TCP
+	Name     string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Port     uint32 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
 	Protocol string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
 }
 

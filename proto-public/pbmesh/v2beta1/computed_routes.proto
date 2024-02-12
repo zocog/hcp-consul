@@ -148,8 +148,6 @@ message BackendTargetDetails {
   repeated hashicorp.consul.resource.Reference identity_refs = 23;
 }
 
-// +kubebuilder:validation:Enum=BACKEND_TARGET_DETAILS_TYPE_UNSPECIFIED;BACKEND_TARGET_DETAILS_TYPE_DIRECT;BACKEND_TARGET_DETAILS_TYPE_INDIRECT
-// +kubebuilder:validation:Type=string
 enum BackendTargetDetailsType {
   BACKEND_TARGET_DETAILS_TYPE_UNSPECIFIED = 0;
 

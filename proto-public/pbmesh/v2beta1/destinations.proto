@@ -10,6 +10,21 @@ import "pbmesh/v2beta1/destinations_configuration.proto";
 import "pbresource/annotations.proto";
 import "pbresource/resource.proto";
 
+//
+// This is the description of destinations.
+//
+// <!-- crd generation tags
+// +gen-crd:Destinations:groupName:mesh.consul.hashicorp.com
+// +gen-crd:Destinations:version:v2beta1
+// +gen-crd:Destinations:subresource:status
+// +gen-crd:Destinations:scope:Namespaced
+// that should apply these routes"
+// representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations.
+// Clients may not set this value. It is represented in RFC3339 form and is in UTC.
+// Populated by the system. Read-only. Null for lists. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata"
+// +gen-crd:Destinations:preserveUnknownFields:false
+// -->
+//
 message Destinations {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 

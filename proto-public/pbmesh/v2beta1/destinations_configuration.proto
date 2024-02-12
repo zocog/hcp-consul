@@ -58,7 +58,6 @@ message DestinationConfiguration {
 
   // ConnectTimeout is the timeout used when making a new
   // connection to this destination. Defaults to 5 seconds if not set.
-  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration connect_timeout = 2;
 
   // Limits are the set of limits that are applied to the proxy for a specific destination.
@@ -98,7 +97,6 @@ message DestinationLimits {
 message PassiveHealthCheck {
   // Interval between health check analysis sweeps. Each sweep may remove
   // hosts or return hosts to the pool.
-  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration interval = 1;
 
   // MaxFailures is the count of consecutive failures that results in a host

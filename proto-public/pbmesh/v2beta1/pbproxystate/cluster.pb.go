@@ -25,8 +25,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// +kubebuilder:validation:Enum=DISCOVERY_TYPE_LOGICAL;DISCOVERY_TYPE_STRICT
-// +kubebuilder:validation:Type=string
 type DiscoveryType int32
 
 const (
@@ -254,8 +252,7 @@ type FailoverGroupConfig struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UseAltStatName bool `protobuf:"varint,1,opt,name=use_alt_stat_name,json=useAltStatName,proto3" json:"use_alt_stat_name,omitempty"`
-	// +kubebuilder:validation:Type=string
+	UseAltStatName bool                 `protobuf:"varint,1,opt,name=use_alt_stat_name,json=useAltStatName,proto3" json:"use_alt_stat_name,omitempty"`
 	ConnectTimeout *durationpb.Duration `protobuf:"bytes,2,opt,name=connect_timeout,json=connectTimeout,proto3" json:"connect_timeout,omitempty"`
 }
 
@@ -916,7 +913,6 @@ type DynamicEndpointGroupConfig struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// +kubebuilder:validation:Format=duration
 	ConnectTimeout        *durationpb.Duration `protobuf:"bytes,1,opt,name=connect_timeout,json=connectTimeout,proto3" json:"connect_timeout,omitempty"`
 	DisablePanicThreshold bool                 `protobuf:"varint,2,opt,name=disable_panic_threshold,json=disablePanicThreshold,proto3" json:"disable_panic_threshold,omitempty"`
 	// Types that are assignable to LbPolicy:
@@ -1414,13 +1410,11 @@ type OutlierDetection struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// +kubebuilder:validation:Format=duration
 	Interval                 *durationpb.Duration    `protobuf:"bytes,1,opt,name=interval,proto3" json:"interval,omitempty"`
 	Consecutive_5Xx          *wrapperspb.UInt32Value `protobuf:"bytes,2,opt,name=consecutive_5xx,json=consecutive5xx,proto3" json:"consecutive_5xx,omitempty"`
 	EnforcingConsecutive_5Xx *wrapperspb.UInt32Value `protobuf:"bytes,3,opt,name=enforcing_consecutive_5xx,json=enforcingConsecutive5xx,proto3" json:"enforcing_consecutive_5xx,omitempty"`
 	MaxEjectionPercent       *wrapperspb.UInt32Value `protobuf:"bytes,4,opt,name=max_ejection_percent,json=maxEjectionPercent,proto3" json:"max_ejection_percent,omitempty"`
-	// +kubebuilder:validation:Format=duration
-	BaseEjectionTime *durationpb.Duration `protobuf:"bytes,5,opt,name=base_ejection_time,json=baseEjectionTime,proto3" json:"base_ejection_time,omitempty"`
+	BaseEjectionTime         *durationpb.Duration    `protobuf:"bytes,5,opt,name=base_ejection_time,json=baseEjectionTime,proto3" json:"base_ejection_time,omitempty"`
 }
 
 func (x *OutlierDetection) Reset() {
@@ -1558,7 +1552,6 @@ type PassthroughEndpointGroupConfig struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// +kubebuilder:validation:Format=duration
 	ConnectTimeout *durationpb.Duration `protobuf:"bytes,1,opt,name=connect_timeout,json=connectTimeout,proto3" json:"connect_timeout,omitempty"`
 }
 
@@ -1606,7 +1599,6 @@ type DNSEndpointGroupConfig struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// +kubebuilder:validation:Format=duration
 	ConnectTimeout            *durationpb.Duration       `protobuf:"bytes,1,opt,name=connect_timeout,json=connectTimeout,proto3" json:"connect_timeout,omitempty"`
 	DisablePanicThreshold     bool                       `protobuf:"varint,2,opt,name=disable_panic_threshold,json=disablePanicThreshold,proto3" json:"disable_panic_threshold,omitempty"`
 	DiscoveryType             DiscoveryType              `protobuf:"varint,3,opt,name=discovery_type,json=discoveryType,proto3,enum=hashicorp.consul.mesh.v2beta1.pbproxystate.DiscoveryType" json:"discovery_type,omitempty"`
@@ -1702,7 +1694,6 @@ type StaticEndpointGroupConfig struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// +kubebuilder:validation:Format=duration
 	ConnectTimeout  *durationpb.Duration `protobuf:"bytes,1,opt,name=connect_timeout,json=connectTimeout,proto3" json:"connect_timeout,omitempty"`
 	CircuitBreakers *CircuitBreakers     `protobuf:"bytes,2,opt,name=circuit_breakers,json=circuitBreakers,proto3" json:"circuit_breakers,omitempty"`
 }

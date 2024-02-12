@@ -188,7 +188,6 @@ type DestinationConfiguration struct {
 	Protocol v2beta1.Protocol `protobuf:"varint,1,opt,name=protocol,proto3,enum=hashicorp.consul.catalog.v2beta1.Protocol" json:"protocol,omitempty"`
 	// ConnectTimeout is the timeout used when making a new
 	// connection to this destination. Defaults to 5 seconds if not set.
-	// +kubebuilder:validation:Format=duration
 	ConnectTimeout *durationpb.Duration `protobuf:"bytes,2,opt,name=connect_timeout,json=connectTimeout,proto3" json:"connect_timeout,omitempty"`
 	// Limits are the set of limits that are applied to the proxy for a specific destination.
 	Limits *DestinationLimits `protobuf:"bytes,3,opt,name=limits,proto3" json:"limits,omitempty"`
@@ -357,7 +356,6 @@ type PassiveHealthCheck struct {
 
 	// Interval between health check analysis sweeps. Each sweep may remove
 	// hosts or return hosts to the pool.
-	// +kubebuilder:validation:Format=duration
 	Interval *durationpb.Duration `protobuf:"bytes,1,opt,name=interval,proto3" json:"interval,omitempty"`
 	// MaxFailures is the count of consecutive failures that results in a host
 	// being removed from the pool.
