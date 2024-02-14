@@ -1,0 +1,49 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v2beta1;
+
+import "pbmesh/v2beta1/api_gateway.proto";
+import "pbmesh/v2beta1/computed_routes.proto";
+import "pbresource/annotations.proto";
+import "pbresource/resource.proto";
+
+// This is a Resource type.
+message ComputedGatewayConfiguration {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+
+  // ListenerConfigs is the map of listener ports to the ComputedPortRoutes for
+  // those ports.
+  //
+  // The port identifier key here is always normalized to the target (workload)
+  // port name regardless of whether a virtual or target port identifier was
+  // provided in input config.
+  map<string, ComputedGatewayListener> listener_configs = 1;
+  // BoundReferences is a slice of mixed type references of resources that were
+  // involved in the formulation of this resource.
+  repeated hashicorp.consul.resource.Reference bound_references = 2;
+}
+
+message ComputedGatewayListener {
+  // HostnameConfigs is the map of the ComputedPortRoutes for
+  // those ports.
+  //
+  // The port identifier key here is always normalized to the target (workload)
+  // port name regardless of whether a virtual or target port identifier was
+  // provided in input config.
+  map<string, ComputedHostnameRoutes> hostname_configs = 1;
+  uint32 port = 2;
+}
+
+message ComputedHostnameRoutes {
+  // HostnameConfigs is the map of the ComputedPortRoutes for
+  // those ports.
+  //
+  // The port identifier key here is always normalized to the target (workload)
+  // port name regardless of whether a virtual or target port identifier was
+  // provided in input config.
+  ComputedPortRoutes routes = 1;
+  APIGatewayTLSConfiguration tls = 2;
+}

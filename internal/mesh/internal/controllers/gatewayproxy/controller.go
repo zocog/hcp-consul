@@ -106,58 +106,21 @@ func (r *reconciler) reconcileAPIGatewayProxyState(ctx context.Context, dataFetc
 		rt.Logger.Trace("proxy state template for this gateway doesn't yet exist; generating a new one")
 	}
 
-	gwID := &pbresource.ID{
+	gatewayID := &pbresource.ID{
 		Name:    workload.Data.Identity,
-		Type:    pbmesh.APIGatewayType,
+		Type:    pbmesh.ComputedGatewayConfigurationType,
 		Tenancy: workload.Id.Tenancy,
 	}
 
-	apiGateway, err := dataFetcher.FetchAPIGateway(ctx, gwID)
+	configuration, err := dataFetcher.FetchComputedGatewayConfiguration(ctx, gatewayID)
 	if err != nil {
 		rt.Logger.Error("error reading the associated api gateway", "error", err)
 		return err
 	}
 
-	if apiGateway == nil {
+	if configuration == nil {
 		rt.Logger.Trace("api gateway doesn't exist; skipping reconciliation", "apiGatewayID", gwID)
 		return nil
-	}
-
-	allTCPRoutes, err := dataFetcher.FetchAllTCPRoutes(ctx, req.ID.Tenancy)
-	if err != nil {
-		rt.Logger.Error("error reading the associated tcp routes", "error", err)
-		return err
-	}
-
-	if len(allTCPRoutes) == 0 {
-		rt.Logger.Trace("no tcp routes found for this gateway; skipping reconciliation", "apiGatewayID", gwID)
-		return nil
-	}
-
-	services := make([]*pbcatalog.Service, 0)
-
-	referencedTCPRoutes := make([]*pbmesh.TCPRoute, 0)
-	for _, tcpRoute := range allTCPRoutes {
-		for _, parentRef := range tcpRoute.Data.ParentRefs {
-			if parentRef.Ref.Name == apiGateway.Id.Name {
-				referencedTCPRoutes = append(referencedTCPRoutes, tcpRoute.Data)
-				for _, rule := range tcpRoute.Data.Rules {
-					for _, backendRef := range rule.BackendRefs {
-						service, err := dataFetcher.FetchService(ctx, resource.IDFromReference(backendRef.BackendRef.Ref))
-						if err != nil {
-							rt.Logger.Error("error reading the associated service", "error", err)
-							return err
-						}
-
-						if service == nil {
-							rt.Logger.Error("service was nil", "serviceID", resource.IDFromReference(backendRef.BackendRef.Ref))
-							return nil
-						}
-						services = append(services, service.Data)
-					}
-				}
-			}
-		}
 	}
 
 	trustDomain, err := r.getTrustDomain()
@@ -166,9 +129,7 @@ func (r *reconciler) reconcileAPIGatewayProxyState(ctx context.Context, dataFetc
 		return err
 	}
 
-	gw := apiGateway.Data
-
-	newPST := builder.NewAPIGWProxyStateTemplateBuilder(workload, services, referencedTCPRoutes, gw, rt.Logger, dataFetcher, r.dc, trustDomain).Build()
+	newPST := builder.NewAPIGWProxyStateTemplateBuilder(workload, configuration.Data, rt.Logger, dataFetcher, r.dc, trustDomain).Build()
 
 	proxyTemplateData, err := anypb.New(newPST)
 	if err != nil {
@@ -197,8 +158,6 @@ func (r *reconciler) reconcileAPIGatewayProxyState(ctx context.Context, dataFetc
 		rt.Logger.Error("error writing proxy state template", "error", err)
 		return err
 	}
-
-	return nil
 
 	return nil
 }

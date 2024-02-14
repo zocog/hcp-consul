@@ -132,6 +132,19 @@ func (f *Fetcher) FetchComputedExportedServices(ctx context.Context, id *pbresou
 	return dec, nil
 }
 
+// FetchComputedGatewayConfiguration fetches a service resource from the resource service.
+// This will panic if the type field in the ID argument is not a ComputedExportedServices type.
+func (f *Fetcher) FetchComputedGatewayConfiguration(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedGatewayConfiguration, error) {
+	assertResourceType(pbmesh.ComputedGatewayConfigurationType, id.Type)
+
+	dec, err := resource.GetDecodedResource[*pbmesh.ComputedGatewayConfiguration](ctx, f.client, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return dec, nil
+}
+
 // FetchService fetches a service resource from the resource service.
 // This will panic if the type field in the ID argument is not a Service type.
 func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.DecodedService, error) {
