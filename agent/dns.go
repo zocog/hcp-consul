@@ -2079,6 +2079,11 @@ func (d *DNSServer) addServiceSRVRecordsToMessage(cfg *dnsConfig, lookup service
 func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	cfg := d.config.Load().(*dnsConfig)
 
+	// do not use recursion if not configured or disabled
+	if atomic.LoadUint32(&(d.recursorEnabled)) != 1 {
+		return
+	}
+
 	q := req.Question[0]
 	network := "udp"
 	defer func(s time.Time) {
