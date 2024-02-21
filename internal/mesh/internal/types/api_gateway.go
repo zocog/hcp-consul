@@ -18,3 +18,14 @@ func RegisterAPIGateway(r resource.Registry) {
 		Validate: nil, // TODO NET-7618
 	})
 }
+
+func RegisterComputedAPIGateway(r resource.Registry) {
+	r.Register(resource.Registration{
+		Type:     pbmesh.ComputedGatewayConfigurationType,
+		Proto:    &pbmesh.ComputedGatewayConfiguration{},
+		Scope:    resource.ScopeNamespace,
+		ACLs:     nil, // TODO NET-7289
+		Mutate:   nil, // TODO NET-7617
+		Validate: nil, // TODO NET-7618
+	})
+}

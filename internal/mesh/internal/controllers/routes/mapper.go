@@ -91,6 +91,17 @@ func MapService(ctx context.Context, rt controller.Runtime, res *pbresource.Reso
 	return mapService(ctx, rt, res)
 }
 
+func MapAPIGateway(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+	if !types.IsAPIGatewayType(res.Id.Type) {
+		return nil, fmt.Errorf("type is not a service type: %s", res.Id.Type)
+	}
+	return MapAPIGateway(ctx, rt, res)
+}
+
+var mapAPIGateway = dependency.MultiMapper(
+	dependency.ReplaceType(pbmesh.ComputedRoutesType), // TODO: may be unnecessary
+)
+
 func appendParentsFromIteratorAsComputedRoutes[T types.XRouteData](out []controller.Request, iter cache.DecodedResourceIterator[T]) ([]controller.Request, error) {
 	for {
 		res, err := iter.Next()

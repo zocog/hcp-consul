@@ -15,7 +15,9 @@ import (
 )
 
 type loader struct {
-	cache cache.ReadOnlyCache
+	cache        cache.ReadOnlyCache
+	parentType   *pbresource.Type
+	computedType *pbresource.Type
 
 	// output var
 	out *RelatedResources
@@ -30,9 +32,30 @@ func LoadResourcesForComputedRoutes(
 	computedRoutesID *pbresource.ID,
 ) (*RelatedResources, error) {
 	loader := &loader{
-		cache:    cache,
-		mcToLoad: make(map[resource.ReferenceKey]struct{}),
-		mcDone:   make(map[resource.ReferenceKey]struct{}),
+		cache:        cache,
+		parentType:   pbcatalog.ServiceType,
+		computedType: pbmesh.ComputedRoutesType,
+		mcToLoad:     make(map[resource.ReferenceKey]struct{}),
+		mcDone:       make(map[resource.ReferenceKey]struct{}),
+	}
+
+	if err := loader.load(computedRoutesID); err != nil {
+		return nil, err
+	}
+
+	return loader.out, nil
+}
+
+func LoadResourcesForComputedGateway(
+	cache cache.ReadOnlyCache,
+	computedRoutesID *pbresource.ID,
+) (*RelatedResources, error) {
+	loader := &loader{
+		cache:        cache,
+		parentType:   pbmesh.APIGatewayType,
+		computedType: pbmesh.ComputedGatewayConfigurationType,
+		mcToLoad:     make(map[resource.ReferenceKey]struct{}),
+		mcDone:       make(map[resource.ReferenceKey]struct{}),
 	}
 
 	if err := loader.load(computedRoutesID); err != nil {
@@ -43,7 +66,7 @@ func LoadResourcesForComputedRoutes(
 }
 
 func (l *loader) requestLoad(computedRoutesID *pbresource.ID) {
-	assertResourceType(pbmesh.ComputedRoutesType, computedRoutesID.Type)
+	assertResourceTypeIn([]*pbresource.Type{pbmesh.ComputedRoutesType, pbmesh.ComputedGatewayConfigurationType}, computedRoutesID.Type)
 	rk := resource.NewReferenceKey(computedRoutesID)
 
 	if _, done := l.mcDone[rk]; done {
@@ -53,7 +76,7 @@ func (l *loader) requestLoad(computedRoutesID *pbresource.ID) {
 }
 
 func (l *loader) markLoaded(computedRoutesID *pbresource.ID) {
-	assertResourceType(pbmesh.ComputedRoutesType, computedRoutesID.Type)
+	assertResourceTypeIn([]*pbresource.Type{pbmesh.ComputedRoutesType, pbmesh.ComputedGatewayConfigurationType}, computedRoutesID.Type)
 	rk := resource.NewReferenceKey(computedRoutesID)
 
 	l.mcDone[rk] = struct{}{}
@@ -92,8 +115,19 @@ func (l *loader) loadOne(computedRoutesID *pbresource.ID) error {
 	//
 	// All ports are embedded within.
 
-	parentServiceID := resource.ReplaceType(pbcatalog.ServiceType, computedRoutesID)
+	parentServiceID := resource.ReplaceType(l.parentType, computedRoutesID)
 	parentServiceRef := resource.Reference(parentServiceID, "")
+
+	if types.IsAPIGatewayType(l.parentType) {
+		service, err := cache.GetDecoded[*pbmesh.APIGateway](l.cache, pbmesh.APIGatewayType, "id", parentServiceID)
+		if err != nil {
+			return err
+		}
+		if service == nil {
+			return nil
+		}
+		l.out.AddResource(service)
+	}
 
 	if err := l.loadBackendServiceInfo(parentServiceID); err != nil {
 		return err
@@ -140,6 +174,7 @@ func (l *loader) gatherTCPRoutesAsInput(parentServiceRef *pbresource.Reference) 
 	if err != nil {
 		return err
 	}
+
 	return gatherXRoutesAsInput(l, tcpRoutes, func(route *types.DecodedTCPRoute) {
 		l.out.AddTCPRoute(route)
 	})
@@ -223,14 +258,14 @@ func gatherXRoutesAsInput[T types.XRouteData](
 
 func gatherSingleXRouteAsInput[T types.XRouteData](l *loader, route *resource.DecodedResource[T]) error {
 	for _, parentRef := range route.Data.GetParentRefs() {
-		if types.IsServiceType(parentRef.Ref.Type) {
-			parentComputedRoutesID := &pbresource.ID{
-				Type:    pbmesh.ComputedRoutesType,
+		if resource.EqualType(l.parentType, parentRef.Ref.Type) {
+			parentComputedID := &pbresource.ID{
+				Type:    l.computedType,
 				Tenancy: parentRef.Ref.Tenancy,
 				Name:    parentRef.Ref.Name,
 			}
 			// Note: this will only schedule things to load that have not already been loaded
-			l.requestLoad(parentComputedRoutesID)
+			l.requestLoad(parentComputedID)
 		}
 	}
 
@@ -255,4 +290,21 @@ func assertResourceType(expected, actual *pbresource.Type) {
 			resource.TypeToString(actual),
 		))
 	}
+}
+
+func assertResourceTypeIn(expected []*pbresource.Type, actual *pbresource.Type) {
+	expctedTypeStr := ""
+	for _, t := range expected {
+		if resource.EqualType(t, actual) {
+			return
+		}
+		expctedTypeStr += resource.TypeToString(t) + " "
+	}
+
+	// this is always a programmer error so safe to panic
+	panic(fmt.Sprintf(
+		"expected type to be in %q, provided a %q type",
+		expctedTypeStr,
+		resource.TypeToString(actual),
+	))
 }

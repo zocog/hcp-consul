@@ -59,11 +59,14 @@ func Controller() *controller.Controller {
 			// BoundRefs: none
 			MapService,
 		).
+		WithWatch(pbmesh.APIGatewayType,
+			// BoundRefs: none
+			MapAPIGateway,
+		).
 		WithReconciler(&routesReconciler{})
 }
 
-type routesReconciler struct {
-}
+type routesReconciler struct{}
 
 func (r *routesReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
 	// Notably don't inject this as "resource-id" here into the logger, since

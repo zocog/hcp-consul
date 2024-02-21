@@ -15,13 +15,16 @@ import (
 
 // RelatedResources is a spiritual successor of *configentry.DiscoveryChainSet
 type RelatedResources struct {
-	ComputedRoutesList []*pbresource.ID
+	// ComputedIDList will be a list of ComputedRoutes IDs that were requested in the case of EW traffic and
+	// a list of ComputedAPIGateway IDs in the case of NS traffic
+	ComputedIDList []*pbresource.ID
 	// RoutesByParentRef is a map of a parent Service to the xRoutes that compose it.
 	RoutesByParentRef        map[resource.ReferenceKey]map[resource.ReferenceKey]struct{}
 	HTTPRoutes               map[resource.ReferenceKey]*types.DecodedHTTPRoute
 	GRPCRoutes               map[resource.ReferenceKey]*types.DecodedGRPCRoute
 	TCPRoutes                map[resource.ReferenceKey]*types.DecodedTCPRoute
 	Services                 map[resource.ReferenceKey]*types.DecodedService
+	APIGateways              map[resource.ReferenceKey]*types.DecodedAPIGateway
 	ComputedFailoverPolicies map[resource.ReferenceKey]*types.DecodedComputedFailoverPolicy
 	DestinationPolicies      map[resource.ReferenceKey]*types.DecodedDestinationPolicy
 }
@@ -33,6 +36,7 @@ func NewRelatedResources() *RelatedResources {
 		GRPCRoutes:               make(map[resource.ReferenceKey]*types.DecodedGRPCRoute),
 		TCPRoutes:                make(map[resource.ReferenceKey]*types.DecodedTCPRoute),
 		Services:                 make(map[resource.ReferenceKey]*types.DecodedService),
+		APIGateways:              make(map[resource.ReferenceKey]*types.DecodedAPIGateway),
 		ComputedFailoverPolicies: make(map[resource.ReferenceKey]*types.DecodedComputedFailoverPolicy),
 		DestinationPolicies:      make(map[resource.ReferenceKey]*types.DecodedDestinationPolicy),
 	}
@@ -46,8 +50,8 @@ func (r *RelatedResources) AddComputedRoutesIDs(list ...*pbresource.ID) *Related
 }
 
 func (r *RelatedResources) AddComputedRoutesID(id *pbresource.ID) *RelatedResources {
-	assertResourceType(pbmesh.ComputedRoutesType, id.Type)
-	r.ComputedRoutesList = append(r.ComputedRoutesList, id)
+	assertResourceTypeIn([]*pbresource.Type{pbmesh.ComputedRoutesType, pbmesh.ComputedGatewayConfigurationType}, id.Type)
+	r.ComputedIDList = append(r.ComputedIDList, id)
 	return r
 }
 
@@ -83,6 +87,8 @@ func (r *RelatedResources) AddResource(res any) {
 		r.AddDestinationPolicy(dec)
 	case *types.DecodedService:
 		r.AddService(dec)
+	case *types.DecodedAPIGateway:
+		r.AddAPIGateway(dec)
 	case *types.DecodedComputedFailoverPolicy:
 		r.AddComputedFailoverPolicy(dec)
 	default:
@@ -118,6 +124,11 @@ func (r *RelatedResources) AddService(dec *types.DecodedService) {
 	addResource(dec.Resource.Id, dec, r.Services)
 }
 
+func (r *RelatedResources) AddAPIGateway(dec *types.DecodedAPIGateway) {
+	assertResourceType(pbmesh.APIGatewayType, dec.Id.Type)
+	addResource(dec.Resource.Id, dec, r.APIGateways)
+}
+
 func (r *RelatedResources) AddComputedFailoverPolicy(dec *types.DecodedComputedFailoverPolicy) {
 	assertResourceType(pbcatalog.ComputedFailoverPolicyType, dec.Id.Type)
 	addResource(dec.Resource.Id, dec, r.ComputedFailoverPolicies)
@@ -134,7 +145,7 @@ func (r *RelatedResources) addRouteSetEntries(
 	routeRK := resource.NewReferenceKey(res.Id)
 
 	for _, parentRef := range xroute.GetParentRefs() {
-		if parentRef.Ref == nil || !types.IsServiceType(parentRef.Ref.Type) {
+		if parentRef.Ref == nil || (!types.IsServiceType(parentRef.Ref.Type) && !types.IsAPIGatewayType(parentRef.Ref.Type)) {
 			continue
 		}
 		svcRK := resource.NewReferenceKey(parentRef.Ref)

@@ -89,6 +89,10 @@ func validateParentRefs(id *pbresource.ID, parentRefs []*pbmesh.ParentReference)
 			})
 		}
 
+		if resource.EqualType(pbmesh.APIGatewayType, parent.Ref.Type) {
+			return nil
+		}
+
 		if err := catalog.ValidateLocalServiceRefNoSection(parent.Ref, wrapRefErr); err != nil {
 			merr = multierror.Append(merr, err)
 		} else {

@@ -21,6 +21,7 @@ func Register(r resource.Registry) {
 	RegisterComputedRoutes(r)
 	RegisterMeshGateway(r)
 	RegisterAPIGateway(r)
+	RegisterComputedAPIGateway(r)
 	RegisterMeshConfiguration(r)
 	// todo (v2): uncomment once we implement it.
 	// RegisterDestinationsConfiguration(r)

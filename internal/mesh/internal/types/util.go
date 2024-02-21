@@ -66,6 +66,14 @@ func IsServiceType(typ *pbresource.Type) bool {
 	return false
 }
 
+func IsAPIGatewayType(typ *pbresource.Type) bool {
+	switch {
+	case resource.EqualType(typ, pbmesh.APIGatewayType):
+		return true
+	}
+	return false
+}
+
 func IsComputedRoutesType(typ *pbresource.Type) bool {
 	switch {
 	case resource.EqualType(typ, pbmesh.ComputedRoutesType):

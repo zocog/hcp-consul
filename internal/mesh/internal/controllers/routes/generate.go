@@ -28,8 +28,8 @@ func GenerateComputedRoutes(
 	related *RelatedResources,
 	pending PendingStatuses,
 ) []*ComputedRoutesResult {
-	out := make([]*ComputedRoutesResult, 0, len(related.ComputedRoutesList))
-	for _, computedRoutesID := range related.ComputedRoutesList {
+	out := make([]*ComputedRoutesResult, 0, len(related.ComputedIDList))
+	for _, computedRoutesID := range related.ComputedIDList {
 		out = append(out, compile(related, computedRoutesID, pending))
 	}
 	return out
