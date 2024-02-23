@@ -227,10 +227,6 @@ func (s *deltaSession) InstallSnapshot(srv *Server, cs proxysnapshot.ProxySnapsh
 		return status.Errorf(codes.Unavailable, "failed to compute xDS resource versions: %v", err)
 	}
 
-	s.resourceMap = newResourceMap
-	s.currentVersions = newVersions
-	s.ready = true
-
 	if !s.ready {
 		// Got config, try to authenticate next.
 
@@ -242,6 +238,10 @@ func (s *deltaSession) InstallSnapshot(srv *Server, cs proxysnapshot.ProxySnapsh
 
 		s.logger.Trace("Got initial config snapshot")
 	}
+
+	s.resourceMap = newResourceMap
+	s.currentVersions = newVersions
+	s.ready = true
 
 	return nil
 }
