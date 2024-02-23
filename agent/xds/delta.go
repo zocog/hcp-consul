@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -18,16 +17,15 @@ import (
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/hashicorp/go-hclog"
-	goversion "github.com/hashicorp/go-version"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/go-hclog"
+	goversion "github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/consul/agent/envoyextensions"
-	external "github.com/hashicorp/consul/agent/grpc-external"
-	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
@@ -127,12 +125,6 @@ func getEnvoyConfiguration(proxySnapshot proxysnapshot.ProxySnapshot, logger hcl
 	}
 }
 
-const (
-	stateDeltaInit int = iota
-	stateDeltaPendingInitialConfig
-	stateDeltaRunning
-)
-
 func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discovery_v3.DeltaDiscoveryRequest) error {
 	// Handle invalid ACL tokens up-front.
 	if _, err := s.authenticate(stream.Context()); err != nil {
@@ -140,90 +132,31 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 	}
 
 	// Loop state
-	var (
-		proxySnapshot proxysnapshot.ProxySnapshot
-		node          *envoy_config_core_v3.Node
-		stateCh       <-chan proxysnapshot.ProxySnapshot
-		drainCh       limiter.SessionTerminatedChan
-		watchCancel   func()
-		nonce         uint64 // xDS requires a unique nonce to correlate response/request pairs
-		ready         bool   // set to true after the first snapshot arrives
-
-		streamStartTime = time.Now()
-		streamStartOnce sync.Once
+	session := newDeltaSession(
+		s.Logger.Named(logging.XDS).With("xdsVersion", "v3"),
+		stream,
 	)
-
-	var (
-		// resourceMap is the SoTW we are incrementally attempting to sync to envoy.
-		//
-		// type => name => proto
-		resourceMap = xdscommon.EmptyIndexedResources()
-
-		// currentVersions is the xDS versioning represented by Resources.
-		//
-		// type => name => version (as consul knows right now)
-		currentVersions = make(map[string]map[string]string)
-	)
-
-	logger := s.Logger.Named(logging.XDS).With("xdsVersion", "v3")
-
-	// need to run a small state machine to get through initial authentication.
-	var state = stateDeltaInit
-
-	// Configure handlers for each type of request we currently care about.
-	handlers := map[string]*xDSDeltaType{
-		xdscommon.ListenerType: newDeltaType(logger, stream, xdscommon.ListenerType, func() bool {
-			return proxySnapshot.AllowEmptyListeners()
-		}),
-		xdscommon.RouteType: newDeltaType(logger, stream, xdscommon.RouteType, func() bool {
-			return proxySnapshot.AllowEmptyRoutes()
-		}),
-		xdscommon.ClusterType: newDeltaType(logger, stream, xdscommon.ClusterType, func() bool {
-			return proxySnapshot.AllowEmptyClusters()
-		}),
-		xdscommon.EndpointType: newDeltaType(logger, stream, xdscommon.EndpointType, nil),
-		xdscommon.SecretType:   newDeltaType(logger, stream, xdscommon.SecretType, nil), // TODO allowEmptyFn
-	}
-
-	// Endpoints are stored within a Cluster (and Routes
-	// are stored within a Listener) so whenever the
-	// enclosing resource is updated the inner resource
-	// list is cleared implicitly.
-	//
-	// When this happens we should update our local
-	// representation of envoy state to force an update.
-	//
-	// see: https://github.com/envoyproxy/envoy/issues/13009
-	handlers[xdscommon.ListenerType].deltaChild = &xDSDeltaChild{
-		childType:     handlers[xdscommon.RouteType],
-		childrenNames: make(map[string][]string),
-	}
-	handlers[xdscommon.ClusterType].deltaChild = &xDSDeltaChild{
-		childType:     handlers[xdscommon.EndpointType],
-		childrenNames: make(map[string][]string),
-	}
+	defer session.Stop()
 
 	var authTimer <-chan time.Time
 	extendAuthTimer := func() {
 		authTimer = time.After(s.AuthCheckFrequency)
 	}
 
-	checkStreamACLs := func(proxySnap proxysnapshot.ProxySnapshot) error {
-		return s.authorize(stream.Context(), proxySnap)
-	}
-
 	for {
 		select {
-		case <-drainCh:
-			logger.Debug("draining stream to rebalance load")
+		case <-session.drainCh:
+			session.logger.Debug("draining stream to rebalance load")
 			metrics.IncrCounter([]string{"xds", "server", "streamDrained"}, 1)
 			return errOverwhelmed
+
 		case <-authTimer:
 			// It's been too long since a Discovery{Request,Response} so recheck ACLs.
-			if err := checkStreamACLs(proxySnapshot); err != nil {
+			if err := session.CheckStreamACLs(s); err != nil {
 				return err
 			}
 			extendAuthTimer()
+			continue
 
 		case req, ok := <-reqCh:
 			if !ok {
@@ -234,38 +167,22 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				return nil
 			}
 
-			logTraceRequest(logger, "Incremental xDS v3", req)
-
-			if req.TypeUrl == "" {
-				return status.Errorf(codes.InvalidArgument, "type URL is required for ADS")
+			regen, err := session.AcceptDiscoveryRequest(req)
+			if err != nil {
+				return err
+			} else if !regen {
+				continue
 			}
 
-			var proxyFeatures xdscommon.SupportedProxyFeatures
-			if node == nil && req.Node != nil {
-				node = req.Node
-				var err error
-				proxyFeatures, err = xdscommon.DetermineSupportedProxyFeatures(req.Node)
-				if err != nil {
-					return status.Errorf(codes.InvalidArgument, err.Error())
+			if !session.ready {
+				if err := session.InitializeWatch(s); err != nil {
+					return err
 				}
+				// Now wait for the config so we can check ACL
+				continue
 			}
 
-			if handler, ok := handlers[req.TypeUrl]; ok {
-				switch handler.Recv(req, proxyFeatures) {
-				case deltaRecvNewSubscription:
-					logger.Trace("subscribing to type", "typeUrl", req.TypeUrl)
-
-				case deltaRecvResponseNack:
-					logger.Trace("got nack response for type", "typeUrl", req.TypeUrl)
-
-					// There is no reason to believe that generating new xDS resources from the same snapshot
-					// would lead to an ACK from Envoy. Instead we continue to the top of this for loop and wait
-					// for a new request or snapshot.
-					continue
-				}
-			}
-
-		case cs, ok := <-stateCh:
+		case cs, ok := <-session.stateCh:
 			if !ok {
 				// stateCh is closed either when *we* cancel the watch (on-exit via defer)
 				// or by the proxycfg.Manager when an irrecoverable error is encountered
@@ -275,149 +192,22 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 				// would've already exited this loop.
 				return status.Error(codes.Aborted, "xDS stream terminated due to an irrecoverable error, please try again")
 			}
-			proxySnapshot = cs
 
-			newRes, err := getEnvoyConfiguration(proxySnapshot, logger, s.CfgFetcher)
-			if err != nil {
-				return status.Errorf(codes.Unavailable, "failed to generate all xDS resources from the snapshot: %v", err)
-			}
-
-			// index and hash the xDS structures
-			newResourceMap := xdscommon.IndexResources(logger, newRes)
-
-			if s.ResourceMapMutateFn != nil {
-				s.ResourceMapMutateFn(newResourceMap)
-			}
-
-			if newResourceMap, err = s.applyEnvoyExtensions(newResourceMap, proxySnapshot, node); err != nil {
-				// err is already the result of calling status.Errorf
+			if err := session.InstallSnapshot(s, cs); err != nil {
 				return err
 			}
-
-			if err := populateChildIndexMap(newResourceMap); err != nil {
-				return status.Errorf(codes.Unavailable, "failed to index xDS resource versions: %v", err)
-			}
-
-			newVersions, err := computeResourceVersions(newResourceMap)
-			if err != nil {
-				return status.Errorf(codes.Unavailable, "failed to compute xDS resource versions: %v", err)
-			}
-
-			resourceMap = newResourceMap
-			currentVersions = newVersions
-			ready = true
 		}
 
-		// Trigger state machine
-		switch state {
-		case stateDeltaInit:
-			if node == nil {
-				// This can't happen (tm) since stateCh is nil until after the first req
-				// is received but lets not panic about it.
-				continue
-			}
+		// At this point the session is ready.
 
-			nodeName := node.GetMetadata().GetFields()["node_name"].GetStringValue()
-			if nodeName == "" {
-				nodeName = s.NodeName
-			}
+		// Check ACLs on every Discovery{Request,Response}.
+		if err := session.CheckStreamACLs(s); err != nil {
+			return err
+		}
+		extendAuthTimer() // For the first time through, this is when the timer is first started.
 
-			// Start authentication process, we need the proxyID
-			proxyID := newResourceIDFromEnvoyNode(node)
-
-			// Start watching config for that proxy
-			var err error
-			options, err := external.QueryOptionsFromContext(stream.Context())
-			if err != nil {
-				return status.Errorf(codes.Internal, "failed to watch proxy service: %s", err)
-			}
-
-			stateCh, drainCh, watchCancel, err = s.ProxyWatcher.Watch(proxyID, nodeName, options.Token)
-			switch {
-			case errors.Is(err, limiter.ErrCapacityReached):
-				return errOverwhelmed
-			case err != nil:
-				return status.Errorf(codes.Internal, "failed to watch proxy: %s", err)
-			}
-			// Note that in this case we _intend_ the defer to only be triggered when
-			// this whole process method ends (i.e. when streaming RPC aborts) not at
-			// the end of the current loop iteration. We have to do it in the loop
-			// here since we can't start watching until we get to this state in the
-			// state machine.
-			defer watchCancel()
-
-			logger = logger.With("service_id", proxyID.Name) // enhance future logs
-
-			logger.Trace("watching proxy, pending initial proxycfg snapshot for xDS")
-
-			// Now wait for the config so we can check ACL
-			state = stateDeltaPendingInitialConfig
-		case stateDeltaPendingInitialConfig:
-			if proxySnapshot == nil {
-				// Nothing we can do until we get the initial config
-				continue
-			}
-
-			// Got config, try to authenticate next.
-			state = stateDeltaRunning
-
-			// Upgrade the logger
-			loggerName := proxySnapshot.LoggerName()
-			if loggerName != "" {
-				logger = logger.Named(loggerName)
-			}
-
-			logger.Trace("Got initial config snapshot")
-
-			// Let's actually process the config we just got, or we'll miss responding
-			fallthrough
-		case stateDeltaRunning:
-			// Check ACLs on every Discovery{Request,Response}.
-			if err := checkStreamACLs(proxySnapshot); err != nil {
-				return err
-			}
-			// For the first time through the state machine, this is when the
-			// timer is first started.
-			extendAuthTimer()
-
-			if !ready {
-				logger.Trace("Skipping delta computation because we haven't gotten a snapshot yet")
-				continue
-			}
-
-			logger.Trace("Invoking all xDS resource handlers and sending changed data if there are any")
-
-			streamStartOnce.Do(func() {
-				metrics.MeasureSince([]string{"xds", "server", "streamStart"}, streamStartTime)
-			})
-
-			for _, op := range xDSUpdateOrder {
-				if op.TypeUrl == xdscommon.ListenerType || op.TypeUrl == xdscommon.RouteType {
-					if clusterHandler := handlers[xdscommon.ClusterType]; clusterHandler.registered && len(clusterHandler.pendingUpdates) > 0 {
-						logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
-							"typeUrl", op.TypeUrl, "dependent", xdscommon.ClusterType)
-
-						// Receiving an ACK from Envoy will unblock the select statement above,
-						// and re-trigger an attempt to send these skipped updates.
-						break
-					}
-					if endpointHandler := handlers[xdscommon.EndpointType]; endpointHandler.registered && len(endpointHandler.pendingUpdates) > 0 {
-						logger.Trace("Skipping delta computation for resource because there are dependent updates pending",
-							"typeUrl", op.TypeUrl, "dependent", xdscommon.EndpointType)
-
-						// Receiving an ACK from Envoy will unblock the select statement above,
-						// and re-trigger an attempt to send these skipped updates.
-						break
-					}
-				}
-				err, _ := handlers[op.TypeUrl].SendIfNew(currentVersions[op.TypeUrl], resourceMap, &nonce, op.Upsert, op.Remove)
-				if err != nil {
-					return status.Errorf(codes.Unavailable,
-						"failed to send %sreply for type %q: %v",
-						op.errorLogNameReplyPrefix(),
-						op.TypeUrl, err)
-				}
-			}
+		if err := session.UpdateEnvoyIfNecessary(); err != nil {
+			return err
 		}
 	}
 }
