@@ -59,7 +59,8 @@ func nodesTableSchema() *memdb.TableSchema {
 	}
 }
 
-//  gatewayServicesTableNameSchema returns a new table schema used to store information
+//	gatewayServicesTableNameSchema returns a new table schema used to store information
+//
 // about services associated with terminating gateways.
 func gatewayServicesTableNameSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
@@ -964,8 +965,8 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 // The service_last_extinction is set to the last raft index when a service
 // was unregistered (or 0 if no services were ever unregistered). This
 // allows blocking queries to
-//   * return when the last instance of a service is removed
-//   * block until an instance for this service is available, or another
+//   - return when the last instance of a service is removed
+//   - block until an instance for this service is available, or another
 //     service is unregistered.
 func (s *Store) maxIndexForService(tx *memdb.Txn, serviceName string, serviceExists, checks bool, entMeta *structs.EnterpriseMeta) uint64 {
 	idx, _ := s.maxIndexAndWatchChForService(tx, serviceName, serviceExists, checks, entMeta)
@@ -977,8 +978,8 @@ func (s *Store) maxIndexForService(tx *memdb.Txn, serviceName string, serviceExi
 // index. The service_last_extinction is set to the last raft index when a
 // service was unregistered (or 0 if no services were ever unregistered). This
 // allows blocking queries to
-//   * return when the last instance of a service is removed
-//   * block until an instance for this service is available, or another
+//   - return when the last instance of a service is removed
+//   - block until an instance for this service is available, or another
 //     service is unregistered.
 //
 // It also _may_ return a watch chan to add to a WatchSet. It will only return
@@ -2498,7 +2499,7 @@ func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.Co
 	for _, svc := range gatewayServices {
 		// If the service is a wildcard we need to target all services within the namespace
 		if svc.Service.Name == structs.WildcardSpecifier {
-			if err := s.updateGatewayNamespace(tx, idx, svc, entMeta); err != nil {
+			if err := updateGatewayNamespace(tx, idx, svc, &svc.Service.EnterpriseMeta); err != nil {
 				return fmt.Errorf("failed to associate gateway %q with wildcard: %v", gateway.String(), err)
 			}
 			// Skip service-specific update below if there was a wildcard update
