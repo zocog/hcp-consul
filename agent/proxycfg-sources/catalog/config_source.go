@@ -33,8 +33,9 @@ type ConfigSource struct {
 }
 
 type watch struct {
-	numWatchers int // guarded by ConfigSource.mu.
-	closeCh     chan chan struct{}
+	numWatchers   int // guarded by ConfigSource.mu.
+	closeCh       chan chan struct{}
+	syncStoppedCh chan chan struct{}
 }
 
 // NewConfigSource creates a ConfigSource with the given configuration.
@@ -92,10 +93,15 @@ func (m *ConfigSource) Watch(serviceID structs.ServiceID, nodeName string, token
 	if ok {
 		w.numWatchers++
 	} else {
-		w = &watch{closeCh: make(chan chan struct{}), numWatchers: 1}
+		w = &watch{
+			closeCh:       make(chan chan struct{}),
+			numWatchers:   1,
+			syncStoppedCh: make(chan chan struct{}),
+		}
+
 		m.watches[proxyID] = w
 
-		if err := m.startSync(w.closeCh, proxyID); err != nil {
+		if err := m.startSync(w.closeCh, w.syncStoppedCh, proxyID); err != nil {
 			delete(m.watches, proxyID)
 			cancelWatch()
 			session.End()
@@ -118,7 +124,11 @@ func (m *ConfigSource) Shutdown() {
 //
 // If the first attempt to fetch and register the service fails, startSync
 // will return an error (and no goroutine will be started).
-func (m *ConfigSource) startSync(closeCh <-chan chan struct{}, proxyID proxycfg.ProxyID) error {
+func (m *ConfigSource) startSync(
+	closeCh <-chan chan struct{},
+	syncStoppedCh chan chan struct{},
+	proxyID proxycfg.ProxyID,
+) error {
 	logger := m.Logger.With(
 		"proxy_service_id", proxyID.ServiceID.String(),
 		"node", proxyID.NodeName,
@@ -164,6 +174,7 @@ func (m *ConfigSource) startSync(closeCh <-chan chan struct{}, proxyID proxycfg.
 	}
 
 	syncLoop := func(ws memdb.WatchSet) {
+		defer close(syncStoppedCh)
 		// Cancel the context on return to clean up the goroutine started by WatchCh.
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -188,12 +199,14 @@ func (m *ConfigSource) startSync(closeCh <-chan chan struct{}, proxyID proxycfg.
 				return
 			case <-m.shutdownCh:
 				// Manager is shutting down, stop the goroutine.
+				m.Manager.Deregister(proxyID, source)
 				return
 			}
 
 			var err error
 			ws, err = fetchAndRegister()
 			if err != nil {
+				m.Manager.Deregister(proxyID, source)
 				return
 			}
 		}
@@ -239,6 +252,7 @@ func (m *ConfigSource) cleanup(id proxycfg.ProxyID) {
 		// doneCh).
 		doneCh := make(chan struct{})
 		select {
+		case <-h.syncStoppedCh:
 		case h.closeCh <- doneCh:
 			<-doneCh
 		case <-m.shutdownCh:
