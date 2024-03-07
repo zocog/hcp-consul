@@ -101,7 +101,7 @@ func (m *ConfigSource) Watch(serviceID structs.ServiceID, nodeName string, token
 		}
 		m.watches[proxyID] = w
 
-		if err := m.startSync(w.closeCh, proxyID, w.syncDoneCh, cancel); err != nil {
+		if err := m.startSync(w.closeCh, proxyID, w.syncDoneCh, func() {}); err != nil {
 			cancelWatch()
 			session.End()
 			return nil, nil, nil, err
@@ -244,8 +244,18 @@ func (m *ConfigSource) cleanup(id proxycfg.ProxyID) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	h := m.watches[id]
+	h, present := m.watches[id]
+	if !present {
+		return
+	}
 	h.numWatchers--
+
+	select {
+	case <-h.syncDoneCh:
+		delete(m.watches, id)
+		return
+	default:
+	}
 
 	if h.numWatchers == 0 {
 		// We wait for doneCh to be closed by the sync goroutine, so that the lock is
