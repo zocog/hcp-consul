@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -19,7 +20,99 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
+
+func TestConfigSource_Success_Kinda(t *testing.T) {
+	serviceID := structs.NewServiceID("web-sidecar-proxy-1", nil)
+	nodeName := "node-name"
+	token := "token"
+
+	store := testStateStore(t)
+
+	// Register the proxy in the catalog/state store at port 9999.
+	require.NoError(t, store.EnsureRegistration(0, &structs.RegisterRequest{
+		Node: nodeName,
+		Service: &structs.NodeService{
+			ID:      serviceID.ID,
+			Service: "web-sidecar-proxy",
+			Port:    9999,
+			Kind:    structs.ServiceKindConnectProxy,
+			Proxy: structs.ConnectProxyConfig{
+				Config: map[string]any{
+					"local_connect_timeout_ms": 123,
+				},
+			},
+		},
+	}))
+
+	// testConfigManager builds a ConfigManager that emits a ConfigSnapshot whenever
+	// Register is called, and closes the watch channel when Deregister is called.
+	//
+	// Though a little odd, this allows us to make assertions on the sync goroutine's
+	// behavior without sleeping which leads to slow/racy tests.
+	cfgMgr := testConfigManager(t, serviceID, nodeName, token)
+
+	lim := NewMockSessionLimiter(t)
+
+	session1 := newMockSession(t)
+	session1TermCh := make(limiter.SessionTerminatedChan)
+	session1.On("Terminated").Return(session1TermCh)
+	session1.On("End").Return()
+
+	lim.On("BeginSession").Return(session1, nil).Once()
+
+	mgr := NewConfigSource(Config{
+		Manager:    cfgMgr,
+		LocalState: testLocalState(t),
+		// Logger:         hclog.NewNullLogger(),
+		Logger:         testutil.Logger(t),
+		GetStore:       func() Store { return store },
+		SessionLimiter: lim,
+	})
+	t.Cleanup(mgr.Shutdown)
+
+	snapCh, termCh, cancelWatch1, err := mgr.Watch(serviceID, nodeName, token)
+	require.NoError(t, err)
+	require.Equal(t, session1TermCh, termCh)
+	t.Cleanup(cancelWatch1)
+
+	// Expect Register to have been called with the proxy's inital port.
+	select {
+	case snap := <-snapCh:
+		require.Equal(t, 9999, snap.Port)
+		require.Equal(t, token, snap.ProxyID.Token)
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("timeout waiting for snapshot")
+	}
+
+	// Update the proxy's port to 8888.
+	require.NoError(t, store.EnsureRegistration(0, &structs.RegisterRequest{
+		Node: nodeName,
+		Service: &structs.NodeService{
+			ID:      serviceID.ID,
+			Service: "web-sidecar-proxy",
+			Port:    8888,
+			Kind:    structs.ServiceKindConnectProxy,
+			Proxy: structs.ConnectProxyConfig{
+				Config: map[string]any{
+					"local_connect_timeout_ms": 123,
+				},
+			},
+		},
+	}))
+
+	select {
+	case snap, ok := <-snapCh:
+		require.False(t, ok)
+		_ = snap
+		// require.Equal(t, 8888, snap.Port)
+	case <-time.After(1000 * time.Millisecond):
+		t.Fatal("timeout waiting for termination")
+	}
+
+	session1.AssertCalled(t, "End")
+}
 
 func TestConfigSource_Success(t *testing.T) {
 	serviceID := structs.NewServiceID("web-sidecar-proxy-1", nil)
@@ -324,7 +417,10 @@ func testConfigManager(t *testing.T, serviceID structs.ServiceID, nodeName strin
 				Proxy:   ns.Proxy,
 			}
 		}).
-		Return(nil)
+		Return(nil).Once()
+
+	cfgMgr.On("Register", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(errors.New("KABOOM")).Once()
 
 	cfgMgr.On("Deregister", proxyID, source).
 		Run(func(mock.Arguments) { close(snapCh) }).

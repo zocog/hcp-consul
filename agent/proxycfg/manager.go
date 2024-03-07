@@ -8,8 +8,9 @@ import (
 	"runtime/debug"
 	"sync"
 
-	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/tlsutil"
@@ -326,6 +327,8 @@ func (m *Manager) Watch(id ProxyID) (<-chan *ConfigSnapshot, CancelFunc) {
 	}
 
 	return ch, func() {
+		m.Logger.Info("manager cancel ENTER")
+		defer m.Logger.Info("manager cancel EXIT")
 		m.mu.Lock()
 		defer m.mu.Unlock()
 		m.closeWatchLocked(id, watchID)
