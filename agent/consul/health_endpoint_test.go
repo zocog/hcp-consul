@@ -1775,3 +1775,104 @@ func TestHealth_RPC_Filter(t *testing.T) {
 		require.Len(t, out.HealthChecks, 1)
 	})
 }
+
+func TestHealth_ServiceNodes_BlockingQuery_withACLToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, s1, codec := testACLServerWithConfig(t, nil, false)
+
+	waitForLeaderEstablishment(t, s1)
+
+	register := func(t *testing.T, name, tag string) {
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			ID:         types.NodeID("43d419c0-433b-42c3-bf8a-193eba0b41a3"),
+			Node:       "node1",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      name,
+				Service: name,
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		var out struct{}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+	}
+
+	register(t, "web", "foo")
+
+	testutil.RunStep(t, "read original", func(t *testing.T) {
+		var out structs.IndexedCheckServiceNodes
+		req := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "web",
+			QueryOptions: structs.QueryOptions{
+				Token: TestDefaultInitialManagementToken,
+			},
+		}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out))
+
+		require.Len(t, out.Nodes, 1)
+		node := out.Nodes[0]
+		require.Equal(t, "node1", node.Node.Node)
+		require.Equal(t, "web", node.Service.Service)
+
+		require.Equal(t, structs.QueryBackendBlocking, out.Backend)
+	})
+
+	testutil.RunStep(t, "read blocking query result", func(t *testing.T) {
+		testToken, err := upsertTestToken(codec, TestDefaultInitialManagementToken, "dc1", func(token *structs.ACLToken) {
+			token.ExpirationTTL = 1 * time.Minute
+		})
+		require.NoError(t, err)
+
+		req := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "web",
+			QueryOptions: structs.QueryOptions{
+				MinQueryIndex: 999999,
+				MaxQueryTime:  time.Second * 3,
+				Token:         testToken.AccessorID,
+			},
+		}
+
+		var out structs.IndexedCheckServiceNodes
+		errCh := channelCallRPC(s1, "Health.ServiceNodes", &req, &out, nil)
+
+		time.Sleep(4 * time.Second)
+
+		//// Make sure the token is listable
+		//tokenResp, err := retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", testToken.AccessorID)
+		//require.NoError(t, err)
+		//require.NotNil(t, tokenResp.Token)
+		//
+		//// Now try to delete it (this should work).
+		//reqACL := structs.ACLTokenDeleteRequest{
+		//	Datacenter:   "dc1",
+		//	TokenID:      testToken.AccessorID,
+		//	WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		//}
+		//
+		//var resp string
+		//acl1 := ACL{srv: s1}
+		//err = acl1.TokenDelete(&reqACL, &resp)
+		//require.NoError(t, err)
+		//
+		//// Make sure the token is gone
+		//tokenResp, err = retrieveTestToken(codec, TestDefaultInitialManagementToken, "dc1", testToken.AccessorID)
+		//require.Error(t, err)
+		//require.ErrorContains(t, err, acl.ErrNotFound.Error())
+		//require.Nil(t, tokenResp.Token)
+
+		if err := <-errCh; err != nil {
+			//require.NoError(t, err)
+		}
+
+		require.Equal(t, structs.QueryBackendBlocking, out.Backend)
+		require.Len(t, out.Nodes, 1)
+	})
+}
