@@ -37,7 +37,6 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`statsSinksJson`](#spec-bootstrapconfig): string
     - [`statsTags`](#spec-bootstrapconfig): array of strings
     - [`statsdUrl`](#spec-bootstrapconfig): string
-    - [`telemetryCollectorBindSocketDir`](#spec-bootstrapconfig): string
     - [`tracingConfigJson`](#spec-bootstrapconfig): string
   - [`dynamicConfig`](#spec-dynamicconfig): map
     - [`accessLogs`](#spec-dynamicconfig-accesslogs): map
@@ -73,17 +72,17 @@ The following list outlines field hierarchy, language-specific data types, and r
 When every field is defined, an ProxyConfigurations CRD has the following form:
 
 ```yaml
-apiVersion: mesh.consul.hashicorp.com/v2beta1        # required 
+apiVersion: mesh.consul.hashicorp.com/v2beta1        # required
 kind: ProxyConfiguration                             # required
 metadata:
   name: <crdName>
   namespace: <namespace>
-spec: 
+spec:
   workloads:                                         # required
     filter: "Service.Meta.version == v1"
     names: ["api", "admin"]
     prefixes: ["<pre>", "<fix>"]
-  bootstrapConfig: 
+  bootstrapConfig:
     dogstatsdUrl: <udp://127.0.0.1:8125>
     overrideJsonTpl: <escapeHatchTemplate>
     prometheusBindAddr: <0.0.0.0>
@@ -97,7 +96,6 @@ spec:
     statsTags:
       - <customTag>
     statsdUrl: <udp://127.0.0.1:8125>
-    telemetryCollectorBindSocketDir: <path/to/directory>
     tracingConfigJson: <jsonObject>
   dynamicConfig:
     accessLogs:
@@ -257,7 +255,7 @@ Configures the proxy to expose a Prometheus metrics endpoint to the public netwo
 
 ### `spec.bootstrapConfig.readyBindAddr`
 
-Specifies the location to configure the proxy's readiness probe. Format as `ip:port`. 
+Specifies the location to configure the proxy's readiness probe. Format as `ip:port`.
 
  By default, the proxy does not have a readiness probe configured on it.
 
@@ -355,12 +353,6 @@ The URL must use an IP address. DNS names are not supported.
 
 - Default: None
 - Data type: String
-
-### `spec.bootstrapConfig.telemetryCollectorBindSocketDir`
-
-Specifies the directory of the Unix socket Envoy sends metrics to so that the Consul telemetry collector can collect them.
-
-The socket is not configured by default.
 
 #### Values
 

@@ -16,7 +16,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/checks"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/structs"
 	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/tlsutil"
@@ -449,8 +448,6 @@ type Config struct {
 	PeeringTestAllowPeerRegistrations bool
 
 	Locality *structs.Locality
-
-	Cloud hcpconfig.CloudConfig
 
 	Reporting Reporting
 

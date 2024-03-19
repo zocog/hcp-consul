@@ -4,7 +4,6 @@
 package config
 
 import (
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -35,7 +34,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	consulrate "github.com/hashicorp/consul/agent/consul/rate"
-	hcpconfig "github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -815,6 +813,10 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 	serverMode := boolVal(c.ServerMode)
 
+	if len(c.Cloud) > 0 {
+		b.warn("The 'cloud' field is deprecated and should be removed.")
+	}
+
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
@@ -988,7 +990,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		AutoEncryptIPSAN:                       autoEncryptIPSAN,
 		AutoEncryptAllowTLS:                    autoEncryptAllowTLS,
 		AutoConfig:                             autoConfig,
-		Cloud:                                  b.cloudConfigVal(c),
 		ConnectEnabled:                         connectEnabled,
 		ConnectCAProvider:                      connectCAProvider,
 		ConnectCAConfig:                        connectCAConfig,
@@ -1139,14 +1140,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 	if rt.Cache.EntryFetchRate <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate must be strictly positive, was: %v", rt.Cache.EntryFetchRate)
-	}
-
-	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
-	if stringslice.Contains(rt.Experiments, consul.CatalogResourceExperimentName) && rt.IsCloudEnabled() {
-		// Allow override of this check for development/testing purposes. Should not be used in production
-		if !stringslice.Contains(rt.Experiments, consul.HCPAllowV2ResourceAPIs) {
-			return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include 'resource-apis' when HCP `cloud` configuration is set")
-		}
 	}
 
 	// For now, disallow usage of several v2 experiments in secondary datacenters.
@@ -2579,75 +2572,6 @@ func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 		}
 	}
 	return nil
-}
-
-func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
-	// Load the same environment variables expected by hcp-sdk-go
-	envHostname, ok := os.LookupEnv("HCP_API_ADDRESS")
-	if !ok {
-		if legacyEnvHostname, ok := os.LookupEnv("HCP_API_HOST"); ok {
-			// Remove only https scheme prefixes from the deprecated environment
-			// variable for specifying the API host. Mirrors the same behavior as
-			// hcp-sdk-go.
-			if strings.HasPrefix(strings.ToLower(legacyEnvHostname), "https://") {
-				legacyEnvHostname = legacyEnvHostname[8:]
-			}
-			envHostname = legacyEnvHostname
-		}
-	}
-
-	var envTLSConfig *tls.Config
-	if os.Getenv("HCP_AUTH_TLS") == "insecure" ||
-		os.Getenv("HCP_SCADA_TLS") == "insecure" ||
-		os.Getenv("HCP_API_TLS") == "insecure" {
-		envTLSConfig = &tls.Config{InsecureSkipVerify: true}
-	}
-
-	val := hcpconfig.CloudConfig{
-		ResourceID:   os.Getenv("HCP_RESOURCE_ID"),
-		ClientID:     os.Getenv("HCP_CLIENT_ID"),
-		ClientSecret: os.Getenv("HCP_CLIENT_SECRET"),
-		AuthURL:      os.Getenv("HCP_AUTH_URL"),
-		Hostname:     envHostname,
-		ScadaAddress: os.Getenv("HCP_SCADA_ADDRESS"),
-		TLSConfig:    envTLSConfig,
-	}
-
-	// Node id might get overridden in setup.go:142
-	nodeID := stringVal(v.NodeID)
-	val.NodeID = types.NodeID(nodeID)
-	val.NodeName = b.nodeName(v.NodeName)
-
-	if v.Cloud == nil {
-		return val
-	}
-
-	// Load configuration file variables for anything not set by environment variables
-	if val.AuthURL == "" {
-		val.AuthURL = stringVal(v.Cloud.AuthURL)
-	}
-
-	if val.Hostname == "" {
-		val.Hostname = stringVal(v.Cloud.Hostname)
-	}
-
-	if val.ScadaAddress == "" {
-		val.ScadaAddress = stringVal(v.Cloud.ScadaAddress)
-	}
-
-	if val.ResourceID == "" {
-		val.ResourceID = stringVal(v.Cloud.ResourceID)
-	}
-
-	if val.ClientID == "" {
-		val.ClientID = stringVal(v.Cloud.ClientID)
-	}
-
-	if val.ClientSecret == "" {
-		val.ClientSecret = stringVal(v.Cloud.ClientSecret)
-	}
-
-	return val
 }
 
 // decodeBytes returns the encryption key decoded.

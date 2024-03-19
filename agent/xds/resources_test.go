@@ -192,11 +192,6 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			alsoRunTestForV2: true,
 		},
 		{
-			name:             "telemetry-collector",
-			create:           proxycfg.TestConfigSnapshotTelemetryCollector,
-			alsoRunTestForV2: false,
-		},
-		{
 			name: "grpc-public-listener",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {

@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
-	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
@@ -42,9 +41,6 @@ type Deps struct {
 	// NewRequestRecorderFunc provides a middleware.RequestRecorder for the server to use; it cannot be nil
 	NewRequestRecorderFunc func(logger hclog.Logger, isLeader func() bool, localDC string) *middleware.RequestRecorder
 
-	// HCP contains the dependencies required when integrating with the HashiCorp Cloud Platform
-	HCP hcp.Deps
-
 	Experiments []string
 
 	EnterpriseDeps
@@ -72,15 +68,6 @@ func (d Deps) UseV2Resources() bool {
 // array of the agent config.
 func (d Deps) UseV2Tenancy() bool {
 	if stringslice.Contains(d.Experiments, V2TenancyExperimentName) {
-		return true
-	}
-	return false
-}
-
-// HCPAllowV2Resources returns true if "hcp-v2-resource-apis" is present in the Experiments
-// array of the agent config.
-func (d Deps) HCPAllowV2Resources() bool {
-	if stringslice.Contains(d.Experiments, HCPAllowV2ResourceAPIs) {
 		return true
 	}
 	return false

@@ -456,7 +456,6 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 	tests := []struct {
 		name              string
 		initialManagement string
-		hcpManagement     string
 
 		// canBootstrap tracks whether the ACL system can be bootstrapped
 		// after the leader initializes ACLs. Bootstrapping is the act
@@ -466,25 +465,16 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 		{
 			name:              "bootstrap from initial management",
 			initialManagement: "c9ad785a-420d-470d-9b4d-6d9f084bfa87",
-			hcpManagement:     "",
-			canBootstrap:      false,
-		},
-		{
-			name:              "bootstrap from hcp management",
-			initialManagement: "",
-			hcpManagement:     "924bc0e1-a41b-4f3a-b5e8-0899502fc50e",
 			canBootstrap:      false,
 		},
 		{
 			name:              "bootstrap with both",
 			initialManagement: "c9ad785a-420d-470d-9b4d-6d9f084bfa87",
-			hcpManagement:     "924bc0e1-a41b-4f3a-b5e8-0899502fc50e",
 			canBootstrap:      false,
 		},
 		{
 			name:              "did not bootstrap",
 			initialManagement: "",
-			hcpManagement:     "",
 			canBootstrap:      true,
 		},
 	}
@@ -496,7 +486,6 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				c.PrimaryDatacenter = "dc1"
 				c.ACLsEnabled = true
 				c.ACLInitialManagementToken = tt.initialManagement
-				c.Cloud.ManagementToken = tt.hcpManagement
 			}
 			_, s1 := testServerWithConfig(t, conf)
 			testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
@@ -513,13 +502,6 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 				require.NoError(t, err)
 				require.NotNil(t, initialManagement)
 				require.Equal(t, tt.initialManagement, initialManagement.SecretID)
-			}
-
-			if tt.hcpManagement != "" {
-				_, hcpManagement, err := s1.fsm.State().ACLTokenGetBySecret(nil, tt.hcpManagement, nil)
-				require.NoError(t, err)
-				require.NotNil(t, hcpManagement)
-				require.Equal(t, tt.hcpManagement, hcpManagement.SecretID)
 			}
 
 			canBootstrap, _, err := s1.fsm.State().CanBootstrapACLToken()

@@ -5,7 +5,6 @@ package envoy
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -551,51 +550,6 @@ const (
 		}
 	}
 }`
-
-	expectedTelemetryCollectorStatsSink = `{
-	"name": "envoy.stat_sinks.metrics_service",
-	"typed_config": {
-	  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
-	  "transport_api_version": "V3",
-	  "grpc_service": {
-		"envoy_grpc": {
-		  "cluster_name": "consul_telemetry_collector_loopback"
-		}
-	  },
-	  "emit_tags_as_labels": true
-	}
-  }`
-
-	expectedTelemetryCollectorCluster = `{
-	"name": "consul_telemetry_collector_loopback",
-	"type": "STATIC",
-	"typed_extension_protocol_options": {
-	  "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
-		"@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
-		"explicit_http_config": {
-		  "http2_protocol_options": {}
-		}
-	  }
-	},
-	"loadAssignment": {
-	  "clusterName": "consul_telemetry_collector_loopback",
-	  "endpoints": [
-		{
-		  "lbEndpoints": [
-			{
-			  "endpoint": {
-				"address": {
-				  "pipe": {
-					"path": "/tmp/consul/telemetry-collector/gqmuzdHCUPAEY5mbF8vgkZCNI14.sock"
-				  }
-				}
-			  }
-			}
-		  ]
-		}
-	  ]
-	}
-  }`
 )
 
 func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
@@ -646,59 +600,6 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 						"foo": "bar"
 					}
 				}`,
-			},
-		},
-		{
-			name: "telemetry-collector-sink",
-			baseArgs: BootstrapTplArgs{
-				ProxyID: "web-sidecar-proxy",
-			},
-			input: BootstrapConfig{
-				TelemetryCollectorBindSocketDir: "/tmp/consul/telemetry-collector",
-			},
-			wantArgs: BootstrapTplArgs{
-				StatsFlushInterval: "60s",
-				ProxyID:            "web-sidecar-proxy",
-				StatsConfigJSON:    defaultStatsConfigJSON,
-				StatsSinksJSON:     expectedTelemetryCollectorStatsSink,
-				StaticClustersJSON: expectedTelemetryCollectorCluster,
-			},
-			wantErr: false,
-		},
-		{
-			name: "telemetry-collector-no-default-flush-interval-when-interval-preconfigured",
-			baseArgs: BootstrapTplArgs{
-				ProxyID: "web-sidecar-proxy",
-			},
-			input: BootstrapConfig{
-				// Explicitly defined StatsFlushInterval by end user should not be overriden.
-				StatsFlushInterval:              "10s",
-				TelemetryCollectorBindSocketDir: "/tmp/consul/telemetry-collector",
-			},
-			wantArgs: BootstrapTplArgs{
-				StatsFlushInterval: "10s",
-				ProxyID:            "web-sidecar-proxy",
-				StatsConfigJSON:    defaultStatsConfigJSON,
-				StatsSinksJSON:     expectedTelemetryCollectorStatsSink,
-				StaticClustersJSON: expectedTelemetryCollectorCluster,
-			},
-		},
-		{
-			name: "telemetry-collector-no-default-flush-interval-when-sinks-preconfigured",
-			baseArgs: BootstrapTplArgs{
-				ProxyID: "web-sidecar-proxy",
-			},
-			input: BootstrapConfig{
-				// If stats sinks are explicitly defined by end user, do not default StatsFlushInterval.
-				StatsdURL:                       "udp://127.0.0.1:9125",
-				TelemetryCollectorBindSocketDir: "/tmp/consul/telemetry-collector",
-			},
-			wantArgs: BootstrapTplArgs{
-				StatsFlushInterval: "",
-				ProxyID:            "web-sidecar-proxy",
-				StatsConfigJSON:    defaultStatsConfigJSON,
-				StatsSinksJSON:     fmt.Sprintf(`%s,%s`, expectedStatsdSink, expectedTelemetryCollectorStatsSink),
-				StaticClustersJSON: expectedTelemetryCollectorCluster,
 			},
 		},
 		{
@@ -1661,68 +1562,6 @@ func TestConsulTagSpecifiers(t *testing.T) {
 
 			assert.Equal(t, tc.expect, got)
 			assert.Equal(t, tc.expectNoDeprecated, gotNoDeprecated)
-		})
-	}
-}
-
-func TestAppendTelemetryCollectorMetrics(t *testing.T) {
-	tests := map[string]struct {
-		inputArgs     *BootstrapTplArgs
-		bindSocketDir string
-		wantArgs      *BootstrapTplArgs
-	}{
-		"dir-without-trailing-slash": {
-			inputArgs: &BootstrapTplArgs{
-				ProxyID: "web-sidecar-proxy",
-			},
-			bindSocketDir: "/tmp/consul/telemetry-collector",
-			wantArgs: &BootstrapTplArgs{
-				ProxyID:            "web-sidecar-proxy",
-				StatsSinksJSON:     expectedTelemetryCollectorStatsSink,
-				StaticClustersJSON: expectedTelemetryCollectorCluster,
-			},
-		},
-		"dir-with-trailing-slash": {
-			inputArgs: &BootstrapTplArgs{
-				ProxyID: "web-sidecar-proxy",
-			},
-			bindSocketDir: "/tmp/consul/telemetry-collector",
-			wantArgs: &BootstrapTplArgs{
-				ProxyID:            "web-sidecar-proxy",
-				StatsSinksJSON:     expectedTelemetryCollectorStatsSink,
-				StaticClustersJSON: expectedTelemetryCollectorCluster,
-			},
-		},
-		"append-clusters-and-stats-sink": {
-			inputArgs: &BootstrapTplArgs{
-				ProxyID:            "web-sidecar-proxy",
-				StatsSinksJSON:     expectedStatsdSink,
-				StaticClustersJSON: expectedSelfAdminCluster,
-			},
-			bindSocketDir: "/tmp/consul/telemetry-collector",
-			wantArgs: &BootstrapTplArgs{
-				ProxyID:            "web-sidecar-proxy",
-				StatsSinksJSON:     expectedStatsdSink + ",\n" + expectedTelemetryCollectorStatsSink,
-				StaticClustersJSON: expectedSelfAdminCluster + ",\n" + expectedTelemetryCollectorCluster,
-			},
-		},
-	}
-
-	for name, tt := range tests {
-		t.Run(name, func(t *testing.T) {
-			appendTelemetryCollectorConfig(tt.inputArgs, tt.bindSocketDir)
-
-			// Some of our JSON strings are comma separated objects to be
-			// insertedinto an array which is not valid JSON on it's own so wrap
-			// them all in an array. For simple values this is still valid JSON
-			// too.
-			wantStatsSink := "[" + tt.wantArgs.StatsSinksJSON + "]"
-			gotStatsSink := "[" + tt.inputArgs.StatsSinksJSON + "]"
-			require.JSONEq(t, wantStatsSink, gotStatsSink, "field StatsSinksJSON should be equivalent JSON")
-
-			wantClusters := "[" + tt.wantArgs.StaticClustersJSON + "]"
-			gotClusters := "[" + tt.inputArgs.StaticClustersJSON + "]"
-			require.JSONEq(t, wantClusters, gotClusters, "field StaticClustersJSON should be equivalent JSON")
 		})
 	}
 }

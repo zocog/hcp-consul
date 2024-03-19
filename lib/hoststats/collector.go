@@ -36,7 +36,7 @@ type Collector struct {
 // so that we can present the disk related statistics for the mountpoint where the dataDir exists
 func NewCollector(ctx context.Context, logger hclog.Logger, dataDir string, opts ...CollectorOption) *Collector {
 	logger = logger.Named("host_stats")
-	collector := initCollector(logger, dataDir)
+	collector := initCollector(logger, dataDir, opts...)
 	go collector.loop(ctx)
 	return collector
 }

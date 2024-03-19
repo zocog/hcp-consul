@@ -4,7 +4,6 @@
 package proxycfg
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/mitchellh/go-testing-interface"
@@ -14,7 +13,6 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -338,54 +336,6 @@ func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 		{
 			CorrelationID: svcChecksWatchIDPrefix + structs.ServiceIDString("grpc", nil),
 			Result:        []structs.CheckType{},
-		},
-	})
-}
-
-// TestConfigSnapshotTelemetryCollector returns a fully populated snapshot using a discovery chain
-func TestConfigSnapshotTelemetryCollector(t testing.T) *ConfigSnapshot {
-	// DiscoveryChain without an UpstreamConfig should yield a
-	// filter chain when in transparent proxy mode
-	var (
-		collector      = structs.NewServiceName(api.TelemetryCollectorName, nil)
-		collectorUID   = NewUpstreamIDFromServiceName(collector)
-		collectorChain = discoverychain.TestCompileConfigEntries(t, api.TelemetryCollectorName, "default", "default", "dc1", connect.TestClusterID+".consul", nil, nil)
-	)
-
-	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
-		ns.Proxy.Config = map[string]interface{}{
-			"envoy_telemetry_collector_bind_socket_dir": "/tmp/consul/telemetry-collector",
-		}
-	}, []UpdateEvent{
-		{
-			CorrelationID: meshConfigEntryID,
-			Result: &structs.ConfigEntryResponse{
-				Entry: nil,
-			},
-		},
-		{
-			CorrelationID: "discovery-chain:" + collectorUID.String(),
-			Result: &structs.DiscoveryChainResponse{
-				Chain: collectorChain,
-			},
-		},
-		{
-			CorrelationID: fmt.Sprintf("upstream-target:%s.default.default.dc1:", api.TelemetryCollectorName) + collectorUID.String(),
-			Result: &structs.IndexedCheckServiceNodes{
-				Nodes: []structs.CheckServiceNode{
-					{
-						Node: &structs.Node{
-							Address:    "8.8.8.8",
-							Datacenter: "dc1",
-						},
-						Service: &structs.NodeService{
-							Service: api.TelemetryCollectorName,
-							Address: "9.9.9.9",
-							Port:    9090,
-						},
-					},
-				},
-			},
 		},
 	})
 }

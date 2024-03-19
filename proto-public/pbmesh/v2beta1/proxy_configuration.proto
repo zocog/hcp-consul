@@ -98,7 +98,7 @@ message BootstrapConfig {
   string stats_config_json = 11;
   string stats_flush_interval = 12;
   string tracing_config_json = 13;
-  string telemetry_collector_bind_socket_dir = 14;
+  reserved 14; // removed telemetry_collector_bind_socket_dir field
 }
 
 // +kubebuilder:validation:Enum=PROXY_MODE_DEFAULT;PROXY_MODE_TRANSPARENT;PROXY_MODE_DIRECT

@@ -154,7 +154,7 @@ type Config struct {
 	CheckUpdateInterval              *string             `mapstructure:"check_update_interval" json:"check_update_interval,omitempty"`
 	Checks                           []CheckDefinition   `mapstructure:"checks" json:"-"`
 	ClientAddr                       *string             `mapstructure:"client_addr" json:"client_addr,omitempty"`
-	Cloud                            *CloudConfigRaw     `mapstructure:"cloud" json:"-"`
+	Cloud                            map[string]string   `mapstructure:"cloud" json:"-"`
 	ConfigEntries                    ConfigEntries       `mapstructure:"config_entries" json:"-"`
 	AutoEncrypt                      AutoEncrypt         `mapstructure:"auto_encrypt" json:"auto_encrypt,omitempty"`
 	Connect                          Connect             `mapstructure:"connect" json:"connect,omitempty"`
@@ -890,15 +890,6 @@ type RawUIMetricsProxyAddHeader struct {
 
 type RPC struct {
 	EnableStreaming *bool `mapstructure:"enable_streaming"`
-}
-
-type CloudConfigRaw struct {
-	ResourceID   *string `mapstructure:"resource_id"`
-	ClientID     *string `mapstructure:"client_id"`
-	ClientSecret *string `mapstructure:"client_secret"`
-	Hostname     *string `mapstructure:"hostname"`
-	AuthURL      *string `mapstructure:"auth_url"`
-	ScadaAddress *string `mapstructure:"scada_address"`
 }
 
 type TLSProtocolConfig struct {
