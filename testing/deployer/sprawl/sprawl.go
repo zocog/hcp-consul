@@ -519,7 +519,7 @@ func (s *Sprawl) LoadKVDataToCluster(cluster string, numberOfKeys int, writeOpts
 	return nil
 }
 
-func (s *Sprawl) LoadKVDataToClusterWithCounter(cluster string, numberOfKeys int, offset int, counter atomic.Uint64, writeOpts *api.WriteOptions) error {
+func (s *Sprawl) LoadKVDataToClusterWithCounter(cluster string, numberOfKeys int, offset int, counter *atomic.Uint64, writeOpts *api.WriteOptions) error {
 	client := s.clients[cluster]
 	kvClient := client.KV()
 

@@ -16,6 +16,10 @@ import (
 	"github.com/hashicorp/consul/testing/deployer/topology"
 )
 
+const (
+	ClusterName = "dc1"
+)
+
 // The commonTopo comprises 3 agent servers and 3 nodes to run workload
 // - workload node 1: static-server
 // - workload node 2: static-client
@@ -58,11 +62,11 @@ func newCommonTopo(t *testing.T) *commonTopo {
 			// ConsulEnterprise: "hashicorp/consul-enterprise:local",
 		},
 		Networks: []*topology.Network{
-			{Name: "dc1"},
+			{Name: ClusterName},
 		},
 		Clusters: []*topology.Cluster{
 			{
-				Name: "dc1",
+				Name: ClusterName,
 				Nodes: []*topology.Node{
 					{
 						Kind:   topology.NodeKindServer,
