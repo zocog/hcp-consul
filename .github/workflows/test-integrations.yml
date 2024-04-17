@@ -4,6 +4,9 @@
 name: test-integrations
 
 on:
+  push:
+    branches:
+      - 'zalimeni/verify-docker-engine-version'
   pull_request:
     branches-ignore:
       - stable-website
@@ -329,6 +332,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@2a1a44ac4aa01993040736bd95bb470da1a38365 # v2.9.0
 
+      - run: go env
+      - name: docker env
+        run: |
+          docker version
+          docker info
+
       - name: Docker build
         run: docker build -t consul:local -f ./build-support/docker/Consul-Dev.dockerfile ./bin
 
@@ -521,6 +530,10 @@ jobs:
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: go env
+      - name: docker env
+        run: |
+          docker version
+          docker info
       - name: Build image
         run: make test-deployer-setup
       - name: Integration Tests
