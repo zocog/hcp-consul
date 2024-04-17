@@ -14,9 +14,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
-	retry "github.com/avast/retry-go"
+	"github.com/avast/retry-go"
 	"github.com/mitchellh/copystructure"
 	"google.golang.org/grpc"
 
@@ -514,6 +515,26 @@ func (s *Sprawl) LoadKVDataToCluster(cluster string, numberOfKeys int, writeOpts
 		if err != nil {
 			return fmt.Errorf("error writing kv: %w", err)
 		}
+	}
+	return nil
+}
+
+func (s *Sprawl) LoadKVDataToClusterWithCounter(cluster string, numberOfKeys int, offset int, counter atomic.Uint64, writeOpts *api.WriteOptions) error {
+	client := s.clients[cluster]
+	kvClient := client.KV()
+
+	for i := 0; i <= numberOfKeys; i++ {
+		p := &api.KVPair{
+			Key: fmt.Sprintf("key-%d", i*1000000+offset),
+		}
+		token := make([]byte, 131072) // 128K size of value
+		rand.Read(token)
+		p.Value = token
+		_, err := kvClient.Put(p, writeOpts)
+		if err != nil {
+			return fmt.Errorf("error writing kv: %w", err)
+		}
+		counter.Add(1)
 	}
 	return nil
 }
