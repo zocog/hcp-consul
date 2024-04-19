@@ -57,6 +57,14 @@ func newCommonTopo(t *testing.T) *commonTopo {
 	staticServerSID := topology.NewID("static-server", "default", "default")
 	staticClientSID := topology.NewID("static-client", "default", "default")
 
+	newImages := utils.LatestImages()
+	newImages.Consul = "hashicorp/consul:1.14.6"
+	newImages.Consul = "hashicorp/consul:1.14.6"
+
+	oldImages := utils.LatestImages()
+	oldImages.Consul = "hashicorp/consul:1.10.9"
+	oldImages.ConsulCE = "hashicorp/consul:1.10.9"
+
 	cfg := &topology.Config{
 		Images: topology.Images{
 			// ConsulEnterprise: "hashicorp/consul-enterprise:local",
@@ -70,7 +78,7 @@ func newCommonTopo(t *testing.T) *commonTopo {
 				Nodes: []*topology.Node{
 					{
 						Kind:   topology.NodeKindServer,
-						Images: utils.LatestImages(),
+						Images: newImages,
 						Name:   "dc1-server1",
 						Addresses: []*topology.Address{
 							{Network: "dc1"},
@@ -81,7 +89,7 @@ func newCommonTopo(t *testing.T) *commonTopo {
 					},
 					{
 						Kind:   topology.NodeKindServer,
-						Images: utils.LatestImages(),
+						Images: newImages,
 						Name:   "dc1-server2",
 						Addresses: []*topology.Address{
 							{Network: "dc1"},
@@ -92,7 +100,7 @@ func newCommonTopo(t *testing.T) *commonTopo {
 					},
 					{
 						Kind:   topology.NodeKindServer,
-						Images: utils.LatestImages(),
+						Images: oldImages,
 						Name:   "dc1-server3",
 						Addresses: []*topology.Address{
 							{Network: "dc1"},

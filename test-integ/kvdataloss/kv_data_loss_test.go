@@ -4,7 +4,10 @@
 package kvdataloss
 
 import (
+	"context"
 	"fmt"
+	"math/rand"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -12,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 // Refer to common.go for the detail of the topology
@@ -23,7 +27,6 @@ import (
 const (
 	numKeysToSeed  = 1000
 	numKeysToWrite = 1000
-	startingPoint  = 1_000_000
 )
 
 func Test_KV_Dataloss(t *testing.T) {
@@ -47,6 +50,12 @@ func Test_KV_Dataloss(t *testing.T) {
 		require.NoError(t, err)
 		apiClients[node.Name] = client
 		testNode = node.Name
+
+		// If node is server3, we need to initiate a leadership transfer to server1
+		// Make sure the old follower is the leader
+		if strings.Contains(node.Name, "server3") {
+			t.Fatal("THE OLD BOI IS THE LEADER!")
+		}
 	}
 
 	nodes, err := sp.Followers(ClusterName)
@@ -66,8 +75,6 @@ func Test_KV_Dataloss(t *testing.T) {
 	// We only care about changing leadership between these two servers.
 	var followerID string
 
-	var wg sync.WaitGroup
-
 	for _, s := range reply.Servers {
 		if s.Leader {
 			leaderID = s.ID
@@ -75,41 +82,49 @@ func Test_KV_Dataloss(t *testing.T) {
 		followerID = s.ID
 	}
 
-	// Pre seed with 1,000,000-1,000,999
-	t.Log("Seeding KV Data ...")
-	require.NoError(t, ct.Sprawl.LoadKVDataToClusterWithCounter("dc1", numKeysToSeed, 0, &count, &api.WriteOptions{}))
+	t.Log("Starting test...")
+	count.Store(0) // reset the counter
+	var wg sync.WaitGroup
 
+	// Set up a goroutine to write KV data
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		// Keep writing from with 1,001,000-1,001,999
-		require.NoError(t, ct.Sprawl.LoadKVDataToClusterWithCounter("dc1", numKeysToWrite, numKeysToSeed, &count, &api.WriteOptions{}))
+
+		for i := 0; i < numKeysToWrite; i++ {
+			err := writeKV(t, apiClients[testNode], "test", i, &count)
+			require.NoError(t, err)
+		}
 	}()
 
+	// Set up a goroutine to swap leadership between the leader and follower
+	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		testClient := apiClients[testNode]
 
 		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				// Make sure the old follower is the leader
+				resp, err := testClient.Operator().RaftLeaderTransfer(followerID, &api.QueryOptions{})
+				if err != nil {
+					t.Logf("error initiating leadership transfer to original follower: %s", err)
+				} else if !resp.Success {
+					t.Log("failed to transfer leadership to original follower")
+				}
 
-			// Make sure the old follower is the leader
-			resp, err := testClient.Operator().RaftLeaderTransfer(followerID, &api.QueryOptions{})
-			if err != nil {
-				t.Log("error initiating leadership transfer to original follower")
-			}
-			if !resp.Success {
-				t.Log("failed to transfer leadership to original follower")
-			}
+				// Re-establish leadership to the original leader
+				resp, err = testClient.Operator().RaftLeaderTransfer(leaderID, &api.QueryOptions{})
+				if err != nil {
+					t.Logf("error initiating leadership transfer to original leader: %s", err)
+				} else if !resp.Success {
+					t.Log("failed to transfer leadership to original leader")
+				}
 
-			// Re-establish leadership to the original leader
-			resp, err = testClient.Operator().RaftLeaderTransfer(leaderID, &api.QueryOptions{})
-			if err != nil {
-				t.Log("error initiating leadership transfer to original leader")
+				t.Log("completed one rotation of leadership swap")
 			}
-			if !resp.Success {
-				t.Log("failed to transfer leadership to original leader")
-			}
-
-			t.Log("completed one rotation of leadership swap")
 		}
 	}()
 
@@ -123,21 +138,76 @@ func Test_KV_Dataloss(t *testing.T) {
 			for {
 				currentCount := count.Load()
 
-				if currentCount == startingPoint+numKeysToWrite+numKeysToSeed {
-					break
-				}
 				t.Log("Checking KV Data for ", "NodeName", name, "CurrentCount", currentCount)
 				checkKV(t, client, int(currentCount))
+
+				if currentCount == numKeysToWrite {
+					break
+				}
 			}
 		}(name, client)
 	}
 
+	// This goroutine is just to observer leadership changes
+	go func() {
+		var currentLeader string
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				// Make sure the old follower is the leader
+				reply, err := apiClients[testNode].Operator().RaftGetConfiguration(&api.QueryOptions{})
+				if err != nil {
+					t.Logf("error getting raft configuration: %s", err)
+					continue
+				}
+				for _, s := range reply.Servers {
+					if s.Leader {
+						if currentLeader != s.Node {
+							currentLeader = s.Node
+							t.Logf("leadership changed to %s", currentLeader)
+						}
+					}
+				}
+			}
+		}
+	}()
+
 	wg.Wait()
+	cancel()
+}
+
+func writeKV(t *testing.T, client *api.Client, prefix string, index int, counter *atomic.Uint64) error {
+
+	p := &api.KVPair{
+		Key: fmt.Sprintf("%s-%010d", prefix, index),
+	}
+	token := make([]byte, 131072) // 128K size of value
+	rand.Read(token)
+	p.Value = token
+
+	// We retry until success here
+	// We can sometimes get 500 errors when the leadership changes
+	retry.Run(t, func(r *retry.R) {
+		_, err := client.KV().Put(p, &api.WriteOptions{})
+		if err != nil {
+			r.Fatal(fmt.Errorf("error writing kv %s: %w", fmt.Sprintf("%s-%010d", prefix, index), err))
+		}
+	})
+	counter.Add(1)
+
+	return nil
 }
 
 func checkKV(t *testing.T, client *api.Client, currentCount int) {
-	for i := startingPoint; i < startingPoint+numKeysToSeed+currentCount; i++ {
-		_, _, err := client.KV().Get("key-"+fmt.Sprint(i), &api.QueryOptions{})
-		require.NoError(t, err, "could not validate", "key-id", i)
+	for i := 0; i < numKeysToSeed; i++ {
+		_, _, err := client.KV().Get("seed-"+fmt.Sprintf("%010d", i), &api.QueryOptions{})
+		require.NoError(t, err, "could not validate", "key-id", "seed-"+fmt.Sprintf("%010d", i))
+	}
+
+	for i := 0; i < currentCount; i++ {
+		_, _, err := client.KV().Get("test-"+fmt.Sprintf("%010d", i), &api.QueryOptions{})
+		require.NoError(t, err, "could not validate", "key-id", "test-"+fmt.Sprintf("%010d", i))
 	}
 }
