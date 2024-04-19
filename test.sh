@@ -15,6 +15,7 @@ docker rm -f server1 || true
 docker rm -f server2 || true
 docker rm -f server3 || true
 
+# We rely on the legacy bootstrap=true to make sure a server 1.14+ is elected as leader
 docker run --name server1 -p 8501:8500 -d $new_version agent -hcl '
 server = true
 bootstrap = true
