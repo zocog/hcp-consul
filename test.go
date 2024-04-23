@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
+// This script shows that a transaction can fail silently on a follower.
 func main() {
 
 	cfg := api.DefaultConfig()
@@ -19,7 +20,7 @@ func main() {
 	cfg = api.DefaultConfig()
 	cfg.Address = "localhost:8503"
 
-	oldFollowerClient, err := api.NewClient(cfg)
+	badFollowerClient, err := api.NewClient(cfg)
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +60,7 @@ func main() {
 	}
 
 	fmt.Println("Checking the old follower for the key")
-	pair, _, err = oldFollowerClient.KV().Get("test/key1", &api.QueryOptions{AllowStale: true})
+	pair, _, err = badFollowerClient.KV().Get("test/key1", &api.QueryOptions{AllowStale: true})
 	if err != nil {
 		panic("could not find key in old follower")
 	}
