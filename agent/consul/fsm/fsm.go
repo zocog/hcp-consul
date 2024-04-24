@@ -141,7 +141,7 @@ func (c *FSM) Apply(log *raft.Log) interface{} {
 			}
 			c.logger.Info("This is the raft payload: " + string(buf))
 		}
-		return fn(buf[1:], log.Index)
+		return resultIface
 	}
 
 	// Otherwise, see if it's safe to ignore. If not, we have to panic so
