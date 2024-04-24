@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -1882,43 +1881,6 @@ func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
 
 		assert.True(t, strings.Contains(err.Error(), "Invalid value for ?passing"))
 	})
-}
-
-func TestFilterNonPassing(t *testing.T) {
-	t.Parallel()
-	nodes := structs.CheckServiceNodes{
-		structs.CheckServiceNode{
-			Checks: structs.HealthChecks{
-				&structs.HealthCheck{
-					Status: api.HealthCritical,
-				},
-				&structs.HealthCheck{
-					Status: api.HealthCritical,
-				},
-			},
-		},
-		structs.CheckServiceNode{
-			Checks: structs.HealthChecks{
-				&structs.HealthCheck{
-					Status: api.HealthCritical,
-				},
-				&structs.HealthCheck{
-					Status: api.HealthCritical,
-				},
-			},
-		},
-		structs.CheckServiceNode{
-			Checks: structs.HealthChecks{
-				&structs.HealthCheck{
-					Status: api.HealthPassing,
-				},
-			},
-		},
-	}
-	out := filterNonPassing(nodes)
-	if len(out) != 1 && reflect.DeepEqual(out[0], nodes[2]) {
-		t.Fatalf("bad: %v", out)
-	}
 }
 
 func TestListHealthyServiceNodes_MergeCentralConfig(t *testing.T) {

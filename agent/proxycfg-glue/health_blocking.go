@@ -128,7 +128,7 @@ func (h *serverHealthBlocking) Notify(ctx context.Context, args *structs.Service
 			if err != nil {
 				return 0, nil, err
 			}
-			thisReply.Nodes = raw.(structs.CheckServiceNodes)
+			thisReply.Nodes = raw.(structs.CheckServiceNodes).FilterIgnoreBasedOnHealthFilterType(args.HealthFilterType, nil)
 
 			// Note: we filter the results with ACLs *after* applying the user-supplied
 			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include

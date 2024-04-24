@@ -52,13 +52,6 @@ func (c *Client) ServiceNodes(
 		return out, md, err
 	}
 
-	// TODO: DNSServer emitted a metric here, do we still need it?
-	if req.QueryOptions.AllowStale && req.QueryOptions.MaxStaleDuration > 0 && out.QueryMeta.LastContact > req.MaxStaleDuration {
-		req.AllowStale = false
-		err := c.NetRPC.RPC(context.Background(), "Health.ServiceNodes", &req, &out)
-		return out, cache.ResultMeta{}, err
-	}
-
 	return out, md, err
 }
 
@@ -67,8 +60,17 @@ func (c *Client) getServiceNodes(
 	req structs.ServiceSpecificRequest,
 ) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
 	var out structs.IndexedCheckServiceNodes
-	if !req.QueryOptions.UseCache {
-		err := c.NetRPC.RPC(context.Background(), "Health.ServiceNodes", &req, &out)
+
+	allowStaleEnabledButExceeded := req.QueryOptions.AllowStale && req.QueryOptions.MaxStaleDuration > 0 && out.QueryMeta.LastContact > req.MaxStaleDuration
+	if !req.QueryOptions.UseCache || allowStaleEnabledButExceeded {
+		if allowStaleEnabledButExceeded {
+			req.AllowStale = false
+		}
+		rpcEndpoint := "Health.ServiceNodes"
+		if req.SamenessGroup != "" {
+			rpcEndpoint = "Health.SamenessGroupServiceNodes"
+		}
+		err := c.NetRPC.RPC(context.Background(), rpcEndpoint, &req, &out)
 		return out, cache.ResultMeta{}, err
 	}
 

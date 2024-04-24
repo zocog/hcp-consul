@@ -752,16 +752,20 @@ type ServiceSpecificRequest struct {
 	// The name of the peer that the requested service was imported from.
 	PeerName string
 
+	// The name of the sameness group that should be the target of the query.
+	SamenessGroup string
+
 	NodeMetaFilters map[string]string
 	ServiceName     string
 	ServiceKind     ServiceKind
 	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
 	// with 1.2.x is not required.
-	ServiceTag     string
-	ServiceTags    []string
-	ServiceAddress string
-	TagFilter      bool // Controls tag filtering
-	Source         QuerySource
+	ServiceTag       string
+	ServiceTags      []string
+	ServiceAddress   string
+	TagFilter        bool // Controls tag filtering
+	HealthFilterType HealthFilterType
+	Source           QuerySource
 
 	// Connect if true will only search for Connect-compatible services.
 	Connect bool
@@ -819,9 +823,11 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.Filter,
 		r.EnterpriseMeta,
 		r.PeerName,
+		r.SamenessGroup,
 		r.Ingress,
 		r.ServiceKind,
 		r.MergeCentralConfig,
+		r.HealthFilterType,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces
@@ -2161,6 +2167,16 @@ func (nodes CheckServiceNodes) ShallowClone() CheckServiceNodes {
 	return dup
 }
 
+// HealthFilterType is used to filter nodes based on their health status.
+type HealthFilterType int32
+
+// These are listed from most to least inclusive.
+const (
+	HealthFilterIncludeAll         HealthFilterType = 0
+	HealthFilterExcludeCritical    HealthFilterType = 1
+	HealthFilterIncludeOnlyPassing HealthFilterType = 2
+)
+
 // Filter removes nodes that are failing health checks (and any non-passing
 // check if that option is selected). Note that this returns the filtered
 // results AND modifies the receiver for performance.
@@ -2168,11 +2184,29 @@ func (nodes CheckServiceNodes) Filter(onlyPassing bool) CheckServiceNodes {
 	return nodes.FilterIgnore(onlyPassing, nil)
 }
 
+func getFilterTypeBasedOnOnlyPassing(onlyPassing bool) HealthFilterType {
+	filterType := HealthFilterExcludeCritical
+	if onlyPassing {
+		filterType = HealthFilterIncludeOnlyPassing
+
+	}
+	return filterType
+}
+
 // FilterIgnore removes nodes that are failing health checks just like Filter.
 // It also ignores the status of any check with an ID present in ignoreCheckIDs
 // as if that check didn't exist. Note that this returns the filtered results
 // AND modifies the receiver for performance.
 func (nodes CheckServiceNodes) FilterIgnore(onlyPassing bool,
+	ignoreCheckIDs []types.CheckID) CheckServiceNodes {
+	return nodes.FilterIgnoreBasedOnHealthFilterType(getFilterTypeBasedOnOnlyPassing(onlyPassing), ignoreCheckIDs)
+}
+
+// FilterIgnoreBasedOnHealthFilterType removes nodes that are failing health checks just like Filter.
+// It also ignores the status of any check with an ID present in ignoreCheckIDs
+// as if that check didn't exist. Note that this returns the filtered results
+// AND modifies the receiver for performance.
+func (nodes CheckServiceNodes) FilterIgnoreBasedOnHealthFilterType(filterType HealthFilterType,
 	ignoreCheckIDs []types.CheckID) CheckServiceNodes {
 	n := len(nodes)
 OUTER:
@@ -2186,8 +2220,8 @@ OUTER:
 					continue INNER
 				}
 			}
-			if check.Status == api.HealthCritical ||
-				(onlyPassing && check.Status != api.HealthPassing) {
+			if (filterType == HealthFilterExcludeCritical && check.Status == api.HealthCritical) ||
+				(filterType == HealthFilterIncludeOnlyPassing && check.Status != api.HealthPassing) {
 				nodes[i], nodes[n-1] = nodes[n-1], CheckServiceNode{}
 				n--
 				i--

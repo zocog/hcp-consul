@@ -5,18 +5,16 @@ package consul
 
 import (
 	"fmt"
-	"sort"
-
 	"github.com/armon/go-metrics"
-	bexpr "github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
+	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
+	"sort"
 )
 
 // Health endpoint is used to query the health information
@@ -301,7 +299,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			if err != nil {
 				return err
 			}
-			thisReply.Nodes = raw.(structs.CheckServiceNodes)
+			thisReply.Nodes = raw.(structs.CheckServiceNodes).FilterIgnoreBasedOnHealthFilterType(args.HealthFilterType, nil)
 
 			// Note: we filter the results with ACLs *after* applying the user-supplied
 			// bexpr filter, to ensure QueryMeta.ResultsFilteredByACLs does not include
