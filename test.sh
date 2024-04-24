@@ -8,8 +8,8 @@ cd "$(dirname "$0")"
 
 readonly COMMAND="${1:-}"
 
-old_version='hashicorp/consul:1.10.8'
-new_version='hashicorp/consul:1.14.8'
+old_version='ndhanushkodi/consul-dev:kv1.10.8logs'
+new_version='ndhanushkodi/consul-dev:kv1.14.8logs'
 
 docker rm -f server1 || true
 docker rm -f server2 || true
