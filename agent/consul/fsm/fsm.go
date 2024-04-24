@@ -140,7 +140,18 @@ func (c *FSM) Apply(log *raft.Log) interface{} {
 
 	// Apply based on the dispatch table, if possible.
 	if fn := c.apply[msgType]; fn != nil {
-		return fn(buf[1:], log.Index)
+		resultIface := fn(buf[1:], log.Index)
+		txnResponse, ok := resultIface.(structs.TxnResponse)
+		if ok {
+			c.logger.Info("GOT TXN RESPONSE RAFT LOG TYPE")
+			if len(txnResponse.Errors) > 0 {
+				for _, e := range txnResponse.Errors {
+					c.logger.Error(e.Error())
+				}
+			}
+			c.logger.Info("This is the raft payload: " + string(buf))
+		}
+		return resultIface
 	}
 
 	// Otherwise, see if it's safe to ignore. If not, we have to panic so
