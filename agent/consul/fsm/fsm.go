@@ -135,11 +135,39 @@ func (c *FSM) Apply(log *raft.Log) interface{} {
 		if ok {
 			c.logger.Info("GOT TXN RESPONSE RAFT LOG TYPE")
 			if len(txnResponse.Errors) > 0 {
+				var req structs.TxnRequest
+				if err := structs.Decode(buf[1:], &req); err != nil {
+					panic(fmt.Errorf("failed to decode request: %v", err))
+				}
+
 				for _, e := range txnResponse.Errors {
 					c.logger.Error(e.Error())
 				}
+
+				var opsInPayload string
+				for _, op := range req.Ops {
+					// Dispatch based on the type of operation.
+					switch {
+					case op.KV != nil:
+						opsInPayload += string(op.KV.Verb)
+					case op.Node != nil:
+						opsInPayload += string(op.Node.Verb)
+					case op.Service != nil:
+						opsInPayload += string(op.Service.Verb)
+					case op.Check != nil:
+						opsInPayload += string(op.Check.Verb)
+					case op.Session != nil:
+						opsInPayload += string(op.Session.Verb)
+					case op.Intention != nil:
+						opsInPayload += string(op.Intention.Op)
+					default:
+						opsInPayload += "<UNKNOWN OPS>"
+					}
+					opsInPayload += ", "
+				}
+				c.logger.Info("This is the raft payload: [" + string(buf) + "]")
 			}
-			c.logger.Info("This is the raft payload: " + string(buf))
+
 		}
 		return resultIface
 	}
