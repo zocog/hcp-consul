@@ -5,11 +5,6 @@ name: build
 
 on:
   push:
-    # Sequence of patterns matched against refs/heads
-    branches:
-      # Push events on the main branch
-      - main
-      - release/**
   workflow_dispatch:
 
 env:
@@ -145,7 +140,7 @@ jobs:
             # Note that for non-linux builds, .release/linux/package... is a no-op, 
             # but files will always included in the zip root directory (TARGET_DIR) on all platforms.
             ./.github/scripts/copy-legal.sh "${{ github.repository }}" "$TARGET_DIR" ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
-            ${{ matrix.env }} go build -ldflags="$GOLDFLAGS" -tags="${{ matrix.gotags }}" -o "$BIN_PATH" -trimpath -buildvcs=false
+            go build -ldflags="$GOLDFLAGS" -tags="${{ matrix.gotags }}" -o "$BIN_PATH" -trimpath -buildvcs=false
 
       - name: Package
         if: ${{ matrix.goos == 'linux' }}
