@@ -693,7 +693,7 @@
       {
         "title": "Consul at Scale",
         "path": "manage-consul/scale"
-      }.
+      },
       {
         "title": "Snapshot",
         "path": "manage-consul/snapshot"
