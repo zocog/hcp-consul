@@ -43,7 +43,7 @@ sync-tasks/
     └── terraform.tfvars.tmpl
 ```
 
-The following files of the root module are generated for each task. An [example of a root module created by CTS](https://github.com/hashicorp/consul-terraform-sync/tree/master/examples) can be found in the project repository.
+The following files of the root module are generated for each task. An [example of a root module created by CTS](https://github.com/hashicorp/consul-terraform-sync/tree/master/multi) can be found in the project repository.
 
 - `main.tf` - The main file contains the terraform block, provider blocks, and a module block calling the module configured for the task.
   - `terraform` block - The corresponding provider source and versions for the task from the configuration files are placed into this block for the root module. The Terraform backend from the configuration is also templated here.
