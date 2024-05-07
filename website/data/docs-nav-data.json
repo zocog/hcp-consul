@@ -64,7 +64,7 @@
         "href": "/consul/tutorials/get-started-kubernetes"
       },
       {
-        "title": "HCP Consul",
+        "title": "HCP Consul Dedicated",
         "href": "/consul/tutorials/get-started-hcp"
       }
     ]
@@ -427,7 +427,7 @@
         ]
       },
       {
-        "title": "Deploy for service mesh",
+        "title": "Configure existing servers for service mesh",
         "routes": [
           {
             "title": "Enable service mesh",
@@ -450,30 +450,30 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "secure-consul"
+        "path": "secure"
       },
       {
         "title": "Access Control Lists (ACLs)",
         "routes": [
           {
             "title": "Overview",
-            "path": "secure-consul/acl"
+            "path": "secure/acl"
           },
 
           {
-            "title": "Token",
-            "path": "secure-consul/acl/token"
+            "title": "Tokens",
+            "path": "secure/acl/token"
           },
           {
-            "title": "Policy",
-            "path": "secure-consul/acl/policy"
+            "title": "Policies",
+            "path": "secure/acl/policy"
           },
           {
-            "title": "Role",
-            "path": "secure-consul/acl/role"
+            "title": "Roles",
+            "path": "secure/acl/role"
           },
           {
-            "title": "Rule",
+            "title": "Rules",
             "href": "reference/acl/rule"
           },
           {
@@ -481,90 +481,90 @@
             "routes": [
               {
                 "title": "Overview",
-                "path": "secure-consul/acl/auth-method"
+                "path": "secure/acl/auth-method"
               },
               {
                 "title": "Kubernetes",
-                "path": "secure-consul/acl/auth-method/k8s"
+                "path": "secure/acl/auth-method/k8s"
               },
               {
                 "title": "JWT",
-                "path": "secure-consul/acl/auth-method/jwt"
+                "path": "secure/acl/auth-method/jwt"
               },
               {
                 "title": "OIDC (ENT)",
-                "path": "secure-consul/acl/auth-method/oidc"
+                "path": "secure/acl/auth-method/oidc"
               },
               {
                 "title": "AWS IAM",
-                "path": "secure-consul/acl/auth-method/aws-iam"
+                "path": "secure/acl/auth-method/aws-iam"
               }
             ]
           },
           {
             "title": "Bootstrap ACL system",
-            "path": "secure-consul/acl/bootstrap"
-          },
-          {
-            "title": "Enable ACLs in federated datacenters",
-            "path": "secure-consul/acl/enable-federated-datacenters"
+            "path": "secure/acl/bootstrap"
           },
           {
             "title": "Create common policies and tokens",
             "routes": [
               {
-                "title": "Service token",
-                "path": "secure-consul/acl/create/service"
-              },
-              {
                 "title": "Agent token",
-                "path": "secure-consul/acl/create/agent"
-              },
-              {
-                "title": "UI token",
-                "path": "secure-consul/acl/create/ui"
-              },
-              {
-                "title": "Mesh gateway token",
-                "path": "secure-consul/acl/create/mesh-gateway"
-              },
-              {
-                "title": "Ingress gateway token",
-                "path": "secure-consul/acl/create/ingress-gateway"
-              },
-              {
-                "title": "Terminating gateway token",
-                "path": "secure-consul/acl/create/terminating-gateway"
+                "path": "secure/acl/create-token/agent"
               },
               {
                 "title": "DNS token",
-                "path": "secure-consul/acl/create/dns"
+                "path": "secure/acl/create-token/dns"
+              },
+              {
+                "title": "External Service Monitor (ESM) token",
+                "path": "secure/acl/create-token/esm"
+              },
+              {
+                "title": "Ingress gateway token",
+                "path": "secure/acl/create-token/ingress-gateway"
+              },
+              {
+                "title": "Mesh gateway token",
+                "path": "secure/acl/create-token/mesh-gateway"
               },
               {
                 "title": "Replication token",
-                "path": "secure-consul/acl/create/replication"
+                "path": "secure/acl/create-token/replication"
+              },
+              {
+                "title": "Service token",
+                "path": "secure/acl/create-token/service"
               },
               {
                 "title": "Snapshot agent token",
-                "path": "secure-consul/acl/create/snapshot-agent"
+                "path": "secure/acl/create-token/snapshot-agent"
               },
               {
-                "title": "Vault Consul storage backend",
-                "path": "secure-consul/acl/create/vault-storage-backend"
+                "title": "Terminating gateway token",
+                "path": "secure/acl/create-token/terminating-gateway"
               },
               {
-                "title": "Consul ESM token",
-                "path": "secure-consul/acl/create/esm"
+                "title": "UI token",
+                "path": "secure/acl/create-token/ui"
+              },
+              {
+                "title": "Vault as storage backend",
+                "path": "secure/acl/create-token/vault-storage-backend"
               }
             ]
           },
           {
+            "title": "Enable ACLs in federated datacenters",
+            "path": "secure/acl/enable-federated-datacenters"
+          },
+          {
             "title": "Migrate legacy tokens",
-            "path": "secure-consul/acl/legacy"
+            "path": "secure/acl/legacy"
           },
           {
             "title": "Troubleshoot",
-            "path": "secure-consul/acl/troubleshoot"
+            "path": "secure/acl/troubleshoot"
           }
         ]
       },
@@ -573,18 +573,18 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "secure-consul/encryption"
+            "path": "secure/encryption"
           },
           {
             "title": "Encrypt gossip traffic",
             "routes": [
               {
                 "title": "Enable on new datacenters",
-                "path": "secure-consul/encryption/gossip/enable"
+                "path": "secure/encryption/gossip/enable"
               },
               {
                 "title": "Enable on existing datacenters",
-                "path": "secure-consul/encryption/gossip/existing"
+                "path": "secure/encryption/gossip/existing"
               }
             ]
           },
@@ -593,15 +593,15 @@
             "routes": [
               {
                 "title": "Built-in",
-                "path": "secure-consul/encryption/tls/builtin"
+                "path": "secure/encryption/tls/builtin"
               },
               {
                 "title": "OpenSSL",
-                "path": "secure-consul/encryption/tls/openssl"
+                "path": "secure/encryption/tls/openssl"
               },
               {
                 "title": "Enable on existing datacenters",
-                "path": "secure-consul/encryption/tls/existing"
+                "path": "secure/encryption/tls/existing"
               }
             ]
           }
@@ -612,15 +612,15 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "secure-consul/security-model"
+            "path": "secure/security-model"
           },
           {
             "title": "Consul Core",
-            "path": "secure-consul/security-model/core"
+            "path": "secure/security-model/core"
           },
           {
             "title": "Consul-Terraform-Sync (CTS)",
-            "path": "secure-consul/security-model/cts"
+            "path": "secure/security-model/cts"
           }
         ]
       }
@@ -631,26 +631,26 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "manage-consul"
+        "path": "manage"
       },
       {
-        "title": "Agent rate limit",
+        "title": "Agent rate limits",
         "routes": [
           {
             "title": "Overview",
-            "path": "manage-consul/agent-rate-limit"
+            "path": "manage/agent-rate-limit"
           },
           {
             "title": "Initialize rate limit settings",
-            "path": "manage-consul/agent-rate-limit/initialize"
+            "path": "manage/agent-rate-limit/initialize"
           },
           {
             "title": "Monitor traffic rate limits",
-            "path": "manage-consul/agent-rate-limit/monitor"
+            "path": "manage/agent-rate-limit/monitor"
           },
           {
-            "title": "Set global traffic rate limit",
-            "path": "manage-consul/agent-rate-limit/set-global"
+            "title": "Set global traffic rate limits",
+            "path": "manage/agent-rate-limit/set-global"
           },
           {
             "title": "Limit traffic rates from source IP address",
@@ -659,7 +659,7 @@
               "type": "outlined",
               "color": "neutral"
             },
-            "path": "manage-consul/agent-rate-limit/source-ip-address"
+            "path": "manage/agent-rate-limit/source-ip-address"
           }
         ]
       },
@@ -670,7 +670,7 @@
           "type": "outlined",
           "color": "neutral"
         },
-        "path": "manage-consul/automated-backup"
+        "path": "manage/automated-backup"
       },
       {
         "title": "Redundancy zones",
@@ -679,7 +679,7 @@
           "type": "outlined",
           "color": "neutral"
         },
-        "path": "manage-consul/redundancy-zone"
+        "path": "manage/redundancy-zone"
       },
       {
         "title": "Read replicas",
@@ -688,15 +688,15 @@
           "type": "outlined",
           "color": "neutral"
         },
-        "path": "manage-consul/read-replica"
+        "path": "manage/read-replica"
       },
       {
         "title": "Consul at Scale",
-        "path": "manage-consul/scale"
+        "path": "manage/scale"
       },
       {
         "title": "Snapshot",
-        "path": "manage-consul/snapshot"
+        "path": "manage/snapshot"
       }
     ]
   },
@@ -705,22 +705,22 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "monitor-consul"
+        "path": "monitor"
       },
       {
         "title": "Consul telemetry",
         "routes": [
           {
             "title": "Overview",
-            "path": "monitor-consul/telemetry"
+            "path": "monitor/telemetry"
           },
           {
             "title": "Agent telemetry",
-            "path": "monitor-consul/telemetry/agent"
+            "path": "monitor/telemetry/agent"
           },
           {
             "title": "Dataplane telemetry",
-            "path": "monitor-consul/telemetry/dataplane"
+            "path": "monitor/telemetry/dataplane"
           }
         ]
       },
@@ -728,21 +728,17 @@
         "title": "Consul logs",
         "routes": [
           {
-            "title": "Overview",
-            "path": "monitor-consul/log"
+            "title": "Consul agent logs",
+            "path": "monitor/log/agent"
           },
           {
-            "title": "Log agent behavior",
-            "path": "monitor-consul/log/agent-behavior"
-          },
-          {
-            "title": "Log HTTP API request (Audit log)",
+            "title": "Audit logs",
             "badge": {
               "text": "ENTERPRISE",
               "type": "outlined",
               "color": "neutral"
             },
-            "path": "monitor-consul/log/audit-log"
+            "path": "monitor/log/audit"
           }
         ]
       }
@@ -2153,7 +2149,7 @@
       },
       {
         "title": "Security model",
-        "href": "secure-consul/security-model/cts"
+        "href": "secure/security-model/cts"
       },
       {
         "title": "Install CTS",
