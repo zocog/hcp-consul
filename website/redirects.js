@@ -276,7 +276,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/architecture/scale',
-    destination: '/consul/docs/deploy/scale',
+    destination: '/consul/docs/manage-consul/scale',
     permanent: true,
   },
   {
@@ -1965,7 +1965,7 @@ module.exports = [
   },
   {
     source:
-      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/deploy/scale/:slug*',
+      '/consul/docs/:version(v1.(?:8|9|10|11|12|13|14|15|16|17).x)/manage-consul/scale/:slug*',
     destination: '/consul/docs/:version/architecture/scale/:slug',
     permanent: true,
   },
