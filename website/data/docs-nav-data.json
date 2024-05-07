@@ -288,30 +288,30 @@
                 ]
               },
               {
-                "title": "Advanced examples",
+                "title": "Multi-cluster guides",
                 "routes": [
                   {
                     "title": "Servers outside Kubernetes",
-                    "path": "deploy/server/k8s/examples/servers-outside"
+                    "path": "deploy/server/k8s/multi/servers-outside"
                   },
                   {
                     "title": "Consul in multiple Kubernetes clusters",
-                    "path": "deploy/server/k8s/examples/multiple-clusters"
+                    "path": "deploy/server/k8s/multi/multiple-clusters"
                   },
                   {
                     "title": "Multi-cluster federation",
                     "routes": [
                       {
                         "title": "Overview",
-                        "path": "deploy/server/k8s/examples/federation"
+                        "path": "deploy/server/k8s/multi/federation"
                       },
                       {
                         "title": "Federate Kubernetes clusters",
-                        "path": "deploy/server/k8s/examples/federation/k8s"
+                        "path": "deploy/server/k8s/multi/federation/k8s"
                       },
                       {
                         "title": "Federate VM and Kubernetes clusters",
-                        "path": "deploy/server/k8s/examples/federation/k8s-vm"
+                        "path": "deploy/server/k8s/multi/federation/k8s-vm"
                       }
                     ]
                   },
@@ -320,60 +320,60 @@
                     "routes": [
                       {
                         "title": "Overview",
-                        "path": "deploy/server/k8s/examples/vault"
+                        "path": "deploy/server/k8s/multi/vault"
                       },
                       {
                         "title": "System integration",
-                        "path": "deploy/server/k8s/examples/vault/system-integration"
+                        "path": "deploy/server/k8s/multi/vault/system-integration"
                       },
                       {
                         "title": "Data integration",
                         "routes": [
                           {
                             "title": "Overview",
-                            "path": "deploy/server/k8s/examples/vault/data-integration"
+                            "path": "deploy/server/k8s/multi/vault/data-integration"
                           },
                           {
                             "title": "Bootstrap token",
-                            "path": "deploy/server/k8s/examples/vault/data-integration/bootstrap-token"
+                            "path": "deploy/server/k8s/multi/vault/data-integration/bootstrap-token"
                           },
                           {
                             "title": "Enterprise license",
-                            "path": "deploy/server/k8s/examples/vault/data-integration/enterprise-license"
+                            "path": "deploy/server/k8s/multi/vault/data-integration/enterprise-license"
                           },
                           {
                             "title": "Gossip encryption key",
-                            "path": "deploy/server/k8s/examples/vault/data-integration/gossip-encryption-key"
+                            "path": "deploy/server/k8s/multi/vault/data-integration/gossip-encryption-key"
                           },
                           {
                             "title": "Partition token",
-                            "path": "deploy/server/k8s/examples/vault/data-integration/partition-token"
+                            "path": "deploy/server/k8s/multi/vault/data-integration/partition-token"
                           },
                           {
                             "title": "Replication token",
-                            "path": "deploy/server/k8s/examples/vault/data-integration/replication-token"
+                            "path": "deploy/server/k8s/multi/vault/data-integration/replication-token"
                           },
                           {
                             "title": "Server TLS",
-                            "path": "deploy/server/k8s/examples/vault/data-integration/server-tls"
+                            "path": "deploy/server/k8s/multi/vault/data-integration/server-tls"
                           },
                           {
                             "title": "Service mesh certificates",
-                            "path": "deploy/server/k8s/examples/vault/data-integration/service-mesh-certificate"
+                            "path": "deploy/server/k8s/multi/vault/data-integration/service-mesh-certificate"
                           },
                           {
                             "title": "Snapshot agent config",
-                            "path": "deploy/server/k8s/examples/vault/data-integration/snapshot-agent-config"
+                            "path": "deploy/server/k8s/multi/vault/data-integration/snapshot-agent-config"
                           },
                           {
                             "title": "Webhook certificates",
-                            "path": "deploy/server/k8s/examples/vault/data-integration/webhook-certificates"
+                            "path": "deploy/server/k8s/multi/vault/data-integration/webhook-certificates"
                           }
                         ]
                       },
                       {
                         "title": "WAN federation",
-                        "path": "deploy/server/k8s/examples/vault/wan"
+                        "path": "deploy/server/k8s/multi/vault/wan"
                       }
                     ]
                   }
@@ -392,66 +392,56 @@
         ]
       },
       {
-        "title": "Connect workloads",
+        "title": "Deploy Consul clients or dataplanes",
         "routes": [
           {
             "title": "Overview",
-            "path": "deploy/control-plane"
+            "path": "deploy/workload-agent"
           },
           {
-            "title": "Virtual machine (VM)",
-            "path": "deploy/control-plane/vm"
+            "title": "Client agents",
+            "routes": [
+              {
+                "title": "Virtual machines",
+                "path": "deploy/workload-agent/client/vm"
+              },
+              {
+                "title": "Kubernetes",
+                "path": "deploy/workload-agent/client/k8s"
+              }
+            ]
           },
           {
-            "title": "Overview",
-            "path": "deploy/control-plane/k8s"
-          },
-          {
-            "title": "Nomad",
-            "href": "register/service/nomad"
-          },
-          {
-            "title": "ECS",
-            "href": "register/service/ecs"
-          },
-          {
-            "title": "Lambda",
-            "href": "register/service/lambda"
+            "title": "Dataplanes",
+            "routes": [
+              {
+                "title": "Kubernetes",
+                "path": "deploy/workload-agent/dataplane/k8s"
+              },
+              {
+                "title": "ECS",
+                "path": "deploy/workload-agent/dataplane/ecs"
+              }
+            ]
           }
         ]
       },
       {
-        "title": "Configure service mesh",
+        "title": "Deploy for service mesh",
         "routes": [
-          {
-            "title": "Overview",
-            "path": "deploy/service-mesh"
-          },
-          {
-            "title": "Consul Dataplane",
-            "path": "deploy/service-mesh/dataplane"
-          },
           {
             "title": "Enable service mesh",
             "path": "deploy/service-mesh/enable"
           },
           {
             "title": "Configure and deploy proxies in the service mesh",
-            "path": "deploy/service-mesh/deploy-proxy"
+            "path": "deploy/service-mesh/proxy"
           },
           {
             "title": "Configure and deploy sidecar proxies",
-            "path": "deploy/service-mesh/deploy-sidecar"
+            "path": "deploy/service-mesh/sidecar"
           }
         ]
-      },
-      {
-        "title": "Consul at Scale",
-        "path": "deploy/scale"
-      },
-      {
-        "title": "Consul Enterprise",
-        "path": "deploy/enterprise"
       }
     ]
   },
@@ -700,6 +690,10 @@
         },
         "path": "manage-consul/read-replica"
       },
+      {
+        "title": "Consul at Scale",
+        "path": "manage-consul/scale"
+      }.
       {
         "title": "Snapshot",
         "path": "manage-consul/snapshot"
