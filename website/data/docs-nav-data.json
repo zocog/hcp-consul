@@ -207,7 +207,7 @@
             ]
           },
           {
-            "title": "HashiCorp-managed clusters",
+            "title": "HCP Consul Dedicated",
             "path": "deploy/server/hcp"
           },
           {
@@ -765,6 +765,15 @@
         "path": "upgrade/compatibility-promise"
       },
       {
+        "title": "Long Term Support (LTS)",
+        "badge": {
+          "text": "ENTERPRISE",
+          "type": "outlined",
+          "color": "neutral"
+        },
+        "path": "upgrade/lts"
+      },
+      {
         "title": "Specific version details",
         "path": "upgrade/version-specific"
       },
@@ -848,6 +857,10 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.18.x",
+            "path": "release-notes/consul/v1_18_x"
+          },
+          {
             "title": "v1.17.x",
             "path": "release-notes/consul/v1_17_x"
           },
@@ -888,6 +901,10 @@
       {
         "title": "Consul K8s",
         "routes": [
+          {
+            "title": "v1.4.x",
+            "path": "release-notes/consul-k8s/v1_4_x"
+          },
           {
             "title": "v1.3.x",
             "path": "release-notes/consul-k8s/v1_3_x"
