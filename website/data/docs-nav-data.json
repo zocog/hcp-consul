@@ -1188,11 +1188,11 @@
         "routes": [
           {
             "title": "Static lookups",
-            "path": "discover/static"
+            "path": "discover/service/static"
           },
           {
             "title": "Dynamic lookups with prepared queries",
-            "path": "discover/dynamic"
+            "path": "discover/service/dynamic"
           }
         ]
       },
