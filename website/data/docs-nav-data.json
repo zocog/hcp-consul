@@ -1164,7 +1164,24 @@
       },
       {
         "title": "Load balancing",
-        "path": "discover/load-balancer"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "discover/load-balancer"
+          },
+          {
+            "title": "Envoy",
+            "path": "discover/load-balancer/envoy"
+          },
+          {
+            "title": "NGINX",
+            "path": "discover/load-balancer/nginx"
+          },
+          {
+            "title": "F5 BIG-IP AS3",
+            "path": "discover/load-balancer/f5"
+          }
+        ]
       },
       {
         "title": "Lookup services",
