@@ -1017,10 +1017,6 @@
         "title": "Services and health checks",
         "routes": [
           {
-            "title": "Overview",
-            "path": "register/service"
-          },
-          {
             "title": "Virtual machine (VM)",
             "routes": [
               {
@@ -1062,6 +1058,10 @@
                 "path": "register/service/ecs/requirements"
               },
               {
+                "title": "Consul Enterprise configuration",
+                "path": "register/service/ecs/enterprise"
+              },
+              {
                 "title": "Register tasks with Terraform",
                 "path": "register/service/ecs"
               },
@@ -1075,7 +1075,7 @@
               },
               {
                 "title": "Configure ECS task bind address",
-                "path": "register/service/ecs/configure-task-bind-address"
+                "path": "register/service/ecs/task-bind-address"
               }
             ]
           },
@@ -1135,26 +1135,6 @@
             "path": "register/external/permissive-mtls"
           }
         ]
-      },
-      {
-        "title": "Virtual machine (VM)",
-        "path": "register/vm"
-      },
-      {
-        "title": "Kubernetes",
-        "path": "register/k8s"
-      },
-      {
-        "title": "ECS",
-        "path": "register/ecs"
-      },
-      {
-        "title": "Lambda",
-        "path": "register/lambda"
-      },
-      {
-        "title": "Nomad",
-        "path": "register/nomad"
       }
     ]
   },
@@ -1187,12 +1167,17 @@
         "path": "discover/load-balancer"
       },
       {
-        "title": "Static lookups",
-        "path": "discover/static-query"
-      },
-      {
-        "title": "Dynamic lookups with prepared queries",
-        "path": "discover/prepared-query"
+        "title": "Lookup services",
+        "routes": [
+          {
+            "title": "Static lookups",
+            "path": "discover/static"
+          },
+          {
+            "title": "Dynamic lookups with prepared queries",
+            "path": "discover/dynamic"
+          }
+        ]
       },
       {
         "title": "Virtual machine (VM)",
