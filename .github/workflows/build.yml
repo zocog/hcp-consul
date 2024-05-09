@@ -243,8 +243,13 @@ jobs:
           instructions: |-
             # Note that for non-linux builds, .release/linux/package... is a no-op, 
             # but files will always included in the zip root directory (TARGET_DIR) on all platforms.
-            ./.github/scripts/copy-legal.sh "${{ github.repository }}" "$TARGET_DIR" ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
+            ./.github/scripts/copy-legal.sh "${{ github.repository }}" "$TARGET_DIR"
             go build -ldflags="$GOLDFLAGS" -tags="${{ matrix.gotags }}" -o "$BIN_PATH" -trimpath -buildvcs=false
+
+      - name: Copy linux package license separately
+        run: |
+          ./.github/scripts/copy-legal.sh "${{ github.repository }}" ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
+
 
   build-darwin:
     needs:
@@ -296,8 +301,12 @@ jobs:
           instructions: |-
             # Note that for non-linux builds, .release/linux/package... is a no-op, 
             # but files will always included in the zip root directory (TARGET_DIR) on all platforms.
-            ./.github/scripts/copy-legal.sh "${{ github.repository }}" "$TARGET_DIR" ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
+            ./.github/scripts/copy-legal.sh "${{ github.repository }}" "$TARGET_DIR"
             go build -ldflags="$GOLDFLAGS" -tags="${{ matrix.gotags }}" -o "$BIN_PATH" -trimpath -buildvcs=false
+
+      - name: Copy linux package license separately
+        run: |
+          ./.github/scripts/copy-legal.sh "${{ github.repository }}" ".release/linux/package/usr/share/doc/${{ env.PKG_NAME }}"
 
   build-docker:
     name: Docker ${{ matrix.arch }} build
