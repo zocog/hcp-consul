@@ -1457,7 +1457,7 @@
             "routes": [
               {
                 "title": "Encrypt traffic on VMs",
-                "path": "access/api-gateway/secure-traffic/encrypt/vm"
+                "path": "access/api-gateway/secure-traffic/encrypt"
               },
               {
                 "title": "Verify requests with JWTS on VMs",
