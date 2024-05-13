@@ -1460,12 +1460,17 @@
                 "path": "access/api-gateway/secure-traffic/encrypt"
               },
               {
-                "title": "Verify requests with JWTS on VMs",
-                "path": "access/api-gateway/secure-traffic/jwt/vm"
-              },
-              {
-                "title": "Verify requests with JWTS on Kubernetes",
-                "path": "access/api-gateway/secure-traffic/jwt/k8s"
+                "title": "Verify requests with JWTs",
+                "routes": [
+                  {
+                    "title": "Verify requests with JWTS on VMs",
+                    "path": "access/api-gateway/secure-traffic/jwt/vm"
+                  },
+                  {
+                    "title": "Verify requests with JWTS on Kubernetes",
+                    "path": "access/api-gateway/secure-traffic/jwt/k8s"
+                  }
+                ]
               }
             ]
           }
