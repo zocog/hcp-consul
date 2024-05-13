@@ -1457,60 +1457,18 @@
             "routes": [
               {
                 "title": "Encrypt traffic on VMs",
-                "path": "access/api-gateway/secure-traffic/encrypt"
+                "path": "access/api-gateway/secure-traffic/encrypt/vm"
               },
               {
                 "title": "Verify requests with JWTS on VMs",
-                "path": "access/api-gateway/secure-traffic/jwt-vm"
+                "path": "access/api-gateway/secure-traffic/jwt/vm"
               },
               {
                 "title": "Verify requests with JWTS on Kubernetes",
-                "path": "access/api-gateway/secure-traffic/jwt-k8s"
-              }
-            ]
-          },
-          {
-            "title": "Reference",
-            "routes": [
-              {
-                "title": "Gateway",
-                "href": "reference/k8s/api-gateway/gateway"
-              },
-              {
-                "title": "GatewayClass",
-                "href": "reference/k8s/api-gateway/gatewayclass"
-              },
-              {
-                "title": "GatewayClassConfig",
-                "href": "reference/k8s/api-gateway/gatewayclassconfig"
-              },
-              {
-                "title": "GatewayPolicy",
-                "href": "reference/k8s/api-gateway/gatewaypolicy"
-              },
-              {
-                "title": "RouteAuthFilter",
-                "href": "reference/k8s/api-gateway/routeauthfilter"
-              },
-              {
-                "title": "Routes",
-                "href": "reference/k8s/api-gateway/routes"
-              },
-              {
-                "title": "RouteRetryFilter",
-                "href": "reference/k8s/api-gateway/routeretryfilter"
-              },
-              {
-                "title": "RouteTimeoutFilter",
-                "href": "reference/k8s/api-gateway/routetimeoutfilter"
-              },
-              {
-                "title": "MeshService",
-                "href": "reference/k8s/api-gateway/meshservice"
+                "path": "access/api-gateway/secure-traffic/jwt/k8s"
               }
             ]
           }
-        ]
       },
       {
         "title": "Ingress gateway",
