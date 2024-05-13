@@ -1480,15 +1480,15 @@
           },
           {
             "title": "Create ingress gateways on VMs",
-            "path": "access/ingress-gateway/create-vm"
+            "path": "access/ingress-gateway/vm"
           },
           {
             "title": "Create ingress gateways on K8s",
-            "path": "access/ingress-gateway/create-k8s"
+            "path": "access/ingress-gateway/k8s"
           },
           {
             "title": "Serve TLS certificate from external service",
-            "path": "access/ingress-gateway/tls-external-service"
+            "path": "access/ingress-gateway/external"
           }
         ]
       },
