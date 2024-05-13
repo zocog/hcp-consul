@@ -74,27 +74,27 @@
     "routes": [
       {
         "title": "Admin partition",
-        "path": "concepts/admin-partition"
+        "path": "concept/admin-partition"
       },
       {
         "title": "Proxy",
-        "path": "concepts/proxy"
+        "path": "concept/proxy"
       },
       {
         "title": "Service",
-        "path": "concepts/service"
+        "path": "concept/service"
       },
       {
         "title": "Service discovery",
-        "path": "concepts/service-discovery"
+        "path": "concept/service-discovery"
       },
       {
         "title": "Service mesh",
-        "path": "concepts/service-mesh"
+        "path": "concept/service-mesh"
       },
       {
         "title": "Transparent proxy",
-        "path": "concepts/transparent-proxy"
+        "path": "concept/transparent-proxy"
       }
     ]
   },
@@ -396,18 +396,18 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "deploy/workload-agent"
+            "path": "deploy/workload"
           },
           {
             "title": "Client agents",
             "routes": [
               {
                 "title": "Virtual machines",
-                "path": "deploy/workload-agent/client/vm"
+                "path": "deploy/workload/client/vm"
               },
               {
                 "title": "Kubernetes",
-                "path": "deploy/workload-agent/client/k8s"
+                "path": "deploy/workload/client/k8s"
               }
             ]
           },
@@ -416,30 +416,13 @@
             "routes": [
               {
                 "title": "Kubernetes",
-                "path": "deploy/workload-agent/dataplane/k8s"
+                "path": "deploy/workload/dataplane/k8s"
               },
               {
                 "title": "ECS",
-                "path": "deploy/workload-agent/dataplane/ecs"
+                "path": "deploy/workload/dataplane/ecs"
               }
             ]
-          }
-        ]
-      },
-      {
-        "title": "Configure existing servers for service mesh",
-        "routes": [
-          {
-            "title": "Enable service mesh",
-            "path": "deploy/service-mesh/enable"
-          },
-          {
-            "title": "Configure and deploy proxies in the service mesh",
-            "path": "deploy/service-mesh/proxy"
-          },
-          {
-            "title": "Configure and deploy sidecar proxies",
-            "path": "deploy/service-mesh/sidecar"
           }
         ]
       }
@@ -1214,12 +1197,29 @@
         "path": "connect"
       },
       {
-        "title": "How service mesh works",
-        "href": "concept/service-mesh"
+        "title": "Configuration entries",
+        "path": "connect/config-entry"
       },
       {
-        "title": "Configuration entries",
-        "path": "connect/config-entries"
+        "title": "Enable service mesh",
+        "path": "connect/enable"
+      },
+      {
+        "title": "Lambda",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/lambda"
+          },
+          {
+            "title": "Invoke Lambda functions from services",
+            "path": "connect/lambda/invoke-function"
+          },
+          {
+            "title": "Invoke services from Lambda functions",
+            "path": "connect/lambda/invoke-service"
+          }
+        ]
       },
       {
         "title": "Multi-port services",
@@ -1240,24 +1240,6 @@
         ]
       },
       {
-        "title": "Lambda",
-        "routes": [
-          {
-            "title": "-",
-            "hidden": true,
-            "path": "connect/lambda"
-          },
-          {
-            "title": "Invoke Lambda functions from services",
-            "path": "connect/lambda/invoke-function"
-          },
-          {
-            "title": "Invoke services from Lambda functions",
-            "path": "connect/lambda/invoke-service"
-          }
-        ]
-      },
-      {
         "title": "Proxy",
         "routes": [
           {
@@ -1266,14 +1248,22 @@
           },
           {
             "title": "Deploy service mesh proxy",
-            "path": "connect/proxy/deploy-service-mesh"
+            "path": "connect/proxy/mesh"
           },
           {
             "title": "Deploy sidecar proxy",
-            "path": "connect/proxy/deploy-sidecar"
+            "path": "connect/proxy/sidecar"
           },
           {
-            "title": "Enable transparent proxy",
+            "title": "Envoy extensions",
+            "href": "envoy-extension"
+          },
+          {
+            "title": "Proxy integrations",
+            "href": "integrate/proxy"
+          },
+          {
+            "title": "Transparent proxy",
             "routes": [
               {
                 "title": "Overview",
@@ -1292,14 +1282,6 @@
                 "path": "connect/proxy/transparent-proxy/ecs"
               }
             ]
-          },
-          {
-            "title": "Envoy extension",
-            "href": "envoy-extension"
-          },
-          {
-            "title": "Proxy integration",
-            "href": "integrate/proxy"
           }
         ]
       },
@@ -1331,10 +1313,6 @@
       {
         "title": "ECS",
         "path": "connect/ecs"
-      },
-      {
-        "title": "Lambda",
-        "href": "connect/lambda"
       },
       {
         "title": "Nomad",
