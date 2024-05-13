@@ -1321,7 +1321,7 @@
     ]
   },
   {
-    "title": "Manage tenancy",
+    "title": "Manage multi-tenancy",
     "badge": {
       "text": "ENTERPRISE",
       "type": "outlined",
@@ -1330,18 +1330,18 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "segment"
+        "path": "multi-tenancy"
       },
       {
         "title": "Admin partitions",
         "routes": [
           {
             "title": "Overview",
-            "path": "segment/admin-partition"
+            "path": "multi-tenancy/admin-partition"
           },
           {
             "title": "Configure partitions on Kubernetes",
-            "path": "segment/admin-partition/k8s"
+            "path": "multi-tenancy/admin-partition/k8s"
           }
         ]
       },
@@ -1350,11 +1350,11 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "segment/namespace"
+            "path": "multi-tenancy/namespace"
           },
           {
             "title": "Configure namespaces on Kubernetes",
-            "path": "segment/namespace/k8s"
+            "path": "multi-tenancy/namespace/k8s"
           }
         ]
       },
@@ -1363,17 +1363,17 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "segment/network-segment"
+            "path": "multi-tenancy/network-segment"
           },
           {
             "title": "Create network segments (VM)",
-            "path": "segment/network-segment/vm"
+            "path": "multi-tenancy/network-segment/vm"
           }
         ]
       },
       {
         "title": "Sameness groups",
-        "path": "segment/sameness-group"
+        "path": "multi-tenancy/sameness-group"
       }
     ]
   },
@@ -1392,26 +1392,32 @@
             "path": "access/api-gateway"
           },
           {
-            "title": "Technical specifications (Kubernetes)",
-            "path": "access/api-gateway/tech-specs"
+            "title": "Technical specifications",
+            "routes": [
+              {
+                "title": "Kubernetes",
+                "path": "access/api-gateway/tech-specs/k8s"
+              }
+            ]
           },
           {
-            "title": "Install on Kubernetes",
-            "path": "access/api-gateway/install"
-          },
-          {
-            "title": "Upgrade on Kubernetes",
-            "href": "upgrade/api-gateway/"
+            "title": "Enable API gateway",
+            "routes": [
+              {
+                "title": "Kubernetes",
+                "path": "access/api-gateway/enable/k8s"
+              }
+            ]
           },
           {
             "title": "Deploy listener",
             "routes": [
               {
-                "title": "Deploy listener to VMs",
+                "title": "VMs",
                 "path": "access/api-gateway/deploy-listener/vm"
               },
               {
-                "title": "Deploy listener to Kubernetes",
+                "title": "Kubernetes",
                 "path": "access/api-gateway/deploy-listener/k8s"
               }
             ]
@@ -1420,22 +1426,31 @@
             "title": "Define route",
             "routes": [
               {
-                "title": "Define route on VMs",
+                "title": "VMs",
                 "path": "access/api-gateway/define-route/vm"
               },
               {
-                "title": "Define route on Kubernetes",
-                "path": "access/api-gateway/define-route/k8s"
-              },
-              {
-                "title": "Reroute traffic in Kubernetes",
-                "path": "access/api-gateway/define-route/reroute"
-              },
-              {
-                "title": "Route to peered services in Kubernetes",
-                "path": "access/api-gateway/define-route/peer"
+                "title": "Kubernetes",
+                "routes": [
+                  {
+                    "title": "Define route",
+                    "path": "access/api-gateway/define-route/k8s"
+                  },
+                  {
+                    "title": "Reroute traffic",
+                    "path": "access/api-gateway/define-route/k8s/reroute"
+                  },
+                  {
+                    "title": "Route to peered services",
+                    "path": "access/api-gateway/define-route/k8s/peer"
+                  }
+                ]
               }
             ]
+          },
+          {
+            "title": "Upgrade",
+            "href": "upgrade/api-gateway/"
           },
           {
             "title": "Secure traffic",
