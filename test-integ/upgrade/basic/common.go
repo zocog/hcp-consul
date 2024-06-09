@@ -9,12 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/test-integ/topoutil"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-
-	"github.com/hashicorp/consul/test-integ/topoutil"
 )
 
 // The commonTopo comprises 3 agent servers and 3 nodes to run workload
@@ -131,7 +130,7 @@ func newCommonTopo(t *testing.T) *commonTopo {
 									"-http-port", "8080",
 									"-redirect-port", "-disabled",
 								},
-								Upstreams: []*topology.Destination{
+								Upstreams: []*topology.Upstream{
 									{
 										ID:        staticServerSID,
 										LocalPort: 5000,
@@ -219,7 +218,7 @@ func (ct *commonTopo) PostUpgradeValidation(t *testing.T) {
 	cluster.Nodes[ct.StaticServerInstTwo].Disabled = false //  client 3 -- new static-server
 	require.NoError(t, ct.Sprawl.RelaunchWithPhase(cfg, sprawl.LaunchPhaseRegular))
 	// Ensure the static-client connected to the new static-server
-	ct.Assert.FortioFetch2HeaderEcho(t, ct.StaticClientWorkload, &topology.Destination{
+	ct.Assert.FortioFetch2HeaderEcho(t, ct.StaticClientWorkload, &topology.Upstream{
 		ID:        ct.StaticServerSID,
 		LocalPort: 5000,
 	})
@@ -245,7 +244,7 @@ func (ct *commonTopo) Launch(t *testing.T) {
 		topology.NewNodeID("dc1-client2", "default"),
 		ct.StaticClientSID,
 	)
-	ct.Assert.FortioFetch2HeaderEcho(t, staticClientWorkload, &topology.Destination{
+	ct.Assert.FortioFetch2HeaderEcho(t, staticClientWorkload, &topology.Upstream{
 		ID:        ct.StaticServerSID,
 		LocalPort: 5000,
 	})
