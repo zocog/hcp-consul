@@ -197,7 +197,7 @@ jobs:
     with:
       # This should be set to the release branch corresponding to the lowest
       # non-LTS version in upgrade-integration-test's matrix.consul-version.
-      branch: release/1.17.x
+      branch: zalimeni/net-5622-consolidate-envoy-version-mgmt-1.17 # tmp - testing! release/1.17.x
 
   upgrade-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
