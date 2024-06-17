@@ -50,6 +50,8 @@ jobs:
   get-go-version:
     needs: [check-ent]
     uses: ./.github/workflows/reusable-get-go-version.yml
+    with:
+      ref: release/1.15.x
 
   dev-build:
     needs:
@@ -103,7 +105,7 @@ jobs:
               | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
               | jq --compact-output 'map(join("|"))'
           } >> "$GITHUB_OUTPUT"
-  
+
   envoy-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
@@ -196,7 +198,7 @@ jobs:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
-  
+
   upgrade-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:

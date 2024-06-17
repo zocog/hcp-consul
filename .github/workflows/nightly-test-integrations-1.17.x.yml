@@ -50,6 +50,8 @@ jobs:
   get-go-version:
     needs: [check-ent]
     uses: ./.github/workflows/reusable-get-go-version.yml
+    with:
+      ref: release/1.17.x
 
   dev-build:
     needs:

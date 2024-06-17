@@ -39,6 +39,8 @@ jobs:
 
   get-go-version:
     uses: ./.github/workflows/reusable-get-go-version.yml
+    with:
+      ref: ${{ inputs.branch }}
 
   tests:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl ) }}
