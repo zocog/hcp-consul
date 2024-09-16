@@ -1056,23 +1056,23 @@ func (s *Server) setupRaft() error {
 			return nil
 		}
 
-		// Default to WAL if there is no existing raft.db, even if it's enabled. Log a warning otherwise
-		if s.config.LogStoreConfig.Backend == LogStoreBackendDefault && !boltFileExists {
+		// Default is equivalent to WAL.
+		if s.config.LogStoreConfig.Backend == LogStoreBackendDefault {
 			s.config.LogStoreConfig.Backend = LogStoreBackendWAL
-		} else if s.config.LogStoreConfig.Backend == LogStoreBackendWAL || s.config.LogStoreConfig.Backend == LogStoreBackendDefault {
-			// User configured the new storage, but still has old raft.db. Warn
-			// them!
-			s.logger.Warn("BoltDB file raft.db found, IGNORING raft_logstore.backend which is set to 'wal'")
 		}
 
-		if s.config.LogStoreConfig.Backend == LogStoreBackendWAL && !boltFileExists {
-			s.config.LogStoreConfig.Backend = LogStoreBackendWAL
+		// If configured the new storage or default, but still has old raft.db, warn them and revert to BoltDB.
+		if s.config.LogStoreConfig.Backend == LogStoreBackendWAL && boltFileExists {
+			s.logger.Warn("BoltDB file raft.db found, IGNORING raft_logstore.backend and using BoltDB instead")
+			s.config.LogStoreConfig.Backend = LogStoreBackendBoltDB
+		}
+
+		// If WAL is still configured, use it. Otherwise, use BoltDB (the only other option).
+		if s.config.LogStoreConfig.Backend == LogStoreBackendWAL {
 			if err = initWAL(); err != nil {
 				return err
 			}
 		} else {
-
-			s.config.LogStoreConfig.Backend = LogStoreBackendBoltDB
 			// Create the backend raft store for logs and stable storage.
 			store, err := raftboltdb.New(raftboltdb.Options{
 				BoltOptions: &bbolt.Options{
