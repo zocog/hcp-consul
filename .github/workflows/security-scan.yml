@@ -73,7 +73,14 @@ jobs:
           path: security-scanner
           ref: main
 
-      - run: ls -al "$PWD"
+      # Work around scanner action bug caused when target repo isn't rooted at current working directory.
+      # See https://github.com/hashicorp/consul/actions/runs/10926448170/job/30330341123?pr=21657#step:7:46
+      # for example of issue. This causes the job to fail even though the scan completes successfully.
+      # Copying .git should allow the action to do what it wants w/ the target repo git config without
+      # corrupting the source repo's own tree, which is what would happen if we followed suit w/ other
+      # repos and cloned the scanner under the target repo root / current working directory.
+      - name: Copy consul/.git to working directory
+        run: cp -R consul/.git .
 
       - name: Scan
         id: scan
@@ -83,7 +90,6 @@ jobs:
           # See scan.hcl at repository root for config.
 
       - name: SARIF Output
-        if: always()
         shell: bash
         run: |
           cat results.sarif | jq
