@@ -73,11 +73,11 @@ jobs:
           path: security-scanner
           ref: main
 
-      - run: ls -al "$PWD"
+      - run: ls -al "$PWD" && cd ${{ steps.get-target-path.outputs.SCAN_TARGET_PATH }}
 
       - name: Scan
         id: scan
-        uses: ./security-scanner
+        uses: ../security-scanner
         with:
           repository: ${{ steps.get-target-path.outputs.SCAN_TARGET_PATH }}
           # See scan.hcl at repository root for config.
