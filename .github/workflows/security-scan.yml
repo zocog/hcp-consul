@@ -50,13 +50,15 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          path: ./consul
+          path: consul
 
-      - run: |
+      - name: Get target path
+        id: get-target-path
+        run: |
           echo $PWD
           pwd
           ls -al "$PWD/consul"
-          if [ "$PWD/consul" ]; then echo "found"; else echo "not found"; fi
+          if [ "$PWD/consul" ]; then echo "found"; else echo "SCAN_TARGET_PATH=$PWD/consul >> $GITHUB_OUTPUT"; fi
 
       - name: Set up Go
         uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
@@ -71,17 +73,13 @@ jobs:
           path: security-scanner
           ref: main
 
-      - run: |
-          echo $PWD
-          pwd
-          ls -al "$PWD/consul"
-          if [ "$PWD/consul" ]; then echo "found"; else echo "not found"; fi
+      - run: ls -al "$PWD"
 
       - name: Scan
         id: scan
         uses: ./security-scanner
         with:
-          repository: "./consul"
+          repository: ${{ steps.get-target-path.outputs.SCAN_TARGET_PATH }}
           # See scan.hcl at repository root for config.
 
       - name: SARIF Output
