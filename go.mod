@@ -103,7 +103,7 @@ require (
 	go.opentelemetry.io/otel v1.24.0
 	go.opentelemetry.io/otel/metric v1.24.0
 	go.opentelemetry.io/otel/sdk v1.24.0
-	go.opentelemetry.io/otel/sdk/metric v0.39.0
+	go.opentelemetry.io/otel/sdk/metric v1.24.0
 	go.opentelemetry.io/proto/otlp v1.0.0
 	go.uber.org/goleak v1.1.10
 	golang.org/x/crypto v0.26.0
