@@ -33,6 +33,10 @@ issues:
       text: 'SA1019:'
       path: "(agent/grpc-external|agent/grpc-internal)"
 
+    # Allow usage of deprecated grpc.DialContext until we've migrated from it.
+    - linters: [ staticcheck ]
+      text: 'SA1019: grpc.DialContext is deprecated: use NewClient instead'
+
     # An argument that always receives the same value is often not a problem.
     - linters: [unparam]
       text: "always receives"
