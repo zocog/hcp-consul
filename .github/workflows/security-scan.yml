@@ -81,7 +81,7 @@ jobs:
         id: scan
         uses: ./security-scanner
         with:
-          repository: "$PWD/../consul"
+          repository: "./consul"
           # See scan.hcl at repository root for config.
 
       - name: SARIF Output
