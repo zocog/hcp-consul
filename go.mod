@@ -2,7 +2,7 @@ module github.com/hashicorp/consul
 
 go 1.22.5
 
-toolchain go1.22.6
+toolchain go1.22.7
 
 exclude (
 	github.com/hashicorp/go-msgpack v1.1.5 // has breaking changes and must be avoided

@@ -52,14 +52,6 @@ jobs:
         with:
           path: consul
 
-      - name: Get target path
-        id: get-target-path
-        run: |
-          echo $PWD
-          pwd
-          ls -al "$PWD/consul"
-          if [ "$PWD/consul" ]; then echo "SCAN_TARGET_PATH=$PWD/consul" >> $GITHUB_OUTPUT; else echo "not found"; fi
-
       - name: Set up Go
         uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
@@ -73,20 +65,11 @@ jobs:
           path: security-scanner
           ref: main
 
-      # Work around scanner action bug caused when target repo isn't rooted at current working directory.
-      # See https://github.com/hashicorp/consul/actions/runs/10926448170/job/30330341123?pr=21657#step:7:46
-      # for example of issue. This causes the job to fail even though the scan completes successfully.
-      # Copying .git should allow the action to do what it wants w/ the target repo git config without
-      # corrupting the source repo's own tree, which is what would happen if we followed suit w/ other
-      # repos and cloned the scanner under the target repo root / current working directory.
-      - name: Copy consul/.git to working directory
-        run: cp -R consul/.git .
-
       - name: Scan
         id: scan
         uses: ./security-scanner
         with:
-          repository: ${{ steps.get-target-path.outputs.SCAN_TARGET_PATH }}
+          repository: "$PWD/consul"
           # See scan.hcl at repository root for config.
 
       - name: SARIF Output

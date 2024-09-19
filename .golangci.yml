@@ -37,7 +37,7 @@ issues:
     - linters: [ staticcheck ]
       text: '(Dial|DialContext) is deprecated: use NewClient instead'
     - linters: [ staticcheck ]
-      text: '(WithBlock) is deprecated: this DialOption is not supported by NewClient'
+      text: 'WithBlock is deprecated: this DialOption is not supported by NewClient'
 
     # An argument that always receives the same value is often not a problem.
     - linters: [unparam]

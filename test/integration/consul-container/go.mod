@@ -2,7 +2,7 @@ module github.com/hashicorp/consul/test/integration/consul-container
 
 go 1.22.5
 
-toolchain go1.22.6
+toolchain go1.22.7
 
 replace github.com/hashicorp/consul => ../../..
 
