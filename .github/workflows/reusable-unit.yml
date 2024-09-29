@@ -137,12 +137,12 @@ jobs:
           RUN_ID=$(head /dev/urandom | tr -dc A-Z | head -c8)
           echo "The run ID is $RUN_ID"
           echo "run-id=$RUN_ID" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         if: ${{ !cancelled() }}
         with:
           name: ${{ steps.generate-run-id.outputs.run-id }}-test-results
           path: ${{env.TEST_RESULTS}}
-      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         if: ${{ !cancelled() }}
         with:
           name: ${{ steps.generate-run-id.outputs.run-id }}-jsonfile
