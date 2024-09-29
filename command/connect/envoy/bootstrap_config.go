@@ -521,17 +521,18 @@ func resourceTagSpecifiers(omitDeprecatedTags bool) ([]string, error) {
 }
 
 func formatStatsTags(tags []string) string {
-	var output string
-	if len(tags) > 0 {
-		// use_all_default_tags is true by default but we'll make it explicit!
-		output = `{
-			"stats_tags": [
-				` + strings.Join(tags, ",\n") + `
-			],
-			"use_all_default_tags": true
-		}`
+	if len(tags) == 0 {
+		return ""
 	}
-	return output
+	statsConfig := map[string]interface{}{
+		"stats_tags":            tags,
+		"use_all_default_tags": true,
+	}
+	output, err := json.Marshal(statsConfig)
+	if err != nil {
+		return ""
+	}
+	return string(output)
 }
 
 func generateStatsTags(args *BootstrapTplArgs, initialTags []string, omitDeprecatedTags bool) ([]string, error) {
@@ -616,11 +617,15 @@ func generateStatsTags(args *BootstrapTplArgs, initialTags []string, omitDepreca
 			// Skip anything already set explicitly.
 			continue
 		}
-		tagJSON := `{
-			"tag_name": "` + kv.name + `",
-			"fixed_value": "` + kv.val + `"
-		}`
-		tagJSONs = append(tagJSONs, tagJSON)
+		tag := map[string]string{
+			"tag_name":    kv.name,
+			"fixed_value": kv.val,
+		}
+		tagJSON, err := json.Marshal(tag)
+		if err != nil {
+			return nil, err
+		}
+		tagJSONs = append(tagJSONs, string(tagJSON))
 	}
 	return tagJSONs, nil
 }
