@@ -212,8 +212,14 @@ func (u *UintValue) Set(v string) error {
 		u.v = new(uint)
 	}
 	parsed, err := strconv.ParseUint(v, 0, 64)
+	if err != nil {
+		return err
+	}
+	if parsed > uint64(^uint(0)) {
+		return fmt.Errorf("value out of range for uint: %v", parsed)
+	}
 	*(u.v) = (uint)(parsed)
-	return err
+	return nil
 }
 
 // String implements the flag.Value interface.
